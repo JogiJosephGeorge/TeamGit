@@ -1,0 +1,17 @@
+*.cache
+*.FileListAbsolute.txt
+*.exe
+*.pdb
+*.manifest
+.idea
+*.stackdump
+*.zip
+*.bak
+*.aps
+Trace
+ipch
+.vs/
+/.project
+obj
+bin
+Debug
