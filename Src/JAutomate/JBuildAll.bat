@@ -11,7 +11,6 @@ SET DoCopyMMI=1
 
  CALL:JPrintMenu
 
-REM python -c "from JAutomate import JAutomate; JAutomate().RunSlots('1_2', 'True')"
 REM CALL:BuildSource %JConfig% %JPlatform%
 REM CALL:JEveningBuild
 
@@ -79,8 +78,8 @@ REM ------------------------------  Print Menu  --------------------------------
 	IF "%JInput%" == "14" START %JSource%\mmi\mmi\MockLicense.sln
 	IF "%JInput%" == "15" START %JSource%\mmi\mmi\Converters.sln
 	IF "%JInput%" == "20" "C:\Program Files\TortoiseGit\bin\TortoiseGitProc.exe" /command:diff /path:%JSource%
+	IF "%JInput%" == "21" python -c "from JAutomate import JAutomate; JAutomate().PrintMissingIds('%JSource%')"
 	IF "%JInput%" == "30" "C:\Program Files\Git\mingw64\bin\wish.exe" 
-	IF "%JInput%" == "31" python -c "from JAutomate import JAutomate; JAutomate().PrintMenu('%JSource%', '%JTestName%')"
 	IF "%JInput%" == "99" CALL KillAll
 
 	IF "%JInput%" NEQ "0" GOTO :JPrintMenu
@@ -95,34 +94,34 @@ REM ------------------------------  Install MMI  -------------------------------
 	"D:\MmiSetups\%JMajorVer%\%JMajorVer%%JMinorVer%\_Standard installer\MMI_%JMajorVer%%JMinorVer%_setup.exe"
 EXIT /B 0
 
-REM ------------------------------  Run Given Slots  -------------------------------------------------------
-:JRunSlots
-	SET JSlots=%1
-
-	SET JSlots=%JSlots:_= %
-	SET JPause=%2
-
-	FOR %%a IN (%JSlots%) DO (
-		SET IsRunning=False
-		SETLOCAL EnableDelayedExpansion
-		FOR /f %%b IN ('"C:\Program Files (x86)\VMware\VMware Workstation\vmrun.exe" -vp 1 list') DO (
-			SET temp1=%%b
-			SET temp2=!temp1:~15,1!
-			IF "!temp2!" == "%%a" SET IsRunning=True
-		)
-
-		IF "!IsRunning!" == "False" (
-			ECHO Starting VMware %%a
-			START "C:\Program Files (x86)\VMware\VMware Workstation\vmware.exe" "C:\MVS8000\slot%%a\MVS8000_stage2.vmx"
-			PAUSE
-			SET JPause=False
-		) ELSE (
-			ECHO Reseting VMware %%a
-			"C:\Program Files (x86)\VMware\VMware Workstation\vmrun.exe" -vp 1 reset C:\MVS8000\slot%%a\MVS8000_stage2.vmx
-		)
-	)
-	IF "%JPause%" == "True" TIMEOUT 8
-EXIT /B 0
+REM REM ------------------------------  Run Given Slots  -------------------------------------------------------
+REM :JRunSlots
+REM 	SET JSlots=%1
+REM 
+REM 	SET JSlots=%JSlots:_= %
+REM 	SET JPause=%2
+REM 
+REM 	FOR %%a IN (%JSlots%) DO (
+REM 		SET IsRunning=False
+REM 		SETLOCAL EnableDelayedExpansion
+REM 		FOR /f %%b IN ('"C:\Program Files (x86)\VMware\VMware Workstation\vmrun.exe" -vp 1 list') DO (
+REM 			SET temp1=%%b
+REM 			SET temp2=!temp1:~15,1!
+REM 			IF "!temp2!" == "%%a" SET IsRunning=True
+REM 		)
+REM 
+REM 		IF "!IsRunning!" == "False" (
+REM 			ECHO Starting VMware %%a
+REM 			START "C:\Program Files (x86)\VMware\VMware Workstation\vmware.exe" "C:\MVS8000\slot%%a\MVS8000_stage2.vmx"
+REM 			PAUSE
+REM 			SET JPause=False
+REM 		) ELSE (
+REM 			ECHO Reseting VMware %%a
+REM 			"C:\Program Files (x86)\VMware\VMware Workstation\vmrun.exe" -vp 1 reset C:\MVS8000\slot%%a\MVS8000_stage2.vmx
+REM 		)
+REM 	)
+REM 	IF "%JPause%" == "True" TIMEOUT 8
+REM EXIT /B 0
 
 REM ------------------------------  Evening Build  ---------------------------------------------------------
 :JEveningBuild
@@ -154,7 +153,7 @@ REM ------------------------------  Start Handler Console  ---------------------
 	SET JSlots=%2
 
 	REM Running VMware Workstations
-	REM CALL:JRunSlots %JSlots% False
+	REM python -c "from JAutomate import JAutomate; JAutomate().RunSlots('%JSlots%', 'False')"
 
 	REM Kill MMI
 	CALL KillAll
@@ -180,7 +179,9 @@ REM ------------------------------  Restart MMi  -------------------------------
 	CALL KillAll Mmi.exe
 
 	REM Running VMware Workstations
-	IF "%JSlots%" NEQ "" CALL:JRunSlots %JSlots% True
+	IF "%JSlots%" NEQ "" (
+		python -c "from JAutomate import JAutomate; JAutomate().RunSlots('%JSlots%', 'True')"
+	)
 
 	REM COPY MOCK LICENCE
 	IF NOT EXIST %JMOCK_PATH%\License.dll PAUSE
@@ -302,7 +303,7 @@ REM ------------------------------  Run Auto Tests  ----------------------------
 	CALL KillAll
 
 	REM Running VMware Workstations
-	CALL:JRunSlots %JSlots% False
+	python -c "from JAutomate import JAutomate; JAutomate().RunSlots('%JSlots%', 'False')"
 
 	COPY VisionSystem\VisionSystem%J_SRC_NUM%.py %JTestPath%\VisionSystem.py
 	REM "C:\Program Files\7-Zip\7z.exe" x -oC:\ -y "C:\MVSSlots.7z"

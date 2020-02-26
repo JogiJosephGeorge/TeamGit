@@ -1,23 +1,9 @@
 import os
+import re
 import subprocess
 import sys
 
 class JAutomate:
-	def RunSlots(self, slots, canPause):
-		try:
-			slots = slots.split('_')
-
-			exeName = "C:\\Program Files (x86)\\VMware\\VMware Workstation\\vmrun.exe"
-			out, err = subprocess.Popen([exeName, '-vp', '1', 'list'], stderr = subprocess.PIPE).communicate()
-			print "Hi : " + str(out)
-			# if process.stderr:
-			# 	print process.stderr.readlines()
-
-			#for slot in slots:
-			#	print "Slot : " + slot
-		except Exception as ex:
-			print(ex)
-		
 	def PrintMenu(self, source, testName):
 		try:
 			menu = {}
@@ -37,6 +23,7 @@ class JAutomate:
 			menu[14] = 'Open Solution MockLicense'
 			menu[15] = 'Open Solution Converters'
 			menu[20] = 'Open Local Differences'
+			menu[21] = 'Print Missing IDs in mmi.h'
 			menu[99] = 'Kill All'
 			menu[0] = 'EXIT'
 			
@@ -83,6 +70,34 @@ class JAutomate:
 		except Exception as ex:
 			print(ex)
 
+	def RunSlots(self, slots, canPause):
+		try:
+			slots = slots.split('_')
+
+			vmRunExe = "C:\\Program Files (x86)\\VMware\\VMware Workstation\\vmrun.exe"
+			vmWareExe = "C:\\Program Files (x86)\\VMware\\VMware Workstation\\vmware.exe"
+			vmxGenericPath = r'C:\\MVS8000\\slot{}\\MVS8000_stage2.vmx'
+
+			output = subprocess.Popen([vmRunExe, '-vp', '1', 'list'], stdout=subprocess.PIPE).communicate()[0]
+			runningSlots = []
+			searchPattern = r'C:\\MVS8000\\slot(\d*)\\MVS8000_stage2\.vmx'
+			for line in output.split():
+				m = re.search(searchPattern, line, re.IGNORECASE)
+				if m:
+					runningSlots.append(m.group(1))
+
+			for slot in slots:
+				vmxPath = vmxGenericPath.format(slot)
+				if slot in runningSlots:
+					print 'Slot : ' + str(slot) + ' restarted.'
+					subprocess.Popen([vmRunExe, '-vp', '1', 'reset', vmxPath])
+				else:
+					subprocess.Popen([vmWareExe, vmxPath])
+					raw_input("Press any key to continue...")
+					print 'Slot : ' + str(slot) + ' started.'
+		except Exception as ex:
+			print(ex)
+
 	def RunTest(self, JTestPath, JTestName, JStartUp, JDebugVision, JCopyMmi, JConfig, JPlatform):
 		try:
 			JStartUp = True if JStartUp == "1" else False
@@ -124,5 +139,37 @@ class JAutomate:
 			#print str(my.c)
 
 			my.run(JTestName)
+		except Exception as ex:
+			print(ex)
+
+	def PrintMissingIds(self, source):
+		try:
+			lastId = 1
+			fileName = source + '\mmi\mmi\mmi_lang\mmi.h'
+			print 'Missing IDs in ' + fileName
+			singles = []
+			sets = []
+			with open(fileName) as file:
+				lines = file.read().splitlines()
+			for line in lines:
+				parts = line.split()
+				if len(parts) == 3:
+					id = int(parts[2])
+					if lastId + 1 < id:
+						setStart = lastId + 1
+						setEnd = id - 1
+						if setStart == setEnd:
+							singles.append(str(setStart).rjust(5))
+						else:
+							sets.append(('[' + str(setStart)).rjust(6) + ', ' + (str(setEnd) + ']').ljust(6))
+					lastId = max(lastId, id)
+			for i in range(0, len(singles)):
+				if i % 15 == 0:
+					print 
+				print singles[i],
+			for i in range(0, len(sets)):
+				if i % 6 == 0:
+					print 
+				print sets[i],
 		except Exception as ex:
 			print(ex)
