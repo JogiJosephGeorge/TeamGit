@@ -3,7 +3,7 @@ REM ~~~~~~~~~~~~~
 REM Configurations : Debug Release
 REM Platform       : Win32 x64
 
-CALL:JSetSource 2
+CALL:JSetSource 1
 CALL:Initialize %0
 SET IsStartUp=1
 SET IsDebugEnabled=0
@@ -69,7 +69,7 @@ REM ------------------------------  Print Menu  --------------------------------
 	IF "%JInput%" == "4" CALL:J_MMi %JTestName%
 	IF "%JInput%" == "5" CALL:J_Handler_MMi
 	IF "%JInput%" == "6" COPY D:\QuEST\MyProjects\xPort\xPort_IllumReference.xml C:\icos\xPort
-	IF "%JInput%" == "7" COPY %JTestPath%\VisionSystem.py VisionSystem\VisionSystem%J_SRC_NUM%.py
+	IF "%JInput%" == "7" COPY %JSource%\libs\testing\VisionSystem.py VisionSystem\VisionSystem%J_SRC_NUM%.py
 	IF "%JInput%" == "8" CALL:JOpenTestFolder %JTestName%
 	IF "%JInput%" == "9" CALL:JChangeTest
 	IF "%JInput%" == "10" CALL:JInstallMMI 10.4a 7
