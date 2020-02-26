@@ -8,6 +8,7 @@
 *.zip
 *.bak
 *.aps
+*.pyc
 Trace
 ipch
 .vs/
