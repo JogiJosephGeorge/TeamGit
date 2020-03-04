@@ -81,10 +81,10 @@ class JAutomate:
 					print chVertic,
 					for i in range(0, colCnt - 1):
 						if i < len(line):
-							print str(line[i]).ljust(colWidths[i])  + ' ' + chVertic + ' ',
+							print str(line[i]).ljust(colWidths[i])  + ' ' + chVertic,
 					i = colCnt - 1
 					if i < len(line):
-						print str(line[i]).ljust(colWidths[i])  + ' ' + chVertic + ' '
+						print str(line[i]).ljust(colWidths[i])  + ' ' + chVertic
 			self.PrintLine(colWidths, chBotLef, chBotMid, chBotRig, chHorizo)
 		except Exception as ex:
 			print(ex)
@@ -94,7 +94,7 @@ class JAutomate:
 		colCnt = len(colWidths)
 		for i in range(0, colCnt - 1):
 			line += fill * (colWidths[i] + 2) + mid
-		line += fill * (colWidths[-1] + 3) + right
+		line += fill * (colWidths[-1] + 2) + right
 		print line
 
 	def PrintTable1(self, data):
