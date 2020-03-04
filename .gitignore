@@ -16,4 +16,6 @@ ipch
 obj
 bin
 Debug
+Src/JAutomate/SeriousError.txt
 Src/JAutomate/VisionSystem
+Src/JAutomate/SimulatorLog

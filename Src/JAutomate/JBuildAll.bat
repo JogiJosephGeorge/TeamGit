@@ -29,11 +29,11 @@ REM ------------------------------  Set Source  --------------------------------
 	SET JSource=.
 	SET JConfig=Debug
 	SET JPlatform=Win32
-	
-	IF %J_SRC_NUM% == 1 SET JSource=D:\QuEST\CI\Src1
-	IF %J_SRC_NUM% == 2 SET JSource=D:\QuEST\CI\Src2
-	IF %J_SRC_NUM% == 3 SET JSource=D:\QuEST\CI\Src3
-	IF %J_SRC_NUM% == 4 SET JSource=D:\QuEST\CI\Src4
+
+	IF %J_SRC_NUM% == 1 SET JSource=D:\CI\Src1
+	IF %J_SRC_NUM% == 2 SET JSource=D:\CI\Src2
+	IF %J_SRC_NUM% == 3 SET JSource=D:\CI\Src3
+	IF %J_SRC_NUM% == 4 SET JSource=D:\CI\Src4
 EXIT /B 0
 
 REM ------------------------------  Initialize  ------------------------------------------------------------
@@ -52,34 +52,39 @@ REM ------------------------------  Initialize  --------------------------------
 	SET py2=Python27
 	SET py3=Users\1014769\AppData\Local\Programs\Python\Python36-32
 	CALL SET path=%%path:%py3%=%py2%%%
-	
+
 	CALL:JSetTestName
 EXIT /B 0
 
 REM ------------------------------  Print Menu  ------------------------------------------------------------
 :JPrintMenu
 	ECHO OFF
-	python -c "from JAutomate import JAutomate; JAutomate().PrintMenu('%JSource%', '%JTestName%')"
+	CALL:JPython PrintMenu('%JSource%', '%JTestName%')
+
 	SET JInput=%errorlevel%
-	
+
 	IF "%JInput%" == "1" START python -i %JSource%\libs\testing\my.py
 	IF "%JInput%" == "2" CALL:J_AutoTest %JTestName% %IsStartUp% %IsDebugEnabled% %DoCopyMMI%
 	IF "%JInput%" == "3" CALL:J_Handler %JTestName%
 	IF "%JInput%" == "4" CALL:J_MMi %JTestName%
 	IF "%JInput%" == "5" CALL:J_Handler_MMi
-	IF "%JInput%" == "6" COPY D:\QuEST\MyProjects\xPort\xPort_IllumReference.xml C:\icos\xPort
-	IF "%JInput%" == "7" COPY %JSource%\libs\testing\VisionSystem.py VisionSystem\VisionSystem%J_SRC_NUM%.py
-	IF "%JInput%" == "8" CALL:JOpenTestFolder %JTestName%
-	IF "%JInput%" == "9" CALL:JChangeTest
-	IF "%JInput%" == "10" CALL:JInstallMMI 10.4a 7
+
+	IF "%JInput%" == "10" CALL:JInstallMMI 10.4a 9
 	IF "%JInput%" == "11" START %JSource%\handler\cpp\CIT100.sln
 	IF "%JInput%" == "12" START %JSource%\handler\Simulator\CIT100Simulator\CIT100Simulator.sln
 	IF "%JInput%" == "13" START %JSource%\mmi\mmi\Mmi.sln
 	IF "%JInput%" == "14" START %JSource%\mmi\mmi\MockLicense.sln
 	IF "%JInput%" == "15" START %JSource%\mmi\mmi\Converters.sln
-	IF "%JInput%" == "20" "C:\Program Files\TortoiseGit\bin\TortoiseGitProc.exe" /command:diff /path:%JSource%
-	IF "%JInput%" == "21" python -c "from JAutomate import JAutomate; JAutomate().PrintMissingIds('%JSource%')"
-	IF "%JInput%" == "30" "C:\Program Files\Git\mingw64\bin\wish.exe" 
+
+	IF "%JInput%" == "20" CALL:JOpenTestFolder %JTestName%
+	IF "%JInput%" == "21" CALL:JPython OpenLocalDif('%JSource%')
+	IF "%JInput%" == "22" CALL:JChangeTest
+	IF "%JInput%" == "23" CALL:JPython PrintMissingIds('%JSource%')
+	IF "%JInput%" == "24" COPY D:\QuEST\MyProjects\xPort\xPort_IllumReference.xml C:\icos\xPort
+	IF "%JInput%" == "25" COPY %JSource%\libs\testing\VisionSystem.py VisionSystem\VisionSystem%J_SRC_NUM%.py
+	IF "%JInput%" == "26" CALL:JPython CopyMockLicense('%JSource%', '%JPlatform%', '%JConfig%')
+	IF "%JInput%" == "27" CALL:JPython CopyDir('D:\\QuEST\\MyProjects\\_AllProjects\\2020\\MCI-32156 Index outside bound of array error\\Diagno', 'C:')
+
 	IF "%JInput%" == "99" CALL KillAll
 
 	IF "%JInput%" NEQ "0" GOTO :JPrintMenu
@@ -153,7 +158,7 @@ REM ------------------------------  Start Handler Console  ---------------------
 	SET JSlots=%2
 
 	REM Running VMware Workstations
-	REM python -c "from JAutomate import JAutomate; JAutomate().RunSlots('%JSlots%', 'False')"
+	REM CALL:JPython RunSlots('%JSlots%', 'False')
 
 	REM Kill MMI
 	CALL KillAll
@@ -179,14 +184,14 @@ REM ------------------------------  Restart MMi  -------------------------------
 	CALL KillAll Mmi.exe
 
 	REM Running VMware Workstations
-	IF "%JSlots%" NEQ "" (
-		python -c "from JAutomate import JAutomate; JAutomate().RunSlots('%JSlots%', 'True')"
-	)
+	IF "%JSlots%" NEQ "" CALL:JPython RunSlots('%JSlots%', 'True')
 
 	REM COPY MOCK LICENCE
 	IF NOT EXIST %JMOCK_PATH%\License.dll PAUSE
 	COPY %JMOCK_PATH%\License.dll %JMMI_PATH% /Y
 	COPY D:\QuEST\MyProjects\xPort\xPort_IllumReference.xml C:\icos\xPort
+
+	TIMEOUT 8
 
 	start %JMMI_PATH%\Mmi.exe
 EXIT /B 0
@@ -204,9 +209,14 @@ EXIT /B 0
 
 REM ------------------------------  Change Test  -----------------------------------------------------------
 :JChangeTest
-	python -c "from JAutomate import JAutomate; JAutomate().SelectTest()"
+	CALL:JPython SelectTest()
 	CALL:JSetTestName
 EXIT /B 0
+
+REM ------------------------------  Call Python  -----------------------------------------------------------
+:JPython
+	python -c "from JAutomate import JAutomate; JAutomate().%*"
+EXIT /B %errorlevel%
 
 REM ------------------------------  Set Test Name  ---------------------------------------------------------
 :JSetTestName
@@ -303,13 +313,13 @@ REM ------------------------------  Run Auto Tests  ----------------------------
 	CALL KillAll
 
 	REM Running VMware Workstations
-	python -c "from JAutomate import JAutomate; JAutomate().RunSlots('%JSlots%', 'False')"
+	CALL:JPython RunSlots('%JSlots%', 'False')
 
 	COPY VisionSystem\VisionSystem%J_SRC_NUM%.py %JTestPath%\VisionSystem.py
 	REM "C:\Program Files\7-Zip\7z.exe" x -oC:\ -y "C:\MVSSlots.7z"
 
 	SET params='%JTestPath%', '%JTName%', '%JStartUp%', '%JDebugVision%', '%JCopyMmi%', '%JConfig%', '%JPlatform%'
-	python -c "from JAutomate import JAutomate; JAutomate().RunTest(%params%)"
+	CALL:JPython RunTest(%params%)
 EXIT /B 0
 
 REM ------------------------------  Run All Tests  ---------------------------------------------------------

@@ -1,59 +1,127 @@
+from collections import OrderedDict
 import os
 import re
 import subprocess
 import sys
+import shutil
 
 class JAutomate:
 	def PrintMenu(self, source, testName):
 		try:
-			menu = {}
-			menu[1] = 'Open Python'
-			menu[2] = 'Run Auto test'
-			menu[3] = 'Run Handler alone'
-			menu[4] = 'Run MMi alone'
-			menu[5] = 'Run Handler and MMi'
-			menu[6] = 'Copy xPort_IllumReference.xml'
-			menu[7] = 'Copy backup VisionSystem'
-			menu[8] = 'Open Test Folder'
-			menu[9] = 'Change Test'
-			menu[10] = 'Install MMi'
-			menu[11] = 'Open Solution CIT100'
-			menu[12] = 'Open Solution CIT100Simulator'
-			menu[13] = 'Open Solution Mmi'
-			menu[14] = 'Open Solution MockLicense'
-			menu[15] = 'Open Solution Converters'
-			menu[20] = 'Open Local Differences'
-			menu[21] = 'Print Missing IDs in mmi.h'
-			menu[99] = 'Kill All'
-			menu[0] = 'EXIT'
+			data = [
+				['Src', source],
+				['Test', testName],
+				['-'],
+				[1, 'Open Python'],
+				[2, 'Run Auto test'],
+				[3, 'Run Handler alone'],
+				[4, 'Run MMi from Src'],
+				[5, 'Run Handler and MMi'],
+				[],
+				[10, 'Install MMi'],
+				[11, 'Open Solution CIT100'],
+				[12, 'Open Solution CIT100Simulator'],
+				[13, 'Open Solution Mmi'],
+				[14, 'Open Solution MockLicense'],
+				[15, 'Open Solution Converters'],
+				[],
+				[20, 'Open Test Folder'],
+				[21, 'Open Local Differences'],
+				[22, 'Change Test'],
+				[23, 'Print Missing IDs in mmi.h'],
+				[24, 'Copy xPort_IllumReference.xml'],
+				[25, 'Copy backup VisionSystem'],
+				[26, 'Copy Mock License'],
+				[27, 'Copy Diagnostics 32156'],
+				[],
+				[99, 'Kill All'],
+				[0, 'EXIT']
+			]
 			
-			totalLen = 60
-			print ''
-			print ''
-			print '#' + '-' * totalLen + '#'
-			print '#   Source    : ' + source.ljust(totalLen - 15) + '#'
-			print '#   Test Name : ' + testName.ljust(totalLen - 15) + '#'
-			print '#' + '.' * totalLen + '#'
-			print '#' + ' ' * totalLen + '#'
-			for number in menu:
-				print '#' + str(number).rjust(5) + ' - ' + menu[number].ljust(totalLen - 8) + '#'
-			print '#' + ' ' * totalLen + '#'
-			print '#' + '-' * totalLen + '#'
+			self.PrintTable(data, 2)
+
 			userIn = input('Type the number then press ENTER: ')
 			exit (userIn)
 		except Exception as ex:
 			print(ex)
 			exit (999)
 
+	def PrintTable(self, data, colCnt):
+		try:
+			colWidths = []
+			for i in range(0, colCnt):
+				colWidths.append(0)
+
+			for line in data:
+				i = 0
+				for cell in line:
+					colWidths[i] = max(colWidths[i], len(str(cell)))
+					i =+ 1
+
+			chTopLef = chr(218)
+			chTopMid = chr(194)
+			chTopRig = chr(191)
+			chMidLef = chr(195)
+			chMidMid = chr(197)
+			chMidRig = chr(180)
+			chBotLef = chr(192)
+			chBotMid = chr(193)
+			chBotRig = chr(217)
+			chVertic = chr(179)
+			chHorizo = chr(196)
+
+			self.PrintLine(colWidths, chTopLef, chTopMid, chTopRig, chHorizo)
+
+			for line in data:
+				if len(line) == 0:
+					self.PrintLine(colWidths, chVertic, chVertic, chVertic, ' ')
+				elif len(line) == 1 and line[0] == '-':
+					self.PrintLine(colWidths, chMidLef, chMidMid, chMidRig, chHorizo)
+				else:
+					print chVertic,
+					for i in range(0, colCnt - 1):
+						if i < len(line):
+							print str(line[i]).ljust(colWidths[i])  + ' ' + chVertic + ' ',
+					i = colCnt - 1
+					if i < len(line):
+						print str(line[i]).ljust(colWidths[i])  + ' ' + chVertic + ' '
+			self.PrintLine(colWidths, chBotLef, chBotMid, chBotRig, chHorizo)
+		except Exception as ex:
+			print(ex)
+
+	def PrintLine(self, colWidths, left, mid, right, fill):
+		line = left
+		colCnt = len(colWidths)
+		for i in range(0, colCnt - 1):
+			line += fill * (colWidths[i] + 2) + mid
+		line += fill * (colWidths[-1] + 3) + right
+		print line
+
+	def PrintTable1(self, data):
+		try:
+			for line in data:
+				for cell in line:
+					print cell,
+				print ''
+		except Exception as ex:
+			print(ex)
+
 	def SelectTest(self):
 		try:
+			data = [
+				['Num', 'Test Name'],
+				['-']
+			]
 			fileName = 'Tests.txt' 
 			with open(fileName) as file:
 				lines = file.read().splitlines()
 			i = 1
 			for line in lines:
-				print (str(i) + ' ' + line)
+				# print (str(i) + ' ' + line)
+				data.append([i, line])
 				i += 1
+
+			self.PrintTable(data, 2)
 
 			number = input('Select number : ')
 			number -= 1
@@ -70,12 +138,44 @@ class JAutomate:
 		except Exception as ex:
 			print(ex)
 
+	def OpenLocalDif(self, source):
+		try:
+			par = 'C:\\Progra~1\\TortoiseGit\\bin\\TortoiseGitProc.exe /command:diff /path:"' + source + '"'
+			print 'par : ' + par
+			os.system(par)
+			# proc = subprocess.Popen(['C:\\Progra~1\\TortoiseGit\\bin\\TortoiseGitProc.exe', '/command:diff', '/path:"' + source + '"'], stdin=subprocess.PIPE)
+			# s,e = proc.communicate(None)
+			# proc.poll()
+			# print 'Out : ' + str(s)
+			# print 'Err : ' + str(e)
+		except Exception as ex:
+			print(ex)
+
+	def CopyDir(self, Src, Des):
+		try:
+			par = 'XCOPY /S /Y "' + Src + '" "' + Des + '"'
+			print 'Src : ' + Src
+			print 'Des : ' + Des
+			print 'par : ' + par
+			os.system(par)
+		except Exception as ex:
+			print(ex)
+
+	def CopyMockLicense(self, Src, Platform, Config):
+		try:
+			MockPath = Src + '\\mmi\\mmi\\mmi_stat\\integration\\code\\MockLicenseDll\\' + Platform + '\\' + Config + '\\License.dll'
+			par = 'COPY /Y "' + MockPath + '" "C:/Icos"'
+			print 'par : ' + par
+			os.system(par)
+		except Exception as ex:
+			print(ex)
+
 	def RunSlots(self, slots, canPause):
 		try:
 			slots = slots.split('_')
-
-			vmRunExe = "C:\\Program Files (x86)\\VMware\\VMware Workstation\\vmrun.exe"
-			vmWareExe = "C:\\Program Files (x86)\\VMware\\VMware Workstation\\vmware.exe"
+			vmWS = "C:\\Program Files (x86)\\VMware\\VMware Workstation\\"
+			vmRunExe = vmWS + "vmrun.exe"
+			vmWareExe = vmWS + "vmware.exe"
 			vmxGenericPath = r'C:\\MVS8000\\slot{}\\MVS8000_stage2.vmx'
 
 			output = subprocess.Popen([vmRunExe, '-vp', '1', 'list'], stdout=subprocess.PIPE).communicate()[0]
@@ -93,6 +193,7 @@ class JAutomate:
 					subprocess.Popen([vmRunExe, '-vp', '1', 'reset', vmxPath])
 				else:
 					subprocess.Popen([vmWareExe, vmxPath])
+					print 'Start Slot : ' + str(slot)
 					raw_input("Press any key to continue...")
 					print 'Slot : ' + str(slot) + ' started.'
 		except Exception as ex:

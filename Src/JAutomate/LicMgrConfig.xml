@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LicMgr xmlns="http://schemas.icos.be/global/LicMgrConfigFile-1.0">
+	<Department name="Component Inspector MMI">
+		<Modules>
+			<Add name="UI Upgrade" id="{1D115E58-36A1-43E5-8601-BA145FAF2EE2}" />
+		</Modules>
+	</Department>
+</LicMgr>
