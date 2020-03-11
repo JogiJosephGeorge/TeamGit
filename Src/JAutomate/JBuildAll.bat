@@ -1,11 +1,11 @@
+ECHO OFF
 REM Build Options
 REM ~~~~~~~~~~~~~
 REM Configurations : Debug Release
 REM Platform       : Win32 x64
 
-CALL:JSetSource 1
+CALL:JSetSource 2
 CALL:Initialize %0
-SET IsStartUp=1
 SET IsDebugEnabled=0
 SET DoCopyMMI=1
 
@@ -59,15 +59,17 @@ EXIT /B 0
 REM ------------------------------  Print Menu  ------------------------------------------------------------
 :JPrintMenu
 	ECHO OFF
-	CALL:JPython PrintMenu('%JSource%', '%JTestName%')
+	CALL:SetBranch
+	CALL:JPython PrintMenu(%J_SRC_NUM%, '%JTestName%')
 
 	SET JInput=%errorlevel%
 
 	IF "%JInput%" == "1" START python -i %JSource%\libs\testing\my.py
-	IF "%JInput%" == "2" CALL:J_AutoTest %JTestName% %IsStartUp% %IsDebugEnabled% %DoCopyMMI%
-	IF "%JInput%" == "3" CALL:J_Handler %JTestName%
-	IF "%JInput%" == "4" CALL:J_MMi %JTestName%
-	IF "%JInput%" == "5" CALL:J_Handler_MMi
+	IF "%JInput%" == "2" CALL:J_AutoTest %JTestName% 0 %IsDebugEnabled% %DoCopyMMI%
+	IF "%JInput%" == "3" CALL:J_AutoTest %JTestName% 1 %IsDebugEnabled% %DoCopyMMI%
+	IF "%JInput%" == "4" CALL:J_Handler %JTestName%
+	IF "%JInput%" == "5" CALL:J_MMi %JTestName%
+	IF "%JInput%" == "6" CALL:J_Handler_MMi
 
 	IF "%JInput%" == "10" CALL:JInstallMMI 10.4a 9
 	IF "%JInput%" == "11" START %JSource%\handler\cpp\CIT100.sln
@@ -75,17 +77,18 @@ REM ------------------------------  Print Menu  --------------------------------
 	IF "%JInput%" == "13" START %JSource%\mmi\mmi\Mmi.sln
 	IF "%JInput%" == "14" START %JSource%\mmi\mmi\MockLicense.sln
 	IF "%JInput%" == "15" START %JSource%\mmi\mmi\Converters.sln
+	IF "%JInput%" == "16" START "C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\Common7\IDE\devenv.exe" /
 
 	IF "%JInput%" == "20" CALL:JOpenTestFolder %JTestName%
-	IF "%JInput%" == "21" CALL:JPython OpenLocalDif('%JSource%')
+	IF "%JInput%" == "21" CALL:JPython OpenLocalDif(%J_SRC_NUM%)
 	IF "%JInput%" == "22" CALL:JChangeTest
-	IF "%JInput%" == "23" CALL:JPython PrintMissingIds('%JSource%')
+	IF "%JInput%" == "23" CALL:JPython PrintMissingIds(%J_SRC_NUM%)
 	IF "%JInput%" == "24" COPY D:\QuEST\MyProjects\xPort\xPort_IllumReference.xml C:\icos\xPort
-	IF "%JInput%" == "25" COPY %JSource%\libs\testing\VisionSystem.py VisionSystem\VisionSystem%J_SRC_NUM%.py
-	IF "%JInput%" == "26" CALL:JPython CopyMockLicense('%JSource%', '%JPlatform%', '%JConfig%')
-	IF "%JInput%" == "27" CALL:JPython CopyDir('D:\\QuEST\\MyProjects\\_AllProjects\\2020\\MCI-32156 Index outside bound of array error\\Diagno', 'C:')
+	IF "%JInput%" == "25" CALL:JPython ModifyVisionSystem(%J_SRC_NUM%)
+	IF "%JInput%" == "26" CALL:JPython CopyMockLicense(%J_SRC_NUM%, '%JPlatform%', '%JConfig%')
+	IF "%JInput%" == "27" CALL:JPython PrintBranches()
 
-	IF "%JInput%" == "99" CALL KillAll
+	IF "%JInput%" == "99" CALL:JPython KillTask()
 
 	IF "%JInput%" NEQ "0" GOTO :JPrintMenu
 EXIT /B 0
@@ -130,10 +133,12 @@ REM EXIT /B 0
 
 REM ------------------------------  Evening Build  ---------------------------------------------------------
 :JEveningBuild
-	CALL::Message ********************   STARTING EVENING BUILD    ********************
-
 	REM SET JSrcNums=1 2 3 4
 	SET JSrcNums=1
+
+	ECHO The following sources are included in build.
+	CALL:JPython PrintBranches(%JSrcNums%)
+	CALL::Message ********************   STARTING EVENING BUILD    ********************
 
 	FOR %%A IN (%JSrcNums%) DO (
 		CALL:JSetSource %%A
@@ -145,7 +150,7 @@ REM ------------------------------  Evening Build  -----------------------------
 		CALL:BuildSource %JConfig% %JPlatform%
 	)
 
-	 CALL:JShutDown
+	REM CALL:JShutDown
 	REM CALL:JRestart
 
 	CALL::JPrint Evening Build Completed.
@@ -153,47 +158,48 @@ EXIT /B 0
 
 REM ------------------------------  Start Handler Console  -------------------------------------------------
 :J_Handler
-	SET HandlerPath=%JSource%/handler
-	SET TestName=%1
-	SET JSlots=%2
+	CALL:JPython StartHandler('%JSource%', '%1')
 
-	REM Running VMware Workstations
-	REM CALL:JPython RunSlots('%JSlots%', 'False')
-
-	REM Kill MMI
-	CALL KillAll
-
-	ECHO Starting Console
-	start %HandlerPath%/cpp/bin/Win32/debug/system/console.exe %HandlerPath%/tests/%TestName%~
-
-	ECHO Starting Simulator
-	start %HandlerPath%/Simulator/ApplicationFiles/bin/x86/Debug/CIT100Simulator.exe %HandlerPath%/tests/%TestName%~ %HandlerPath%/cpp/bin/Win32/debug/system
-
-	REM ECHO Starting HostCamServer
-	REM start C:/MVS7000/software_29.6.0_MVS7000_Daily.20150212_1/hostsw/hostcam/HostCamServer.exe
+	REM SET HandlerPath=%JSource%/handler
+	REM SET TestName=%1
+	REM SET JSlots=%2
+	REM
+	REM REM Kill MMI
+	REM CALL KillAll
+	REM
+	REM ECHO Starting Console
+	REM start %HandlerPath%/cpp/bin/Win32/debug/system/console.exe %HandlerPath%/tests/%TestName%~
+	REM
+	REM ECHO Starting Simulator
+	REM start %HandlerPath%/Simulator/ApplicationFiles/bin/x86/Debug/CIT100Simulator.exe %HandlerPath%/tests/%TestName%~ %HandlerPath%/cpp/bin/Win32/debug/system
+	REM
+	REM REM ECHO Starting HostCamServer
+	REM REM start C:/MVS7000/software_29.6.0_MVS7000_Daily.20150212_1/hostsw/hostcam/HostCamServer.exe
 EXIT /B 0
 
 REM ------------------------------  Restart MMi  -----------------------------------------------------------
 :J_MMi
-	SET JSlots=%2
+	CALL:JPython StartMMi('%JSource%', '%2', '%JPlatform%', '%JConfig%')
 
-	SET JMMI_PATH=%JSource%\mmi\mmi\Bin\%JPlatform%\%JConfig%
-	SET JMOCK_PATH=%JSource%\mmi\mmi\mmi_stat\integration\code\MockLicenseDll\%JPlatform%\%JConfig%
-
-	REM Kill MMI
-	CALL KillAll Mmi.exe
-
-	REM Running VMware Workstations
-	IF "%JSlots%" NEQ "" CALL:JPython RunSlots('%JSlots%', 'True')
-
-	REM COPY MOCK LICENCE
-	IF NOT EXIST %JMOCK_PATH%\License.dll PAUSE
-	COPY %JMOCK_PATH%\License.dll %JMMI_PATH% /Y
-	COPY D:\QuEST\MyProjects\xPort\xPort_IllumReference.xml C:\icos\xPort
-
-	TIMEOUT 8
-
-	start %JMMI_PATH%\Mmi.exe
+	REM SET JSlots=%2
+	REM
+	REM SET JMMI_PATH=%JSource%\mmi\mmi\Bin\%JPlatform%\%JConfig%
+	REM SET JMOCK_PATH=%JSource%\mmi\mmi\mmi_stat\integration\code\MockLicenseDll\%JPlatform%\%JConfig%
+	REM
+	REM REM Kill MMI
+	REM CALL KillAll Mmi.exe
+	REM
+	REM REM Running VMware Workstations
+	REM IF "%JSlots%" NEQ "" CALL:JPython RunSlots('%JSlots%', 'True')
+	REM
+	REM REM COPY MOCK LICENCE
+	REM IF NOT EXIST %JMOCK_PATH%\License.dll PAUSE
+	REM COPY %JMOCK_PATH%\License.dll %JMMI_PATH% /Y
+	REM COPY D:\QuEST\MyProjects\xPort\xPort_IllumReference.xml C:\icos\xPort
+	REM
+	REM TIMEOUT 8
+	REM
+	REM start %JMMI_PATH%\Mmi.exe
 EXIT /B 0
 
 REM ------------------------------  Start Handler and MMi  -------------------------------------------------
@@ -228,13 +234,13 @@ REM ------------------------------  Build Source  ------------------------------
 	SET JConfig=%1
 	SET JPlatform=%2
 
-	SET JOutPath=%JSource%/Out_
+	SET JOutPath=%JSource%\Out_
 
 	SET JSimuPF=x86
 	IF %JPlatform% == "x64" (SET JSimuPF=x64)
 
 	SET JErrorLevel=0
-	FOR /F "tokens=2" %%a IN ('git -C %JSource% branch ') DO (SET JBranch=%%a)
+	CALL:SetBranch
 	SET JSimulPath=%JSource%/handler/Simulator/CIT100Simulator/CIT100Simulator
 	CALL::JPrint Start building : %JSource% ["%JConfig%|%JPlatform%"] %JBranch%
 	CALL:BuildSolution %JSource%/handler/cpp/CIT100 "%JConfig%|%JPlatform%" %JOutPath%Handler
@@ -249,14 +255,90 @@ REM ------------------------------  Build Source  ------------------------------
 	IF %ERRORLEVEL% NEQ 0 (SET JErrorLevel=%ERRORLEVEL%)
 EXIT /B 0
 
+REM ------------------------------  Set Branch  ------------------------------------------------------------
+:SetBranch
+	FOR /F "tokens=2" %%a IN ('git -C %JSource% branch ') DO (SET JBranch=%%a)
+EXIT /B 0
+
 REM ------------------------------  Clean Source  ----------------------------------------------------------
 :CleanSource
 	CALL::JPrint Start cleaning : %JSource%
-	GIT -C %JSource% clean -fx -d
+	REM GIT -C %JSource% clean -fx -d
 
-	GIT -C %JSource% submodule update --init --recursive
+	rem GIT -C %JSource% submodule update --init --recursive
 
-	%JSource%\mmi\mmi\Mmi.sln
+	REM %JSource%\mmi\mmi\Mmi.sln
+
+	RMDIR /S /Q %JSource%\Ifcs
+	RMDIR /S /Q %JSource%\mmi\mmi\Bin
+	RMDIR /S /Q %JSource%\mmi\mmi\Temp
+	RMDIR /S /Q %JSource%\handler\cpp\bin
+	RMDIR /S /Q %JSource%\handler\cpp\output
+
+	RMDIR /S /Q %JSource%\handler\Simulator\ApplicationFiles\bin
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\ExternalUtility\bin
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\CITFootPrint\bin
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\CITSimAdapter\bin
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\CITSimDevices\bin
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\CITSimConfiguration\bin
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\CITSimCommon\bin
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\CIT100SimCore\bin
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\CIDHRDevices\bin
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\UnitTest\bin
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\CIT50Devices\bin
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\MapForms\bin
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\CITSimCommon\obj
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\CIT100Simulator\obj
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\CIT100SimCore\obj
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\CIDHRDevices\obj
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\UnitTest\obj
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\CIT50Devices\obj
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\MapForms\obj
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\ReportAnalyser\obj
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\ExternalUtility\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\UIFilterDefinition\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\XSideAlignment\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\RecipeOverviewModule.Test\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\UIAreas\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\Ocv.WPF.SurfaceModule.Test\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\ProtocolLayerWaCS\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\UIWaferAlignment\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\Authentication\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\RecipeOverviewModule\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\MainModule\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\ProtocolLayerRecipeOverviewCS\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\SurfaceModule\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\OcvMainModule\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\UIOcv.Test\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\ProtocolLayerOcvCS\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\UIOcv\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\UICalib.Test\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\ProtocolLayerCalibCS\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\ProtocolLayerCadCS\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\ProtocolLayerLead3DCS\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\UICalib\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\ProtocolLayerLead2DCS\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\ProtocolLayerCommonLeadedCS\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\UILeadDefinition\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\WPFGUI\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\WPF_Mmi_SPC_GUI_WPF\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\UIWPF\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\CommonLeaded\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\UILead3D\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\UICommonLeaded\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\UILead2D\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\WPF_Mmi_SPC_GUI_WPF.Test\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\WPFCommon.Test\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\WPFCommon\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\Helixtoolkit\HelixToolkit.Wpf\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\HtmlPrinter\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\luxbeam_64dll\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\MmiSaveLogs\obj
+	RMDIR /S /Q %JSource%\mmi\mmi\XSL\obj
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\CITFootPrint\obj
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\CITSimAdapter\obj
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\CITSimDevices\obj
+	RMDIR /S /Q %JSource%\handler\Simulator\CIT100Simulator\CITSimConfiguration\obj
 
 EXIT /B 0
 
@@ -277,12 +359,9 @@ REM ------------------------------  Build Solution  ----------------------------
 	
 	ECHO Building %SolutionFile% [%JBuildConf%]
 	SET JDevEnvExe="%VS120COMNTOOLS%../IDE/devenv.com"
-	%JDevEnvExe% %SolutionFile% /build %JBuildConf% /out %JOutFile%.txt
-	IF %ERRORLEVEL% == 0 (
-		CALL::JPrint Build Success  : %SolutionFile%
-	) ELSE (
-		CALL::JPrint Build Failed   : %SolutionFile%
-	)
+	%JDevEnvExe% %SolutionFile% /build %JBuildConf% /out %JOutFile%.txt | findstr ">------"
+	CALL::JPrint Solution File : %SolutionFile%
+	TYPE %JOutFile%.txt | findstr "Build:" | findstr "====" >> %JCD%/JLog.txt
 EXIT /B 0
 
 REM ------------------------------  Run CDA Tests  ---------------------------------------------------------
@@ -309,14 +388,12 @@ REM ------------------------------  Run Auto Tests  ----------------------------
 	SET JCopyMmi=%5
 	SET JTestPath=%JSource%\\libs\\testing
 
-	REM Kill All
-	CALL KillAll
+	CALL:JPython KillTask()
 
 	REM Running VMware Workstations
 	CALL:JPython RunSlots('%JSlots%', 'False')
 
-	COPY VisionSystem\VisionSystem%J_SRC_NUM%.py %JTestPath%\VisionSystem.py
-	REM "C:\Program Files\7-Zip\7z.exe" x -oC:\ -y "C:\MVSSlots.7z"
+	CALL:JPython ModifyVisionSystem(%J_SRC_NUM%)
 
 	SET params='%JTestPath%', '%JTName%', '%JStartUp%', '%JDebugVision%', '%JCopyMmi%', '%JConfig%', '%JPlatform%'
 	CALL:JPython RunTest(%params%)

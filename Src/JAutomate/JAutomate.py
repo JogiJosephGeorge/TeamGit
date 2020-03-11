@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import json
 import os
 import re
 import subprocess
@@ -6,17 +7,24 @@ import sys
 import shutil
 
 class JAutomate:
-	def PrintMenu(self, source, testName):
+
+	sources = []
+
+	def PrintMenu(self, srcNumber, testName):
 		try:
+			source = self.GetSource(srcNumber)
+			branch = self.GetBranch(source)
 			data = [
 				['Src', source],
 				['Test', testName],
+				['Branch', branch],
 				['-'],
 				[1, 'Open Python'],
 				[2, 'Run Auto test'],
-				[3, 'Run Handler alone'],
-				[4, 'Run MMi from Src'],
-				[5, 'Run Handler and MMi'],
+				[3, 'Run Auto test (Startup only)'],
+				[4, 'Run Handler alone'],
+				[5, 'Run MMi from Src'],
+				[6, 'Run Handler and MMi'],
 				[],
 				[10, 'Install MMi'],
 				[11, 'Open Solution CIT100'],
@@ -30,33 +38,35 @@ class JAutomate:
 				[22, 'Change Test'],
 				[23, 'Print Missing IDs in mmi.h'],
 				[24, 'Copy xPort_IllumReference.xml'],
-				[25, 'Copy backup VisionSystem'],
+				[25, 'Modify VisionSystem'],
 				[26, 'Copy Mock License'],
-				[27, 'Copy Diagnostics 32156'],
+				[27, 'Print All Branches'],
 				[],
 				[99, 'Kill All'],
 				[0, 'EXIT']
 			]
 			
-			self.PrintTable(data, 2)
-
+			self.PrintTable(data)
 			userIn = input('Type the number then press ENTER: ')
 			exit (userIn)
 		except Exception as ex:
 			print(ex)
 			exit (999)
 
-	def PrintTable(self, data, colCnt):
+	def PrintTable(self, data):
 		try:
+			colCnt = 0
 			colWidths = []
-			for i in range(0, colCnt):
-				colWidths.append(0)
 
 			for line in data:
 				i = 0
 				for cell in line:
-					colWidths[i] = max(colWidths[i], len(str(cell)))
-					i =+ 1
+					if len(colWidths) > i:
+						colWidths[i] = max(colWidths[i], len(str(cell)))
+					else:
+						colWidths.append(len(str(cell)))
+					i = i + 1
+					colCnt = max(colCnt, i)
 
 			chTopLef = chr(218)
 			chTopMid = chr(194)
@@ -78,13 +88,14 @@ class JAutomate:
 				elif len(line) == 1 and line[0] == '-':
 					self.PrintLine(colWidths, chMidLef, chMidMid, chMidRig, chHorizo)
 				else:
-					print chVertic,
-					for i in range(0, colCnt - 1):
+					toPrint = chVertic
+					for i in range(0, colCnt):
+						cell = ''
 						if i < len(line):
-							print str(line[i]).ljust(colWidths[i])  + ' ' + chVertic,
-					i = colCnt - 1
-					if i < len(line):
-						print str(line[i]).ljust(colWidths[i])  + ' ' + chVertic
+							cell = str(line[i])
+						cell = cell.ljust(colWidths[i])
+						toPrint += cell + ' ' + chVertic
+					print toPrint
 			self.PrintLine(colWidths, chBotLef, chBotMid, chBotRig, chHorizo)
 		except Exception as ex:
 			print(ex)
@@ -93,8 +104,8 @@ class JAutomate:
 		line = left
 		colCnt = len(colWidths)
 		for i in range(0, colCnt - 1):
-			line += fill * (colWidths[i] + 2) + mid
-		line += fill * (colWidths[-1] + 2) + right
+			line += fill * (colWidths[i] + 1) + mid
+		line += fill * (colWidths[-1] + 1) + right
 		print line
 
 	def PrintTable1(self, data):
@@ -121,7 +132,7 @@ class JAutomate:
 				data.append([i, line])
 				i += 1
 
-			self.PrintTable(data, 2)
+			self.PrintTable(data)
 
 			number = input('Select number : ')
 			number -= 1
@@ -138,8 +149,9 @@ class JAutomate:
 		except Exception as ex:
 			print(ex)
 
-	def OpenLocalDif(self, source):
+	def OpenLocalDif(self, srcNumber):
 		try:
+			source = self.GetSource(srcNumber)
 			par = 'C:\\Progra~1\\TortoiseGit\\bin\\TortoiseGitProc.exe /command:diff /path:"' + source + '"'
 			print 'par : ' + par
 			os.system(par)
@@ -161,12 +173,34 @@ class JAutomate:
 		except Exception as ex:
 			print(ex)
 
-	def CopyMockLicense(self, Src, Platform, Config):
+	def CopyMockLicense(self, srcNumber, Platform, Config):
 		try:
-			MockPath = Src + '\\mmi\\mmi\\mmi_stat\\integration\\code\\MockLicenseDll\\' + Platform + '\\' + Config + '\\License.dll'
-			par = 'COPY /Y "' + MockPath + '" "C:/Icos"'
+			print '*' * 10 + ' NOT IMPLEMENTED ' + '*' * 10
+			# self.CopyFile(MockPath, 'C:/Icos')
+		except Exception as ex:
+			print(ex)
+
+	def CopyFile(self, Src, Des):
+		try:
+			par = 'COPY /Y "' + Src + '" "' + Des + '"'
 			print 'par : ' + par
 			os.system(par)
+		except Exception as ex:
+			print(ex)
+
+	def ModifyVisionSystem(self, srcNumber):
+		try:
+			source = self.GetSource(srcNumber)
+
+			line = 'shutil.copy2(os.path.join(mvsSlots, slot, slot + ".bat"), os.path.join(self.mvsPath, slot, slot + ".bat"))'
+			oldLine = ' ' + line
+			newLine = ' #' + line
+			fileName = source + '\\libs\\testing\\visionsystem.py'
+			with open(fileName) as f:
+				newText = f.read().replace(oldLine, newLine)
+			with open(fileName, "w") as f:
+				f.write(newText)
+
 		except Exception as ex:
 			print(ex)
 
@@ -243,8 +277,100 @@ class JAutomate:
 		except Exception as ex:
 			print(ex)
 
-	def PrintMissingIds(self, source):
+	def KillTask(self, exeName = ''):
 		try:
+			print 'exeName : ' + exeName
+			par = 'KillAll ' + exeName
+			print 'par : ' + par
+			#os.system(par)
+		except Exception as ex:
+			print(ex)
+
+	def StartHandler(self, source, testName):
+		try:
+			self.KillTask()
+
+			consoleExe = source + '/handler/cpp/bin/Win32/debug/system/console.exe'
+			testTempDir = source + '/handler/tests/' + testName + '~'
+			par = 'start ' + consoleExe + ' ' + testTempDir
+			print par
+			os.system(par)
+
+			simulatorExe = source + '/handler/Simulator/ApplicationFiles/bin/x86/Debug/CIT100Simulator.exe'
+			handlerSysPath = source + '/handler/cpp/bin/Win32/debug/system'
+			par = 'start ' + simulatorExe + ' ' + testTempDir + ' ' + handlerSysPath
+			print par
+			os.system(par)
+		except Exception as ex:
+			print(ex)
+
+	def StartMMi(self, source, slots, platform, config):
+		try:
+			self.KillTask('MMi.exe')
+			self.RunSlots(slots, True)
+
+			MmiPath = source + '\\mmi\\mmi\\Bin\\' + platform + '\\' + config
+			print 'MmiPath  :' + MmiPath
+			MockPath = source + '\\mmi\\mmi\\mmi_stat\\integration\\code\\MockLicenseDll\\' + platform + '\\' + config
+			print 'MockPath : ' + MockPath
+
+			self.CopyFile(MockPath, MmiPath)
+			self.CopyFile('D:\\QuEST\\MyProjects\\xPort\\xPort_IllumReference.xml', 'C:\\icos\\xPort')
+
+			self.Timeout(8)
+
+			mmiExe = MmiPath + '\\Mmi.exe'
+			par = 'start ' + mmiExe
+			print par
+			os.system(par)
+		except Exception as ex:
+			print(ex)
+
+	def Timeout(self, seconds):
+		try:
+			par = 'timeout ' + str(seconds)
+			print par
+			os.system(par)
+		except Exception as ex:
+			print(ex)
+
+	def PrintBranches(self, *args):
+		try:
+			data = [
+				['Source', 'Branch'],
+				['-']
+			]
+			tempSources = []
+			if len(args) == 0:
+				tempSources = self.sources
+			else:
+				for elem in args:
+					if elem > len(self.sources):
+						print 'Wrong source index is given !!!'
+					else:
+						tempSources.append(self.sources[elem - 1])
+			for source in tempSources:
+				data.append([source, self.GetBranch(source)])
+			self.PrintTable(data)
+		except Exception as ex:
+			print(ex)
+
+	def GetBranch(self, source):
+		try:
+			params = ['git', '-C', source, 'branch']
+			output = subprocess.Popen(params, stdout=subprocess.PIPE).communicate()[0]
+			isCurrent = False
+			for part in output.split():
+				if isCurrent:
+					return part
+				if part == '*':
+					isCurrent = True
+		except Exception as ex:
+			print(ex)
+
+	def PrintMissingIds(self, srcNumber):
+		try:
+			source = self.GetSource(srcNumber)
 			lastId = 1
 			fileName = source + '\mmi\mmi\mmi_lang\mmi.h'
 			print 'Missing IDs in ' + fileName
@@ -272,5 +398,21 @@ class JAutomate:
 				if i % 6 == 0:
 					print 
 				print sets[i],
+		except Exception as ex:
+			print(ex)
+
+	def ReadConfigFile(self):
+		with open('JAutomate.ini') as f:
+			data = json.load(f)
+		self.sources = data['sources']
+
+	def GetSource(self, srcNumber):
+		try:
+			self.ReadConfigFile()
+			srcNumber = int(srcNumber)
+			if len(self.sources) < srcNumber:
+				print 'Wrong index'
+				return
+			return self.sources[srcNumber - 1]
 		except Exception as ex:
 			print(ex)
