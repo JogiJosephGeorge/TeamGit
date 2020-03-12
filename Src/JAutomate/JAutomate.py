@@ -29,9 +29,9 @@ class JAutomate:
 				[10, 'Install MMi'],
 				[11, 'Open Solution CIT100'],
 				[12, 'Open Solution CIT100Simulator'],
-				[13, 'Open Solution Mmi'],
-				[14, 'Open Solution MockLicense'],
-				[15, 'Open Solution Converters'],
+				[14, 'Open Solution Mmi'],
+				[15, 'Open Solution MockLicense'],
+				[16, 'Open Solution Converters'],
 				[],
 				[20, 'Open Test Folder'],
 				[21, 'Open Local Differences'],
@@ -42,6 +42,8 @@ class JAutomate:
 				[26, 'Copy Mock License'],
 				[27, 'Print All Branches'],
 				[],
+				[91, 'Build'],
+				[92, 'Clean Build'],
 				[99, 'Kill All'],
 				[0, 'EXIT']
 			]
@@ -282,7 +284,7 @@ class JAutomate:
 			print 'exeName : ' + exeName
 			par = 'KillAll ' + exeName
 			print 'par : ' + par
-			#os.system(par)
+			os.system(par)
 		except Exception as ex:
 			print(ex)
 
@@ -334,21 +336,23 @@ class JAutomate:
 		except Exception as ex:
 			print(ex)
 
-	def PrintBranches(self, *args):
+	def PrintBranches(self, branchNums = ''):
 		try:
+			self.ReadConfigFile()
 			data = [
 				['Source', 'Branch'],
 				['-']
 			]
 			tempSources = []
-			if len(args) == 0:
+			if branchNums == '':
 				tempSources = self.sources
 			else:
-				for elem in args:
-					if elem > len(self.sources):
+				for branchNum in branchNums.split():
+					num = int(branchNum)
+					if num > len(self.sources):
 						print 'Wrong source index is given !!!'
 					else:
-						tempSources.append(self.sources[elem - 1])
+						tempSources.append(self.sources[num - 1])
 			for source in tempSources:
 				data.append([source, self.GetBranch(source)])
 			self.PrintTable(data)

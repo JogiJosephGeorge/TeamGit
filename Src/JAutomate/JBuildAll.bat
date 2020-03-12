@@ -12,7 +12,6 @@ SET DoCopyMMI=1
  CALL:JPrintMenu
 
 REM CALL:BuildSource %JConfig% %JPlatform%
-REM CALL:JEveningBuild
 
 REM SET JCdaTestName=GageRnR
 REM RUN CDA TEST WITH (IsDebugEnabled)
@@ -74,10 +73,9 @@ REM ------------------------------  Print Menu  --------------------------------
 	IF "%JInput%" == "10" CALL:JInstallMMI 10.4a 9
 	IF "%JInput%" == "11" START %JSource%\handler\cpp\CIT100.sln
 	IF "%JInput%" == "12" START %JSource%\handler\Simulator\CIT100Simulator\CIT100Simulator.sln
-	IF "%JInput%" == "13" START %JSource%\mmi\mmi\Mmi.sln
-	IF "%JInput%" == "14" START %JSource%\mmi\mmi\MockLicense.sln
-	IF "%JInput%" == "15" START %JSource%\mmi\mmi\Converters.sln
-	IF "%JInput%" == "16" START "C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\Common7\IDE\devenv.exe" /
+	IF "%JInput%" == "14" START %JSource%\mmi\mmi\Mmi.sln
+	IF "%JInput%" == "15" START %JSource%\mmi\mmi\MockLicense.sln
+	IF "%JInput%" == "16" START %JSource%\mmi\mmi\Converters.sln
 
 	IF "%JInput%" == "20" CALL:JOpenTestFolder %JTestName%
 	IF "%JInput%" == "21" CALL:JPython OpenLocalDif(%J_SRC_NUM%)
@@ -87,6 +85,9 @@ REM ------------------------------  Print Menu  --------------------------------
 	IF "%JInput%" == "25" CALL:JPython ModifyVisionSystem(%J_SRC_NUM%)
 	IF "%JInput%" == "26" CALL:JPython CopyMockLicense(%J_SRC_NUM%, '%JPlatform%', '%JConfig%')
 	IF "%JInput%" == "27" CALL:JPython PrintBranches()
+
+	IF "%JInput%" == "91" CALL:JEveningBuild
+	IF "%JInput%" == "92" CALL:JEveningBuild True
 
 	IF "%JInput%" == "99" CALL:JPython KillTask()
 
@@ -134,15 +135,17 @@ REM EXIT /B 0
 REM ------------------------------  Evening Build  ---------------------------------------------------------
 :JEveningBuild
 	REM SET JSrcNums=1 2 3 4
-	SET JSrcNums=1
+	SET JSrcNums=3
 
 	ECHO The following sources are included in build.
-	CALL:JPython PrintBranches(%JSrcNums%)
-	CALL::Message ********************   STARTING EVENING BUILD    ********************
+	CALL:JPython PrintBranches('%JSrcNums%')
+	IF "%1" == "True" (
+		CALL::Message ********************   STARTING EVENING BUILD    ********************
 
-	FOR %%A IN (%JSrcNums%) DO (
-		CALL:JSetSource %%A
-		CALL:CleanSource
+		FOR %%A IN (%JSrcNums%) DO (
+			CALL:JSetSource %%A
+			CALL:CleanSource
+		)
 	)
 
 	FOR %%A IN (%JSrcNums%) DO (
@@ -150,7 +153,7 @@ REM ------------------------------  Evening Build  -----------------------------
 		CALL:BuildSource %JConfig% %JPlatform%
 	)
 
-	REM CALL:JShutDown
+	 CALL:JShutDown
 	REM CALL:JRestart
 
 	CALL::JPrint Evening Build Completed.
