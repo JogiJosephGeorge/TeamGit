@@ -13,12 +13,13 @@ REM ~~~~~~~~~~~~~
 REM Configurations : Debug Release
 REM Platform       : Win32 x64
 
-CALL:JSetSource 2
+CALL:JSetSource 4
 CALL:Initialize %0
 SET IsDebugEnabled=0
 SET DoCopyMMI=1
 
- CALL:JEveningBuild
+ rem CALL:JEveningBuild
+ rem CALL:CleanSource
 rem CALL:JPrintMenu
 
 REM CALL:BuildSource %JConfig% %JPlatform%
@@ -239,7 +240,7 @@ EXIT /B %errorlevel%
 
 REM ------------------------------  Set Test Name  ---------------------------------------------------------
 :JSetTestName
-	for /f "delims=" %%a in (Tests.txt) do set JTestName=%%a
+	rem for /f "delims=" %%a in (Tests.txt) do set JTestName=%%a
 EXIT /B 0
 
 REM ------------------------------  Build Source  ----------------------------------------------------------
