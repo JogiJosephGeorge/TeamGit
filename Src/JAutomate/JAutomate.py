@@ -14,7 +14,6 @@ class JAutomate:
 	def StartLoop(self):
 		self.model.ReadConfigFile()
 
-		userIn = [999]
 		while True:
 			userIn = self.PrintMenu()
 			if userIn[0] == 0:
@@ -23,7 +22,7 @@ class JAutomate:
 				print 'Wrong input !!!'
 				continue;
 			userIn[2]()
-	
+
 	def PrintMenu(self):
 		mainMenu = [
 			['Src', self.model.source],
@@ -65,24 +64,24 @@ class JAutomate:
 		return [999]
 
 	def OpenCIT100Sln(self):
-		self.OpenSolution(self.model.source + '\\handler\\cpp\\CIT100.sln')
+		self.OpenSolution(0)
 
 	def OpenCIT100SimulatorSln(self):
-		self.OpenSolution(self.model.source + '\\handler\\Simulator\\CIT100Simulator\\CIT100Simulator.sln')
+		self.OpenSolution(1)
 
 	def OpenMmiSln(self):
-		self.OpenSolution(self.model.source + '\\mmi\\mmi\\Mmi.sln')
+		self.OpenSolution(2)
 
 	def OpenMockLicenseSln(self):
-		self.OpenSolution(self.model.source + '\\mmi\\mmi\\MockLicense.sln')
+		self.OpenSolution(3)
 
 	def OpenConvertersSln(self):
-		self.OpenSolution(self.model.source + '\\mmi\\mmi\\Converters.sln')
+		self.OpenSolution(4)
 
-	def OpenSolution(self, fileName):
+	def OpenSolution(self, index):
 		param = [
-			"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Professional\\Common7\\IDE\\devenv.exe",
-			fileName
+			self.model.DevEnv,
+			self.model.solutions[index]
 		]
 		subprocess.call(param)
 
@@ -187,10 +186,10 @@ class JAutomate:
 
 	def OpenLocalDif(self):
 		try:
-			par = 'C:\\Progra~1\\TortoiseGit\\bin\\TortoiseGitProc.exe /command:diff /path:"' + self.model.source + '"'
+			par = self.model.TortoiseBin + 'TortoiseGitProc.exe /command:diff /path:"' + self.model.source + '"'
 			print 'par : ' + par
 			os.system(par)
-			# proc = subprocess.Popen(['C:\\Progra~1\\TortoiseGit\\bin\\TortoiseGitProc.exe', '/command:diff', '/path:"' + self.model.source + '"'], stdin=subprocess.PIPE)
+			# proc = subprocess.Popen([self.model.TortoiseBin + 'TortoiseGitProc.exe', '/command:diff', '/path:"' + self.model.source + '"'], stdin=subprocess.PIPE)
 			# s,e = proc.communicate(None)
 			# proc.poll()
 			# print 'Out : ' + str(s)
@@ -233,9 +232,8 @@ class JAutomate:
 			f.write(newText)
 
 	def RunSlots(self):
-		vmWS = "C:\\Program Files (x86)\\VMware\\VMware Workstation\\"
-		vmRunExe = vmWS + "vmrun.exe"
-		vmWareExe = vmWS + "vmware.exe"
+		vmRunExe = self.model.VMwareWS + "vmrun.exe"
+		vmWareExe = self.model.VMwareWS + "vmware.exe"
 		vmxGenericPath = r'C:\\MVS8000\\slot{}\\MVS8000_stage2.vmx'
 
 		output = subprocess.Popen([vmRunExe, '-vp', '1', 'list'], stdout=subprocess.PIPE).communicate()[0]
@@ -276,18 +274,18 @@ class JAutomate:
 		my.c.simulator_config = JConfig1
 
 		if self.model.config == 'Release':
-		   if self.model.platform == 'Win32':
+			if self.model.platform == 'Win32':
 			  my.c.mmiBuildConfiguration = 'release'
-		   else:
+			else:
 			  my.c.mmiBuildConfiguration = 'releasex64'
 		else:
-		   if self.model.platform == 'Win32':
+			if self.model.platform == 'Win32':
 			  my.c.mmiBuildConfiguration = 'debug'
-		   else:
+			else:
 			  my.c.mmiBuildConfiguration = 'debugx64'
 		my.c.platform = self.model.platform
-		my.c.mmiConfigurationsPath = "D:\\"
-		my.c.mmiSetupsPath = 'D:\MmiSetups'
+		my.c.mmiConfigurationsPath = self.model.MMiConfigPath
+		my.c.mmiSetupsPath = self.model.MMiSetupsPath
 		#print str(my.c)
 
 		my.run(self.model.testName)
@@ -336,7 +334,7 @@ class JAutomate:
 		os.system(par)
 
 	def CopyIllumRef(self):
-		self.CopyFile('D:\\QuEST\\MyProjects\\xPort\\xPort_IllumReference.xml', 'C:\\icos\\xPort')
+		self.CopyFile('xPort_IllumReference.xml', 'C:\\icos\\xPort')
 
 	def StartHandlerMMi(self):
 		self.StartHandler()
@@ -422,6 +420,14 @@ class Config:
 		self.srcIndex = -1
 		self.tests = []
 		self.testIndex = -1
+		self.solutions = []
+		self.DevEnv = ''
+		self.TortoiseBin = ''
+		self.VMwareWS = ''
+		self.MMiConfigPath = ''
+		self.MMiSetupsPath = ''
+		self.config = 'Debug'
+		self.platform = 'Win32'
 
 		self.source = ''
 		self.branch = ''
@@ -430,8 +436,6 @@ class Config:
 		self.StartUp = True
 		self.DebugVision = False
 		self.CopyMmi = True
-		self.config = 'Debug'
-		self.platform = 'Win32'
 
 	def GetSources(self):
 		return self.sources
@@ -445,6 +449,14 @@ class Config:
 		self.srcIndex = _model['CurrentSrcIndex']
 		self.tests = _model['tests']
 		self.testIndex = _model['CurrentTestIndex']
+		self.solutions = _model['Solutions']
+		self.DevEnv = _model['DevEnv']
+		self.TortoiseBin = _model['TortoiseBin']
+		self.VMwareWS = _model['VMwareWS']
+		self.MMiConfigPath = _model['MMiConfigPath']
+		self.MMiSetupsPath = _model['MMiSetupsPath']
+		self.config = _model['config']
+		self.platform = _model['platform']
 		
 		self.UpdateSource()
 		self.UpdateTest()
@@ -464,6 +476,14 @@ class Config:
 		_model['CurrentSrcIndex'] = self.srcIndex
 		_model['tests'] = self.tests
 		_model['CurrentTestIndex'] = self.testIndex
+		_model['Solutions'] = self.solutions
+		_model['DevEnv'] = self.DevEnv
+		_model['TortoiseBin'] = self.TortoiseBin
+		_model['VMwareWS'] = self.VMwareWS
+		_model['MMiConfigPath'] = self.MMiConfigPath
+		_model['MMiSetupsPath'] = self.MMiSetupsPath
+		_model['config'] = self.config
+		_model['platform'] = self.platform
 
 		with open('JAutomate.ini', 'w') as f:
 			json.dump(_model, f, indent=3)

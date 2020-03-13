@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xPort version="2.0">
+  <Calibers>
+    <Caliber type="1">
+      <BodySize x="20000" y="20000" />
+      <Zones x="2" y="2" />
+      <ZoneOffset>10</ZoneOffset>
+    </Caliber>
+  </Calibers>
+  <Warnings>
+    <OrangeFlag>1.2</OrangeFlag>
+    <RedFlag>1.3</RedFlag>
+  </Warnings>
+  <MaxFactorVariation>2</MaxFactorVariation>
+  <SaturatedPixels>2</SaturatedPixels>
+  <InspectionStations>
+    <InspectionStation id="1">
+      <CaliberType>1</CaliberType>
+      <Applications>
+        <Application name="Bga">
+          <Response Camera="2D Camera" Lens="RLM_Lens C" Illumination="15">
+            <Zone>1</Zone>
+            <Gain>6</Gain>
+            <FineSetting>80</FineSetting>
+            <ExpectedGreyValue>180</ExpectedGreyValue>
+          </Response>
+          <Response Camera="2D Camera" Lens="RLM_Lens C" Illumination="16">
+            <Zone>2</Zone>
+            <Gain>12</Gain>
+            <FineSetting>70</FineSetting>
+            <ExpectedGreyValue>120</ExpectedGreyValue>
+          </Response>
+        </Application>
+        <Application name="Package">
+          <Response Camera="2D Camera" Lens="RLM_Lens E" Illumination="15">
+            <Zone>1</Zone>
+            <Gain>6</Gain>
+            <FineSetting>80</FineSetting>
+            <ExpectedGreyValue>180</ExpectedGreyValue>
+          </Response>
+          <Response Camera="2D Camera" Lens="RLM_Lens E" Illumination="16">
+            <Zone>2</Zone>
+            <Gain>12</Gain>
+            <FineSetting>70</FineSetting>
+            <ExpectedGreyValue>120</ExpectedGreyValue>
+          </Response>
+        </Application>
+      </Applications>
+    </InspectionStation>
+  </InspectionStations>
+</xPort>
