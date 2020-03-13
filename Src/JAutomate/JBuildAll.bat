@@ -1,3 +1,12 @@
+IF "%1" NEQ "" (
+	ECHO Calling %*
+	CALL:%*
+	EXIT /B 0
+)
+
+rem python -c "from JAutomate import JAutomate; JAutomate().StartLoop()"
+rem pause
+
 ECHO OFF
 REM Build Options
 REM ~~~~~~~~~~~~~
@@ -9,7 +18,8 @@ CALL:Initialize %0
 SET IsDebugEnabled=0
 SET DoCopyMMI=1
 
- CALL:JPrintMenu
+ CALL:JEveningBuild
+rem CALL:JPrintMenu
 
 REM CALL:BuildSource %JConfig% %JPlatform%
 
@@ -77,7 +87,7 @@ REM ------------------------------  Print Menu  --------------------------------
 	IF "%JInput%" == "15" START %JSource%\mmi\mmi\MockLicense.sln
 	IF "%JInput%" == "16" START %JSource%\mmi\mmi\Converters.sln
 
-	IF "%JInput%" == "20" CALL:JOpenTestFolder %JTestName%
+	IF "%JInput%" == "20" CALL:JOpenTestFolder %JSource% %JTestName%
 	IF "%JInput%" == "21" CALL:JPython OpenLocalDif(%J_SRC_NUM%)
 	IF "%JInput%" == "22" CALL:JChangeTest
 	IF "%JInput%" == "23" CALL:JPython PrintMissingIds(%J_SRC_NUM%)
@@ -153,7 +163,7 @@ REM ------------------------------  Evening Build  -----------------------------
 		CALL:BuildSource %JConfig% %JPlatform%
 	)
 
-	 CALL:JShutDown
+	rem CALL:JShutDown
 	REM CALL:JRestart
 
 	CALL::JPrint Evening Build Completed.
@@ -213,7 +223,7 @@ EXIT /B 0
 
 REM ------------------------------  Open Test Folder  ------------------------------------------------------
 :JOpenTestFolder
-	start %JSource%\handler\tests\%1
+	start %1\handler\tests\%2
 EXIT /B 0
 
 REM ------------------------------  Change Test  -----------------------------------------------------------
@@ -268,7 +278,7 @@ REM ------------------------------  Clean Source  ------------------------------
 	CALL::JPrint Start cleaning : %JSource%
 	REM GIT -C %JSource% clean -fx -d
 
-	rem GIT -C %JSource% submodule update --init --recursive
+	GIT -C %JSource% submodule update --init --recursive
 
 	REM %JSource%\mmi\mmi\Mmi.sln
 
