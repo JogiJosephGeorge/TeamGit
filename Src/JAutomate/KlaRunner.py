@@ -6,7 +6,7 @@ import subprocess
 import sys
 import shutil
 
-class JAutomate:
+class KlaRunner:
 
 	def __init__(self):
 		self.model = Model()
@@ -561,7 +561,7 @@ class Model:
 		return self.Sources
 
 	def ReadConfigFile(self):
-		with open('JAutomate.ini') as f:
+		with open('KlaRunner.ini') as f:
 			_model = json.load(f)
 		#print _model
 		
@@ -609,9 +609,9 @@ class Model:
 		_model['DebugVision'] = self.DebugVision
 		_model['CopyMmi'] = self.CopyMmi
 
-		with open('JAutomate.ini', 'w') as f:
+		with open('KlaRunner.ini', 'w') as f:
 			json.dump(_model, f, indent=3)
 
 prettyTable = PrettyTable()
 osOper = OsOperations()
-JAutomate().StartLoop()
+KlaRunner().StartLoop()
