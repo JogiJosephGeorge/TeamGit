@@ -35,16 +35,19 @@ class JAutomate:
 			['-'],
 			[1, 'Open Python', self.OpenPython],
 			[2, autoTest, self.RunAutoTest],
-			[3, 'Run MMi alone', self.StartMMi],
-			[4, 'Run Handler and MMi', self.StartHandlerMMi],
+			[3, 'Run Handler and MMi', self.StartHandlerMMi],
+			[4, 'Run Handler alone', self.StartHandler],
+			[5, 'Run MMi from Source', self.StartMMi, True],
+			[6, 'Run MMi from C:Icos', self.StartMMi, False],
 			[],
 			[11, 'Open Solution CIT100', self.OpenSolution, 0],
 			[12, 'Open Solution CIT100Simulator', self.OpenSolution, 1],
 			[14, 'Open Solution Mmi', self.OpenSolution, 2],
 			[15, 'Open Solution MockLicense', self.OpenSolution, 3],
 			[16, 'Open Solution Converters', self.OpenSolution, 4],
+			[17, 'Open Git GUI', self.OpenGitGui],
 			[],
-			[20, 'Modify VisionSystem', self.ModifyVisionSystem],
+			[20, 'Comment Line in VisionSystem', self.ModifyVisionSystem],
 			[21, 'Copy Mock License', self.CopyMockLicense],
 			[22, 'Copy xPort_IllumReference.xml', self.CopyIllumRef],
 			[23, 'Open Test Folder', self.OpenTestFolder],
@@ -56,13 +59,13 @@ class JAutomate:
 			[32, 'Change Startup / Run ', self.ChangeStartup],
 			[33, 'Change MMI Attach', self.ChangeDebugVision],
 			[],
-			#[91, 'Build'],
-			#[92, 'Clean Build'],
+			[91, 'Build', self.BuildSource],
+			[92, 'Clean Build', self.CleanSource],
 			[99, 'Kill All', self.KillTask],
 			[0, 'EXIT']
 		]
 
-		self.PrintTable(mainMenu, 2)
+		PrettyTable().PrintTable(mainMenu, 2)
 		userIn = self.InputNumber('Type the number then press ENTER: ')
 		for item in mainMenu:
 			if len(item) > 0 and item[0] == userIn:
@@ -77,10 +80,73 @@ class JAutomate:
 				return int(userIn)
 			userIn = raw_input()
 
+	def CleanSource(self):
+		print 'Preparing directories to be deleted...'
+		toDelete = []
+		excludeList = []
+		excludeList.append('libs\\external\\ezio')
+		excludeList.append('handler\\scripts\\appy')
+		excludeList.append('handler\\BNR\\CI_controller\\VS\\Devices\\BaseMotor')
+		excludeList.append('handler\\BNR\\CI_controller\\VS\\Kito\\master')
+		excludeList.append('handler\\BNR\\CI_controller\\VS\\PSM\\io_ctrl')
+		excludeList.append('handler\\FabLink\\FabLinkLib\\lib')
+		excludeList.append('tools\\ReportConfigurator\\ReportConfigurator.Tests\\bin')
+		excludeList.append('tools\\ReportConfigurator\\ReportConfigurator.Tests')
+		for root, dirs, files in os.walk(self.model.Source):
+			relPath = os.path.relpath(root, self.model.Source)
+			if relPath in excludeList:
+				continue
+			if relPath[:4] == 'libs':
+				continue
+			for dir in dirs:
+				d = dir.lower()
+				if d == 'obj' or d == 'bin' or d == 'debug':
+					toDelete.append(os.path.abspath(root + '/' + dir))
+		if len(toDelete) == 0:
+			print 'Source is clean'
+			return
+		print 'The following directories will be deleted.'
+		for dir in toDelete:
+			print dir
+		if raw_input('Do you want to continue (Yes/No) : ') == 'Yes':
+			for dir in toDelete:
+				shutil.rmtree(dir)
+
+	def BuildSource(self):
+		outFileNames = [ 'Handler', 'Simulator', 'MMi', 'Mock', 'Converters' ]
+		i = 0
+		branch = GitHelper().GetBranch(self.model.Source)
+		print 'Build source : {} {}'.format(self.model.Source, branch)
+		for sln in self.model.Solutions:
+			if i > 2:
+				platform = self.model.Platform
+				if outFileNames[i] == 'Simulator':
+					platform = 'x64' if self.model.Platform == 'x64' else 'x86'
+				BuildConf = self.model.Config + '|' + platform
+				slnFile = os.path.abspath(self.model.Source + '/' + sln)
+				outFile = os.path.abspath(self.model.Source + '/' + outFileNames[i]) + '.txt'
+
+				print 'Start building : ' + slnFile
+
+				devEnvCom = 'C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com'
+				params = [devEnvCom, slnFile, '/build', BuildConf, '/out', outFile]
+				output = subprocess.Popen(params, stdout=subprocess.PIPE).communicate()[0]
+				print str(output)
+
+			i += 1
+
 	def OpenSolution(self, index):
 		param = [
 			self.model.DevEnv,
 			self.model.Source + self.model.Solutions[index]
+		]
+		subprocess.Popen(param)
+
+	def OpenGitGui(self):
+		param = [
+			'git-gui',
+			'--working-dir',
+			self.model.Source
 		]
 		subprocess.Popen(param)
 
@@ -92,74 +158,6 @@ class JAutomate:
 		dirPath = self.model.Source + '/handler/tests/' + self.model.TestName
 		dirPath = os.path.abspath(dirPath)
 		subprocess.call(['Explorer', dirPath])
-
-	def PrintTable(self, data, colCnt = 0):
-		try:
-			calculateColCnt = colCnt == 0
-			colWidths = []
-
-			for line in data:
-				i = 0
-				for cell in line:
-					if len(colWidths) > i:
-						colWidths[i] = max(colWidths[i], len(str(cell)))
-					else:
-						colWidths.append(len(str(cell)))
-					i = i + 1
-					if calculateColCnt:
-						colCnt = max(colCnt, i)
-					else:
-						if colCnt == i:
-							break;
-
-			chTopLef = chr(218)
-			chTopMid = chr(194)
-			chTopRig = chr(191)
-			chMidLef = chr(195)
-			chMidMid = chr(197)
-			chMidRig = chr(180)
-			chBotLef = chr(192)
-			chBotMid = chr(193)
-			chBotRig = chr(217)
-			chVertic = chr(179)
-			chHorizo = chr(196)
-
-			self.PrintLine(colWidths, chTopLef, chTopMid, chTopRig, chHorizo)
-
-			for line in data:
-				if len(line) == 0:
-					self.PrintLine(colWidths, chVertic, chVertic, chVertic, ' ')
-				elif len(line) == 1 and line[0] == '-':
-					self.PrintLine(colWidths, chMidLef, chMidMid, chMidRig, chHorizo)
-				else:
-					toPrint = chVertic
-					for i in range(0, colCnt):
-						cell = ''
-						if i < len(line):
-							cell = str(line[i])
-						cell = cell.ljust(colWidths[i])
-						toPrint += cell + ' ' + chVertic
-					print toPrint
-			self.PrintLine(colWidths, chBotLef, chBotMid, chBotRig, chHorizo)
-		except Exception as ex:
-			print(ex)
-
-	def PrintLine(self, colWidths, left, mid, right, fill):
-		line = left
-		colCnt = len(colWidths)
-		for i in range(0, colCnt - 1):
-			line += fill * (colWidths[i] + 1) + mid
-		line += fill * (colWidths[-1] + 1) + right
-		print line
-
-	def PrintTable1(self, data):
-		try:
-			for line in data:
-				for cell in line:
-					print cell,
-				print ''
-		except Exception as ex:
-			print(ex)
 
 	def SelectOption(self, name, arr, currentIndex = -1):
 		data = [
@@ -173,7 +171,7 @@ class JAutomate:
 			i += 1
 			data.append([i, line])
 
-		self.PrintTable(data)
+		PrettyTable().PrintTable(data)
 		number = self.InputNumber('Select number : ')
 		if number <= len(arr):
 			return number - 1
@@ -345,7 +343,7 @@ class JAutomate:
 		print par
 		os.system(par)
 
-	def StartMMi(self):
+	def StartMMi(self, fromSrc):
 		self.KillTask('MMi.exe')
 		self.RunSlots()
 
@@ -359,7 +357,11 @@ class JAutomate:
 
 		self.Timeout(8)
 
-		mmiExe = os.path.abspath(MmiPath + '/Mmi.exe')
+		if fromSrc:
+			mmiExe = os.path.abspath(MmiPath + '/Mmi.exe')
+		else:
+			mmiExe = os.path.abspath('C:/Icos/Mmi.exe')
+
 		par = 'start ' + mmiExe
 		print par
 		os.system(par)
@@ -369,7 +371,7 @@ class JAutomate:
 
 	def StartHandlerMMi(self):
 		self.StartHandler()
-		self.StartMMi()
+		self.StartMMi(True)
 
 	def Timeout(self, seconds):
 		try:
@@ -400,7 +402,8 @@ class JAutomate:
 			if branch == self.model.Source:
 				self.model.Branch = branch
 			data.append([src, branch])
-		self.PrintTable(data)
+		PrettyTable().PrintTable(data)
+		raw_input('Press any key to continue...')
 
 	def PrintMissingIds(self):
 		lastId = 1
@@ -431,6 +434,76 @@ class JAutomate:
 				print 
 			print sets[i],
 		print 
+		raw_input('Press any key to continue...')
+
+class PrettyTable:
+	def PrintTable(self, data, colCnt = 0):
+		try:
+			calculateColCnt = colCnt == 0
+			colWidths = []
+
+			for line in data:
+				i = 0
+				for cell in line:
+					if len(colWidths) > i:
+						colWidths[i] = max(colWidths[i], len(str(cell)))
+					else:
+						colWidths.append(len(str(cell)))
+					i = i + 1
+					if calculateColCnt:
+						colCnt = max(colCnt, i)
+					else:
+						if colCnt == i:
+							break;
+
+			chTopLef = chr(218)
+			chTopMid = chr(194)
+			chTopRig = chr(191)
+			chMidLef = chr(195)
+			chMidMid = chr(197)
+			chMidRig = chr(180)
+			chBotLef = chr(192)
+			chBotMid = chr(193)
+			chBotRig = chr(217)
+			chVertic = chr(179)
+			chHorizo = chr(196)
+
+			self.PrintLine(colWidths, chTopLef, chTopMid, chTopRig, chHorizo)
+
+			for line in data:
+				if len(line) == 0:
+					self.PrintLine(colWidths, chVertic, chVertic, chVertic, ' ')
+				elif len(line) == 1 and line[0] == '-':
+					self.PrintLine(colWidths, chMidLef, chMidMid, chMidRig, chHorizo)
+				else:
+					toPrint = chVertic
+					for i in range(0, colCnt):
+						cell = ''
+						if i < len(line):
+							cell = str(line[i])
+						cell = cell.ljust(colWidths[i])
+						toPrint += cell + ' ' + chVertic
+					print toPrint
+			self.PrintLine(colWidths, chBotLef, chBotMid, chBotRig, chHorizo)
+		except Exception as ex:
+			print(ex)
+
+	def PrintLine(self, colWidths, left, mid, right, fill):
+		line = left
+		colCnt = len(colWidths)
+		for i in range(0, colCnt - 1):
+			line += fill * (colWidths[i] + 1) + mid
+		line += fill * (colWidths[-1] + 1) + right
+		print line
+
+	def PrintTable1(self, data):
+		try:
+			for line in data:
+				for cell in line:
+					print cell,
+				print ''
+		except Exception as ex:
+			print(ex)
 
 class GitHelper:
 	def GetBranch(self, Source):
@@ -522,5 +595,5 @@ class Model:
 
 		with open('JAutomate.ini', 'w') as f:
 			json.dump(_model, f, indent=3)
-	
+
 JAutomate().StartLoop()
