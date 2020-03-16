@@ -10,13 +10,11 @@ class JAutomate:
 
 	def __init__(self):
 		self.model = Model()
-
-	def StartLoop(self):
 		self.model.ReadConfigFile()
 
+	def StartLoop(self):
 		while True:
-			mainMenu = self.PrepareMenuData()
-			userIn = self.PrintMenu(mainMenu, 2)
+			userIn = self.PrintMainMenu()
 			if userIn[0] == 0:
 				break
 			cnt = len(userIn)
@@ -25,11 +23,11 @@ class JAutomate:
 			elif cnt == 4:
 				userIn[2](userIn[3])
 
-	def PrepareMenuData(self):
+	def PrintMainMenu(self):
 		autoTest = ('Run Auto test', 'Startup Auto test') [self.model.StartUp]
 		if self.model.DebugVision:
 			autoTest += ' (attach MMi)'
-		mainMenu = [
+		menuData = [
 			['Src', self.model.Source],
 			['Test', self.model.TestName],
 			['Branch', self.model.Branch],
@@ -55,17 +53,27 @@ class JAutomate:
 			[24, 'Open Local Differences', osOper.OpenLocalDif, self.model.Source],
 			[27, 'Print All Branches', self.PrintBranches],
 			[28, 'Print Missing IDs in mmi.h', self.PrintMissingIds],
-			[30, 'Change Test', self.ChangeTest],
-			[31, 'Change Source', self.ChangeSource],
-			[32, 'Change Startup / Run ', self.ChangeStartup],
-			[33, 'Change MMI Attach', self.ChangeDebugVision],
 			[],
+			[90, 'Settings', self.PrintSettingsMenu],
 			[91, 'Build', self.BuildSource],
 			[92, 'Clean Build', self.CleanSource],
 			[99, 'Kill All', osOper.KillTask],
 			[0, 'EXIT']
 		]
-		return mainMenu
+		userIn = self.PrintMenu(menuData, 2)
+		return userIn
+
+	def PrintSettingsMenu(self):
+		menuData = [
+			[1, 'Change Test', self.ChangeTest],
+			[2, 'Change Source', self.ChangeSource],
+			[3, 'Change Startup / Run ', self.ChangeStartup],
+			[4, 'Change MMI Attach', self.ChangeDebugVision],
+		]
+		userIn = self.PrintMenu(menuData, 2)
+		cnt = len(userIn)
+		if cnt == 3:
+			userIn[2]()
 
 	def CleanSource(self):
 		print 'Preparing directories to be deleted...'
@@ -93,8 +101,12 @@ class JAutomate:
 			print 'Source is clean'
 			return
 		print 'The following directories will be deleted.'
+		i = 1
 		for dir in toDelete:
 			print dir
+			i += 1
+			if i == 20:
+				osOper.Pause()
 		if raw_input('Do you want to continue (Yes/No) : ') == 'Yes':
 			for dir in toDelete:
 				shutil.rmtree(dir)
@@ -105,20 +117,19 @@ class JAutomate:
 		branch = GitHelper().GetBranch(self.model.Source)
 		print 'Build source : {} {}'.format(self.model.Source, branch)
 		for sln in self.model.Solutions:
-			if i > 2:
-				platform = self.model.Platform
-				if outFileNames[i] == 'Simulator':
-					platform = 'x64' if self.model.Platform == 'x64' else 'x86'
-				BuildConf = self.model.Config + '|' + platform
-				slnFile = os.path.abspath(self.model.Source + '/' + sln)
-				outFile = os.path.abspath(self.model.Source + '/' + outFileNames[i]) + '.txt'
+			platform = self.model.Platform
+			if outFileNames[i] == 'Simulator':
+				platform = 'x64' if self.model.Platform == 'x64' else 'x86'
+			BuildConf = self.model.Config + '|' + platform
+			slnFile = os.path.abspath(self.model.Source + '/' + sln)
+			outFile = os.path.abspath(self.model.Source + '/' + outFileNames[i]) + '.txt'
 
-				print 'Start building : ' + slnFile
+			print 'Start building : ' + slnFile
 
-				devEnvCom = 'C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com'
-				params = [devEnvCom, slnFile, '/build', BuildConf, '/out', outFile]
-				output = subprocess.Popen(params, stdout=subprocess.PIPE).communicate()[0]
-				print str(output)
+			devEnvCom = 'C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com'
+			params = [devEnvCom, slnFile, '/build', BuildConf, '/out', outFile]
+			output = subprocess.Popen(params, stdout=subprocess.PIPE).communicate()[0]
+			print str(output)
 
 			i += 1
 
@@ -157,7 +168,13 @@ class JAutomate:
 			line = ('  ', '* ')[i == currentIndex] + item
 			i += 1
 			data.append([i, line])
-		self.PrintMenu(data, 0)
+		PrettyTable().PrintTable(data)
+		number = osOper.InputNumber('Select number : ')
+		if number > 0 and number <= len(arr):
+			return number - 1
+		else:
+			print 'Wrong input is given !!!'
+		return -1
 
 	def PrintMenu(self, data, colCnt):
 		prettyTable.PrintTable(data, colCnt)
@@ -165,8 +182,8 @@ class JAutomate:
 		for item in data:
 			if len(item) > 0 and item[0] == userIn:
 				return item
-		print 'Wrong input {} is given !!!'.format(userIn)
-		return [999]
+		print 'Wrong input is given !!!'
+		return [-1]
 
 	def ChangeTest(self):
 		number = self.SelectOption('Test Name', self.model.Tests, self.model.TestIndex)
