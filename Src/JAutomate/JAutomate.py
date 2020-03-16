@@ -15,7 +15,8 @@ class JAutomate:
 		self.model.ReadConfigFile()
 
 		while True:
-			userIn = self.PrintMenu()
+			mainMenu = self.PrepareMenuData()
+			userIn = self.PrintMenu(mainMenu, 2)
 			if userIn[0] == 0:
 				break
 			cnt = len(userIn)
@@ -24,7 +25,7 @@ class JAutomate:
 			elif cnt == 4:
 				userIn[2](userIn[3])
 
-	def PrintMenu(self):
+	def PrepareMenuData(self):
 		autoTest = ('Run Auto test', 'Startup Auto test') [self.model.StartUp]
 		if self.model.DebugVision:
 			autoTest += ' (attach MMi)'
@@ -51,7 +52,7 @@ class JAutomate:
 			[21, 'Copy Mock License', self.CopyMockLicense],
 			[22, 'Copy xPort_IllumReference.xml', self.CopyIllumRef],
 			[23, 'Open Test Folder', self.OpenTestFolder],
-			[24, 'Open Local Differences', self.OpenLocalDif],
+			[24, 'Open Local Differences', osOper.OpenLocalDif, self.model.Source],
 			[27, 'Print All Branches', self.PrintBranches],
 			[28, 'Print Missing IDs in mmi.h', self.PrintMissingIds],
 			[30, 'Change Test', self.ChangeTest],
@@ -61,24 +62,10 @@ class JAutomate:
 			[],
 			[91, 'Build', self.BuildSource],
 			[92, 'Clean Build', self.CleanSource],
-			[99, 'Kill All', self.KillTask],
+			[99, 'Kill All', osOper.KillTask],
 			[0, 'EXIT']
 		]
-
-		PrettyTable().PrintTable(mainMenu, 2)
-		userIn = self.InputNumber('Type the number then press ENTER: ')
-		for item in mainMenu:
-			if len(item) > 0 and item[0] == userIn:
-				return item
-		print 'Wrong input {} is given !!!'.format(userIn)
-		return [999]
-
-	def InputNumber(self, message):
-		userIn = raw_input(message)
-		while True:
-			if userIn != '':
-				return int(userIn)
-			userIn = raw_input()
+		return mainMenu
 
 	def CleanSource(self):
 		print 'Preparing directories to be deleted...'
@@ -157,7 +144,7 @@ class JAutomate:
 	def OpenTestFolder(self):
 		dirPath = self.model.Source + '/handler/tests/' + self.model.TestName
 		dirPath = os.path.abspath(dirPath)
-		subprocess.call(['Explorer', dirPath])
+		subprocess.Popen(['Explorer', dirPath])
 
 	def SelectOption(self, name, arr, currentIndex = -1):
 		data = [
@@ -170,14 +157,16 @@ class JAutomate:
 			line = ('  ', '* ')[i == currentIndex] + item
 			i += 1
 			data.append([i, line])
+		self.PrintMenu(data, 0)
 
-		PrettyTable().PrintTable(data)
-		number = self.InputNumber('Select number : ')
-		if number <= len(arr):
-			return number - 1
-		else:
-			print 'Wrong input {} is given !!!'.format(number)
-		return -1
+	def PrintMenu(self, data, colCnt):
+		prettyTable.PrintTable(data, colCnt)
+		userIn = osOper.InputNumber('Type the number then press ENTER: ')
+		for item in data:
+			if len(item) > 0 and item[0] == userIn:
+				return item
+		print 'Wrong input {} is given !!!'.format(userIn)
+		return [999]
 
 	def ChangeTest(self):
 		number = self.SelectOption('Test Name', self.model.Tests, self.model.TestIndex)
@@ -209,41 +198,14 @@ class JAutomate:
 			self.model.DebugVision = number == 0
 			self.model.WriteConfigFile()
 
-	def OpenLocalDif(self):
-		par = 'TortoiseGitProc.exe /command:diff /path:' + self.model.Source + ''
-		print 'par : ' + par
-		os.popen(par)
-
-		#par = [ 'TortoiseGitProc.exe' ]
-		#par.append('/command:diff /path:"' + self.model.Source + '"')
-		#print 'par : ' + str(par)
-		#subprocess.Popen(par)
-
-	def CopyDir(self, Src, Des):
-		try:
-			par = 'XCOPY /S /Y "' + Src + '" "' + Des + '"'
-			print 'Src : ' + Src
-			print 'Des : ' + Des
-			print 'par : ' + par
-			os.system(par)
-		except Exception as ex:
-			print(ex)
-
 	def CopyMockLicense(self):
 		LicenseFile = self.model.Source + '/mmi/mmi/mmi_stat/integration/code/MockLicenseDll/Win32/Debug/License.dll'
 		LicenseFile = os.path.abspath(LicenseFile)
 		Destin = self.model.Source + '/mmi/mmi/Bin/Win32/Debug'
 		Destin = os.path.abspath(Destin)
-		self.CopyFile(LicenseFile, Destin)
+		osOper.CopyFile(LicenseFile, Destin)
+		osOper.Pause()
 		#self.CopyFile(LicenseFile, 'C:/icos')
-	
-	def CopyFile(self, Src, Des):
-		try:
-			par = 'COPY /Y "' + Src + '" "' + Des + '"'
-			print 'par : ' + par
-			os.system(par)
-		except Exception as ex:
-			print(ex)
 
 	def ModifyVisionSystem(self):
 		line = 'shutil.copy2(os.path.join(mvsSlots, slot, slot + ".bat"), os.path.join(self.mvsPath, slot, slot + ".bat"))'
@@ -282,7 +244,7 @@ class JAutomate:
 
 	def RunAutoTest(self):
 
-		self.KillTask()
+		osOper.KillTask()
 
 		self.RunSlots()
 
@@ -309,27 +271,15 @@ class JAutomate:
 			else:
 			  my.c.mmiBuildConfiguration = 'debugx64'
 		my.c.platform = self.model.Platform
-		my.c.mmiConfigurationsPath = self.InQuotes(self.model.MMiConfigPath)
+		my.c.mmiConfigurationsPath = self.model.MMiConfigPath
 		my.c.mmiSetupsPath = self.model.MMiSetupsPath
 		#print str(my.c)
 		#raw_input('hi')
 
 		my.run(self.model.TestName)
 
-	def InQuotes(self, message):
-		return '"' + message + '"'
-
-	def KillTask(self, exeName = ''):
-		try:
-			print 'exeName : ' + exeName
-			par = 'KillAll ' + exeName
-			print 'par : ' + par
-			os.system(par)
-		except Exception as ex:
-			print(ex)
-
 	def StartHandler(self):
-		self.KillTask()
+		osOper.KillTask()
 
 		consoleExe = self.model.Source + '/handler/cpp/bin/Win32/debug/system/console.exe'
 		testTempDir = self.model.Source + '/handler/tests/' + self.model.TestName + '~'
@@ -344,7 +294,7 @@ class JAutomate:
 		os.system(par)
 
 	def StartMMi(self, fromSrc):
-		self.KillTask('MMi.exe')
+		osOper.KillTask('MMi.exe')
 		self.RunSlots()
 
 		MmiPath = os.path.abspath('{}/mmi/mmi/Bin/{}/{}'.format(self.model.Source, self.model.Platform, self.model.Config))
@@ -352,10 +302,10 @@ class JAutomate:
 		MockPath = os.path.abspath('{}/mmi/mmi/mmi_stat/integration/code/MockLicenseDll/{}/{}'.format(self.model.Source, self.model.Platform, self.model.Config))
 		print 'MockPath : ' + MockPath
 
-		self.CopyFile(MockPath, MmiPath)
+		osOper.CopyFile(MockPath, MmiPath)
 		self.CopyIllumRef()
 
-		self.Timeout(8)
+		osOper.Timeout(8)
 
 		if fromSrc:
 			mmiExe = os.path.abspath(MmiPath + '/Mmi.exe')
@@ -367,19 +317,12 @@ class JAutomate:
 		os.system(par)
 
 	def CopyIllumRef(self):
-		self.CopyFile('xPort_IllumReference.xml', 'C:/icos/xPort')
+		osOper.CopyFile('xPort_IllumReference.xml', 'C:/icos/xPort')
+		osOper.Pause()
 
 	def StartHandlerMMi(self):
 		self.StartHandler()
 		self.StartMMi(True)
-
-	def Timeout(self, seconds):
-		try:
-			par = 'timeout ' + str(seconds)
-			print par
-			os.system(par)
-		except Exception as ex:
-			print(ex)
 
 	def PrintBranches(self, branchNums = ''):
 		data = [
@@ -402,7 +345,7 @@ class JAutomate:
 			if branch == self.model.Source:
 				self.model.Branch = branch
 			data.append([src, branch])
-		PrettyTable().PrintTable(data)
+		prettyTable.PrintTable(data)
 		raw_input('Press any key to continue...')
 
 	def PrintMissingIds(self):
@@ -434,59 +377,115 @@ class JAutomate:
 				print 
 			print sets[i],
 		print 
+		osOper.Pause()
+
+class OsOperations:
+	def CopyFile(self, Src, Des):
+		par = 'COPY /Y "' + Src + '" "' + Des + '"'
+		print 'par : ' + par
+		os.system(par)
+
+	def CopyDir(self, Src, Des):
+		par = 'XCOPY /S /Y "' + Src + '" "' + Des + '"'
+		print 'Src : ' + Src
+		print 'Des : ' + Des
+		print 'par : ' + par
+		os.system(par)
+
+	def Pause(self):
 		raw_input('Press any key to continue...')
 
+	def KillTask(self, exeName = ''):
+		print 'exeName : ' + exeName
+		par = 'KillAll ' + exeName
+		print 'par : ' + par
+		os.system(par)
+
+	def OpenLocalDif(self, source):
+		par = [ 'TortoiseGitProc.exe' ]
+		par.append('/command:diff')
+		par.append('/path:' + source + '')
+		print 'subprocess.Popen : ' + str(par)
+		subprocess.Popen(par)
+
+	def Timeout(self, seconds):
+		par = 'timeout ' + str(seconds)
+		os.system(par)
+
+	def InputNumber(self, message):
+		userIn = raw_input(message)
+		while True:
+			if userIn != '':
+				return int(userIn)
+			userIn = raw_input()
+
 class PrettyTable:
+	def SetSingleLineBorder(self):
+		self.chTopLef = chr(218)
+		self.chTopMid = chr(194)
+		self.chTopRig = chr(191)
+		self.chMidLef = chr(195)
+		self.chMidMid = chr(197)
+		self.chMidRig = chr(180)
+		self.chBotLef = chr(192)
+		self.chBotMid = chr(193)
+		self.chBotRig = chr(217)
+		self.chVertic = chr(179)
+		self.chHorizo = chr(196)
+
+	def SetDoubleLineBorder(self):
+		self.chTopLef = chr(201)
+		self.chTopMid = chr(203)
+		self.chTopRig = chr(187)
+		self.chMidLef = chr(204)
+		self.chMidMid = chr(206)
+		self.chMidRig = chr(185)
+		self.chBotLef = chr(200)
+		self.chBotMid = chr(202)
+		self.chBotRig = chr(188)
+		self.chVertic = chr(186)
+		self.chHorizo = chr(205)
+
 	def PrintTable(self, data, colCnt = 0):
-		try:
-			calculateColCnt = colCnt == 0
-			colWidths = []
+		calculateColCnt = colCnt == 0
+		colWidths = []
 
-			for line in data:
-				i = 0
-				for cell in line:
-					if len(colWidths) > i:
-						colWidths[i] = max(colWidths[i], len(str(cell)))
-					else:
-						colWidths.append(len(str(cell)))
-					i = i + 1
-					if calculateColCnt:
-						colCnt = max(colCnt, i)
-					else:
-						if colCnt == i:
-							break;
+		if calculateColCnt:
+			self.SetSingleLineBorder()
+		else:
+			self.SetDoubleLineBorder()
 
-			chTopLef = chr(218)
-			chTopMid = chr(194)
-			chTopRig = chr(191)
-			chMidLef = chr(195)
-			chMidMid = chr(197)
-			chMidRig = chr(180)
-			chBotLef = chr(192)
-			chBotMid = chr(193)
-			chBotRig = chr(217)
-			chVertic = chr(179)
-			chHorizo = chr(196)
-
-			self.PrintLine(colWidths, chTopLef, chTopMid, chTopRig, chHorizo)
-
-			for line in data:
-				if len(line) == 0:
-					self.PrintLine(colWidths, chVertic, chVertic, chVertic, ' ')
-				elif len(line) == 1 and line[0] == '-':
-					self.PrintLine(colWidths, chMidLef, chMidMid, chMidRig, chHorizo)
+		for line in data:
+			i = 0
+			for cell in line:
+				if len(colWidths) > i:
+					colWidths[i] = max(colWidths[i], len(str(cell)))
 				else:
-					toPrint = chVertic
-					for i in range(0, colCnt):
-						cell = ''
-						if i < len(line):
-							cell = str(line[i])
-						cell = cell.ljust(colWidths[i])
-						toPrint += cell + ' ' + chVertic
-					print toPrint
-			self.PrintLine(colWidths, chBotLef, chBotMid, chBotRig, chHorizo)
-		except Exception as ex:
-			print(ex)
+					colWidths.append(len(str(cell)))
+				i = i + 1
+				if calculateColCnt:
+					colCnt = max(colCnt, i)
+				else:
+					if colCnt == i:
+						break;
+
+		self.PrintLine(colWidths, self.chTopLef, self.chTopMid, self.chTopRig, self.chHorizo)
+
+		for line in data:
+			if len(line) == 0:
+				self.PrintLine(colWidths, self.chVertic, self.chVertic, self.chVertic, ' ')
+			elif len(line) == 1 and line[0] == '-':
+				self.PrintLine(colWidths, self.chMidLef, self.chMidMid, self.chMidRig, self.chHorizo)
+			else:
+				toPrint = self.chVertic
+				for i in range(0, colCnt):
+					cell = ''
+					if i < len(line):
+						cell = str(line[i])
+					cell = cell.ljust(colWidths[i])
+					toPrint += cell + ' ' + self.chVertic
+				print toPrint
+		self.PrintLine(colWidths, self.chBotLef, self.chBotMid, self.chBotRig, self.chHorizo)
 
 	def PrintLine(self, colWidths, left, mid, right, fill):
 		line = left
@@ -596,4 +595,6 @@ class Model:
 		with open('JAutomate.ini', 'w') as f:
 			json.dump(_model, f, indent=3)
 
+prettyTable = PrettyTable()
+osOper = OsOperations()
 JAutomate().StartLoop()
