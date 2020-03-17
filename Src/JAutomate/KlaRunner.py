@@ -39,14 +39,14 @@ class KlaRunner:
 			[5, 'Run MMi from Source', self.StartMMi, True],
 			[6, 'Run MMi from C:Icos', self.StartMMi, False],
 			[],
-			[11, 'Open Solution CIT100', self.OpenSolution, 0],
-			[12, 'Open Solution CIT100Simulator', self.OpenSolution, 1],
-			[14, 'Open Solution Mmi', self.OpenSolution, 2],
-			[15, 'Open Solution MockLicense', self.OpenSolution, 3],
-			[16, 'Open Solution Converters', self.OpenSolution, 4],
-			[17, 'Open Test Folder', self.OpenTestFolder],
-			[18, 'Open Git GUI', self.OpenGitGui],
-			[19, 'Open Local Differences', osOper.OpenLocalDif, self.model.Source],
+			[10, 'Open Solution CIT100', self.OpenSolution, 0],
+			[11, 'Open Solution CIT100Simulator', self.OpenSolution, 1],
+			[12, 'Open Solution Mmi', self.OpenSolution, 2],
+			[14, 'Open Solution MockLicense', self.OpenSolution, 3],
+			[15, 'Open Solution Converters', self.OpenSolution, 4],
+			[16, 'Open Test Folder', self.OpenTestFolder],
+			[17, 'Open Git GUI', self.OpenGitGui],
+			[18, 'Open Local Differences', osOper.OpenLocalDif, self.model.Source],
 			[],
 			[20, 'Comment Line in VisionSystem', self.ModifyVisionSystem],
 			[21, 'Copy Mock License', self.CopyMockLicense],
@@ -233,6 +233,7 @@ class KlaRunner:
 			newText = f.read().replace(oldLine, newLine)
 		with open(fileName, "w") as f:
 			f.write(newText)
+		print 'Copying of slots in VisionSystem.py has been commented.'
 
 	def RunSlots(self):
 		vmRunExe = self.model.VMwareWS + "vmrun.exe"
@@ -255,7 +256,7 @@ class KlaRunner:
 			else:
 				subprocess.Popen([vmWareExe, vmxPath])
 				print 'Start Slot : ' + str(slot)
-				raw_input("Press any key to continue...")
+				osOper.Pause()
 				print 'Slot : ' + str(slot) + ' started.'
 		print 'Slots refreshed : ' + str(self.model.slots)
 
@@ -291,7 +292,6 @@ class KlaRunner:
 		my.c.mmiConfigurationsPath = self.model.MMiConfigPath
 		my.c.mmiSetupsPath = self.model.MMiSetupsPath
 		#print str(my.c)
-		#raw_input('hi')
 
 		my.run(self.model.TestName)
 
@@ -363,7 +363,7 @@ class KlaRunner:
 				self.model.Branch = branch
 			data.append([src, branch])
 		prettyTable.PrintTable(data)
-		raw_input('Press any key to continue...')
+		osOper.Pause()
 
 	def PrintMissingIds(self):
 		lastId = 1
@@ -593,7 +593,7 @@ class Model:
 		self.slots = map(int, testAndSlots[1].split('_'))
 
 	def WriteConfigFile(self):
-		_model = {}
+		_model = OrderedDict()
 		_model['Sources'] = self.Sources
 		_model['SrcIndex'] = self.SrcIndex
 		_model['Tests'] = self.Tests
