@@ -17,7 +17,7 @@ obj
 bin
 Debug
 Src/JAutomate/Display.stp
-Src/JAutomate/JLog.txt
+Src/JAutomate/Log.txt
 Src/JAutomate/SeriousError.txt
 Src/JAutomate/SimulatorLog
 Src/JAutomate/TestReport.txt

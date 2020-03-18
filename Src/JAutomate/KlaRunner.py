@@ -1,4 +1,6 @@
+# coding=utf-8
 from collections import OrderedDict
+from datetime import datetime
 import json
 import os
 import re
@@ -7,10 +9,10 @@ import sys
 import shutil
 
 class KlaRunner:
-
 	def __init__(self):
 		self.model = Model()
 		self.model.ReadConfigFile()
+		klaSourceBuilder.model = self.model
 
 	def StartLoop(self):
 		while True:
@@ -55,8 +57,8 @@ class KlaRunner:
 			[24, 'Print Missing IDs in mmi.h', self.PrintMissingIds],
 			[],
 			[90, 'Settings', self.PrintSettingsMenu],
-			[91, 'Build', self.BuildSource],
-			[92, 'Clean Build', self.CleanSource],
+			[91, 'Build', klaSourceBuilder.BuildSource, []],
+			[92, 'Clean Build', klaSourceBuilder.CleanSource, []],
 			[99, 'Kill All', osOper.KillTask],
 			[0, 'EXIT']
 		]
@@ -75,67 +77,9 @@ class KlaRunner:
 		if cnt == 3:
 			userIn[2]()
 
-	def CleanSource(self):
-		print 'Preparing directories to be deleted...'
-		toDelete = []
-		excludeList = []
-		excludeList.append('libs\\external\\ezio')
-		excludeList.append('handler\\scripts\\appy')
-		excludeList.append('handler\\BNR\\CI_controller\\VS\\Devices\\BaseMotor')
-		excludeList.append('handler\\BNR\\CI_controller\\VS\\Kito\\master')
-		excludeList.append('handler\\BNR\\CI_controller\\VS\\PSM\\io_ctrl')
-		excludeList.append('handler\\FabLink\\FabLinkLib\\lib')
-		excludeList.append('tools\\ReportConfigurator\\ReportConfigurator.Tests\\bin')
-		excludeList.append('tools\\ReportConfigurator\\ReportConfigurator.Tests')
-		for root, dirs, files in os.walk(self.model.Source):
-			relPath = os.path.relpath(root, self.model.Source)
-			if relPath in excludeList:
-				continue
-			if relPath[:4] == 'libs':
-				continue
-			for dir in dirs:
-				d = dir.lower()
-				if d == 'obj' or d == 'bin' or d == 'debug':
-					toDelete.append(os.path.abspath(root + '/' + dir))
-		if len(toDelete) == 0:
-			print 'Source is clean'
-			return
-		print 'The following directories will be deleted.'
-		i = 1
-		for dir in toDelete:
-			print dir
-			i += 1
-			if i == 20:
-				osOper.Pause()
-		if raw_input('Do you want to continue (Yes/No) : ') == 'Yes':
-			for dir in toDelete:
-				shutil.rmtree(dir)
-
-	def BuildSource(self):
-		outFileNames = [ 'Handler', 'Simulator', 'MMi', 'Mock', 'Converters' ]
-		i = 0
-		branch = GitHelper().GetBranch(self.model.Source)
-		print 'Build source : {} {}'.format(self.model.Source, branch)
-		for sln in self.model.Solutions:
-			platform = self.model.Platform
-			if outFileNames[i] == 'Simulator':
-				platform = 'x64' if self.model.Platform == 'x64' else 'x86'
-			BuildConf = self.model.Config + '|' + platform
-			slnFile = os.path.abspath(self.model.Source + '/' + sln)
-			outFile = os.path.abspath(self.model.Source + '/' + outFileNames[i]) + '.txt'
-
-			print 'Start building : ' + slnFile
-
-			devEnvCom = 'C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com'
-			params = [devEnvCom, slnFile, '/build', BuildConf, '/out', outFile]
-			output = subprocess.Popen(params, stdout=subprocess.PIPE).communicate()[0]
-			print str(output)
-
-			i += 1
-
 	def OpenSolution(self, index):
 		param = [
-			self.model.DevEnv,
+			self.model.VisualStudioRun,
 			self.model.Source + self.model.Solutions[index]
 		]
 		subprocess.Popen(param)
@@ -168,7 +112,8 @@ class KlaRunner:
 			line = ('  ', '* ')[i == currentIndex] + item
 			i += 1
 			data.append([i, line])
-		PrettyTable().PrintTable(data)
+		prettyTable.SetSingleLine()
+		prettyTable.PrintTable(data)
 		number = osOper.InputNumber('Select number : ')
 		if number > 0 and number <= len(arr):
 			return number - 1
@@ -177,6 +122,7 @@ class KlaRunner:
 		return -1
 
 	def PrintMenu(self, data, colCnt):
+		prettyTable.SetDoubleLineBorder()
 		prettyTable.PrintTable(data, colCnt)
 		userIn = osOper.InputNumber('Type the number then press ENTER: ')
 		for item in data:
@@ -335,7 +281,6 @@ class KlaRunner:
 
 	def CopyIllumRef(self):
 		osOper.CopyFile('xPort_IllumReference.xml', 'C:/icos/xPort')
-		osOper.Pause()
 
 	def StartHandlerMMi(self):
 		self.StartHandler()
@@ -362,6 +307,7 @@ class KlaRunner:
 			if branch == self.model.Source:
 				self.model.Branch = branch
 			data.append([src, branch])
+		prettyTable.SetSingleLine()
 		prettyTable.PrintTable(data)
 		osOper.Pause()
 
@@ -395,6 +341,132 @@ class KlaRunner:
 			print sets[i],
 		print 
 		osOper.Pause()
+
+class KlaSourceBuilder:
+	def CleanSource(self, srcIndices):
+		print 'Preparing directories to be deleted...'
+		toDelete = []
+		excludeList = []
+		excludeList.append('libs\\external\\ezio')
+		excludeList.append('handler\\scripts\\appy')
+		excludeList.append('handler\\BNR\\CI_controller\\VS\\Devices\\BaseMotor')
+		excludeList.append('handler\\BNR\\CI_controller\\VS\\Kito\\master')
+		excludeList.append('handler\\BNR\\CI_controller\\VS\\PSM\\io_ctrl')
+		excludeList.append('handler\\FabLink\\FabLinkLib\\lib')
+		excludeList.append('tools\\ReportConfigurator\\ReportConfigurator.Tests\\bin')
+		excludeList.append('tools\\ReportConfigurator\\ReportConfigurator.Tests')
+		sources = self.GetSources(srcIndices)
+		for src in sources:
+			for root, dirs, files in os.walk(src):
+				relPath = os.path.relpath(root, src)
+				if relPath in excludeList:
+					continue
+				if relPath[:4] == 'libs':
+					continue
+				for dir in dirs:
+					d = dir.lower()
+					if d == 'obj' or d == 'bin' or d == 'debug':
+						toDelete.append(os.path.abspath(root + '/' + dir))
+			if len(toDelete) == 0:
+				print 'Source is clean'
+				return
+			print 'The following directories will be deleted.'
+			i = 1
+			for dir in toDelete:
+				print dir
+				i += 1
+				if i == 20:
+					osOper.Pause()
+			if raw_input('Do you want to continue (Yes/No) : ') == 'Yes':
+				for dir in toDelete:
+					shutil.rmtree(dir)
+
+	def BuildSource(self, srcIndices):
+		outFileNames = [ 'Handler', 'Simulator', 'MMi', 'Mock', 'Converters' ]
+		sources = self.GetSources(srcIndices)
+		logDataTable = [
+		[ 'Source', 'Branch', 'Solution', 'Succeeded', 'Failed', 'Up-to-date', 'Skipped', 'Time Taken' ],
+		['-']
+		]
+
+		for src in sources:
+			i = 0
+			self.logDataRow = [ '', '', '', '', '', '', '', '']
+			self.logDataRow[0] = self.model.Source
+			self.logDataRow[1] = GitHelper().GetBranch(self.model.Source)
+			for sln in self.model.Solutions:
+				# -----------------------------------------------------------
+				# For Quick Build, commenting Handler and MMi
+				#if outFileNames[i] == 'Handler' or outFileNames[i] == 'MMi':
+				#	i += 1
+				#	continue
+				# -----------------------------------------------------------
+
+				platform = self.model.Platform
+				if outFileNames[i] == 'Simulator':
+					platform = 'x64' if self.model.Platform == 'x64' else 'x86'
+				BuildConf = self.model.Config + '|' + platform
+				slnFile = os.path.abspath(self.model.Source + '/' + sln)
+				outFile = os.path.abspath(self.model.Source + '/' + outFileNames[i]) + '.txt'
+
+				print 'Start building : ' + slnFile
+				startTime = datetime.now()
+
+				params = [self.model.VisualStudioBuild, slnFile, '/build', BuildConf, '/out', outFile]
+
+				osOper.Popen(params, self.PrintMsg)
+
+				self.logDataRow[2] = outFileNames[i]
+
+				timedelta = datetime.now() - startTime
+				self.logDataRow[7] = osOper.TimeToStr(timedelta)
+
+				i += 1
+				logDataTable.append(list(self.logDataRow))
+		prettyTable.SetSingleLine()
+		table = prettyTable.ToString(logDataTable)
+		print table
+		osOper.Append(self.model.LogFileName, table)
+		osOper.Pause()
+
+	def GetBuildStatus(self, message):
+		nums = []
+		searchPattern = r'Build: (\d*) succeeded, (\d*) failed, (\d*) up-to-date, (\d*) skipped'
+		m = re.search(searchPattern, message, re.IGNORECASE)
+		if m:
+			nums.append(int(m.group(1)))
+			nums.append(int(m.group(2)))
+			nums.append(int(m.group(3)))
+			nums.append(int(m.group(4)))
+		return nums
+
+	def GetSources(self, srcIndices):
+		sources = []
+		if len(srcIndices) == 0:
+			sources.append(self.model.Source)
+		else:
+			for index in srcIndices:
+				if index < 0 or index >= len(self.model.Sources):
+					print 'Wrong index has been given !!!'
+					return
+				sources.append(self.model.Sources[index])
+		return sources
+
+	def PrintMsg(self, message):
+		if '>----' in message:
+			print message
+		if '=====' in message:
+			print message
+			nums = self.GetBuildStatus(message)
+			if len(nums) == 4:
+				self.logDataRow[3] = nums[0]
+				self.logDataRow[4] = nums[1]
+				self.logDataRow[5] = nums[2]
+				self.logDataRow[6] = nums[3]
+
+	def Log(self, message):
+		print message
+		osOper.Append(self.model.LogFileName, message)
 
 class OsOperations:
 	def CopyFile(self, Src, Des):
@@ -436,41 +508,89 @@ class OsOperations:
 				return int(userIn)
 			userIn = raw_input()
 
+	def Popen(self, params, callPrint = None):
+		process = subprocess.Popen(params, stdout=subprocess.PIPE)
+		while True:
+			output = process.stdout.readline()
+			if output == '' and process.poll() is not None:
+				break
+			if output:
+				if callPrint is None:
+					print output.strip()
+				else:
+					callPrint(output.strip())
+		return process.poll()
+
+	def TimeToStr(self, timeDelta):
+		seconds = timeDelta.seconds
+		return '{:02}:{:02}:{:02}'.format(seconds // 3600, (seconds % 3600) // 60, seconds % 60)
+
+	def Append(self, fileName, message):
+		with open(fileName, 'a') as f:
+			 f.write((message + '\n').encode('utf8'))
+
 class PrettyTable:
-	def SetSingleLineBorder(self):
-		self.chTopLef = chr(218)
-		self.chTopMid = chr(194)
-		self.chTopRig = chr(191)
-		self.chMidLef = chr(195)
-		self.chMidMid = chr(197)
-		self.chMidRig = chr(180)
-		self.chBotLef = chr(192)
-		self.chBotMid = chr(193)
-		self.chBotRig = chr(217)
-		self.chVertic = chr(179)
-		self.chHorizo = chr(196)
+	def __init__(self):
+		self.SetSingleLine()
+
+	def SetSingleLine(self):
+		self.chTopLef = u'┌'
+		self.chTopMid = u'┬'
+		self.chTopRig = u'┐'
+		self.chMidLef = u'├'
+		self.chMidMid = u'┼'
+		self.chMidRig = u'┤'
+		self.chBotLef = u'└'
+		self.chBotMid = u'┴'
+		self.chBotRig = u'┘'
+		self.chVerLef = u'│'
+		self.chVerMid = u'│'
+		self.chVerRig = u'│'
+		self.chHorLef = u'─'
+		self.chHorMid = u'─'
+		self.chHorRig = u'─'
 
 	def SetDoubleLineBorder(self):
-		self.chTopLef = chr(201)
-		self.chTopMid = chr(203)
-		self.chTopRig = chr(187)
-		self.chMidLef = chr(204)
-		self.chMidMid = chr(206)
-		self.chMidRig = chr(185)
-		self.chBotLef = chr(200)
-		self.chBotMid = chr(202)
-		self.chBotRig = chr(188)
-		self.chVertic = chr(186)
-		self.chHorizo = chr(205)
+		self.chTopLef = u'╔'
+		self.chTopMid = u'╤'
+		self.chTopRig = u'╗'
+		self.chMidLef = u'╟'
+		self.chMidMid = u'┼'
+		self.chMidRig = u'╢'
+		self.chBotLef = u'╚'
+		self.chBotMid = u'╧'
+		self.chBotRig = u'╝'
+		self.chVerLef = u'║'
+		self.chVerMid = u'│'
+		self.chVerRig = u'║'
+		self.chHorLef = u'═'
+		self.chHorMid = u'─'
+		self.chHorRig = u'═'
+
+	def SetDoubleLine(self):
+		self.chTopLef = u'╔'
+		self.chTopMid = u'╦'
+		self.chTopRig = u'╗'
+		self.chMidLef = u'╠'
+		self.chMidMid = u'╬'
+		self.chMidRig = u'╣'
+		self.chBotLef = u'╚'
+		self.chBotMid = u'╩'
+		self.chBotRig = u'╝'
+		self.chVerLef = u'║'
+		self.chVerMid = u'║'
+		self.chVerRig = u'║'
+		self.chHorLef = u'═'
+		self.chHorMid = u'═'
+		self.chHorRig = u'═'
 
 	def PrintTable(self, data, colCnt = 0):
+		print self.ToString(data, colCnt)
+
+	def ToString(self, data, colCnt = 0):
+		outMessage = ''
 		calculateColCnt = colCnt == 0
 		colWidths = []
-
-		if calculateColCnt:
-			self.SetSingleLineBorder()
-		else:
-			self.SetDoubleLineBorder()
 
 		for line in data:
 			i = 0
@@ -486,23 +606,27 @@ class PrettyTable:
 					if colCnt == i:
 						break;
 
-		self.PrintLine(colWidths, self.chTopLef, self.chTopMid, self.chTopRig, self.chHorizo)
+		outMessage += self.PrintLine(colWidths, self.chTopLef, self.chTopMid, self.chTopRig, self.chHorLef)
 
 		for line in data:
 			if len(line) == 0:
-				self.PrintLine(colWidths, self.chVertic, self.chVertic, self.chVertic, ' ')
+				outMessage += self.PrintLine(colWidths, self.chVerLef, self.chVerMid, self.chVerRig, ' ')
 			elif len(line) == 1 and line[0] == '-':
-				self.PrintLine(colWidths, self.chMidLef, self.chMidMid, self.chMidRig, self.chHorizo)
+				outMessage += self.PrintLine(colWidths, self.chMidLef, self.chMidMid, self.chMidRig, self.chHorMid)
 			else:
-				toPrint = self.chVertic
+				outMessage += self.chVerLef
 				for i in range(0, colCnt):
 					cell = ''
 					if i < len(line):
 						cell = str(line[i])
-					cell = cell.ljust(colWidths[i])
-					toPrint += cell + ' ' + self.chVertic
-				print toPrint
-		self.PrintLine(colWidths, self.chBotLef, self.chBotMid, self.chBotRig, self.chHorizo)
+					outMessage += cell.ljust(colWidths[i]) + ' '
+					if i == colCnt - 1:
+						outMessage += self.chVerRig
+					else:
+						outMessage += self.chVerMid
+				outMessage += '\n'
+		outMessage += self.PrintLine(colWidths, self.chBotLef, self.chBotMid, self.chBotRig, self.chHorRig)
+		return outMessage
 
 	def PrintLine(self, colWidths, left, mid, right, fill):
 		line = left
@@ -510,7 +634,7 @@ class PrettyTable:
 		for i in range(0, colCnt - 1):
 			line += fill * (colWidths[i] + 1) + mid
 		line += fill * (colWidths[-1] + 1) + right
-		print line
+		return line + '\n'
 
 	def PrintTable1(self, data):
 		try:
@@ -542,7 +666,8 @@ class Model:
 		self.Tests = []
 		self.TestIndex = -1
 		self.Solutions = []
-		self.DevEnv = ''
+		self.VisualStudioBuild = ''
+		self.VisualStudioRun = ''
 		self.VMwareWS = ''
 		self.MMiConfigPath = ''
 		self.MMiSetupsPath = ''
@@ -551,6 +676,7 @@ class Model:
 		self.StartUp = True
 		self.DebugVision = False
 		self.CopyMmi = True
+		self.LogFileName = ''
 
 		self.Source = ''
 		self.Branch = ''
@@ -570,7 +696,8 @@ class Model:
 		self.Tests = _model['Tests']
 		self.TestIndex = _model['TestIndex']
 		self.Solutions = _model['Solutions']
-		self.DevEnv = _model['DevEnv']
+		self.VisualStudioBuild = _model['VisualStudioBuild']
+		self.VisualStudioRun = _model['VisualStudioRun']
 		self.VMwareWS = _model['VMwareWS']
 		self.MMiConfigPath = _model['MMiConfigPath']
 		self.MMiSetupsPath = _model['MMiSetupsPath']
@@ -579,6 +706,7 @@ class Model:
 		self.StartUp = _model['StartUp']
 		self.DebugVision = _model['DebugVision']
 		self.CopyMmi = _model['CopyMmi']
+		self.LogFileName = _model['LogFileName']
 		
 		self.UpdateSource()
 		self.UpdateTest()
@@ -599,7 +727,8 @@ class Model:
 		_model['Tests'] = self.Tests
 		_model['TestIndex'] = self.TestIndex
 		_model['Solutions'] = self.Solutions
-		_model['DevEnv'] = self.DevEnv
+		_model['VisualStudioBuild'] = self.VisualStudioBuild
+		_model['VisualStudioRun'] = self.VisualStudioRun
 		_model['VMwareWS'] = self.VMwareWS
 		_model['MMiConfigPath'] = self.MMiConfigPath
 		_model['MMiSetupsPath'] = self.MMiSetupsPath
@@ -608,10 +737,12 @@ class Model:
 		_model['StartUp'] = self.StartUp
 		_model['DebugVision'] = self.DebugVision
 		_model['CopyMmi'] = self.CopyMmi
+		_model['LogFileName'] = self.LogFileName
 
 		with open('KlaRunner.ini', 'w') as f:
 			json.dump(_model, f, indent=3)
 
 prettyTable = PrettyTable()
 osOper = OsOperations()
+klaSourceBuilder = KlaSourceBuilder()
 KlaRunner().StartLoop()
