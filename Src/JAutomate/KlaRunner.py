@@ -1,6 +1,7 @@
 # coding=utf-8
 from collections import OrderedDict
 from datetime import datetime
+import itertools
 import json
 import os
 import re
@@ -14,6 +15,7 @@ class KlaRunner:
 		self.model.ReadConfigFile()
 		self.prettyTable = PrettyTable()
 		self.osOper = OsOperations()
+		self.gitHelper = GitHelper()
 		self.klaSourceBuilder = KlaSourceBuilder(self.model, self.osOper, self.prettyTable)
 
 	def StartLoop(self):
@@ -49,7 +51,7 @@ class KlaRunner:
 			[14, 'Open Solution MockLicense', self.OpenSolution, 3],
 			[15, 'Open Solution Converters', self.OpenSolution, 4],
 			[16, 'Open Test Folder', self.OpenTestFolder],
-			[17, 'Open Git GUI', self.OpenGitGui],
+			[17, 'Open Git GUI', self.gitHelper.OpenGitGui, self.model.Source],
 			[18, 'Open Local Differences', self.osOper.OpenLocalDif, self.model.Source],
 			[],
 			[20, 'Comment Line in VisionSystem', self.ModifyVisionSystem],
@@ -85,14 +87,6 @@ class KlaRunner:
 		param = [
 			self.model.VisualStudioRun,
 			self.model.Source + self.model.Solutions[index]
-		]
-		subprocess.Popen(param)
-
-	def OpenGitGui(self):
-		param = [
-			'git-gui',
-			'--working-dir',
-			self.model.Source
 		]
 		subprocess.Popen(param)
 
@@ -296,7 +290,7 @@ class KlaRunner:
 			['-']
 		]
 		tempSources = []
-		orgSources = self.model.GetSources()
+		orgSources = self.model.Sources
 		if branchNums == '':
 			tempSources = orgSources
 		else:
@@ -307,7 +301,7 @@ class KlaRunner:
 				else:
 					tempSources.append(orgSources[num - 1])
 		for src in tempSources:
-			branch = GitHelper().GetBranch(src)
+			branch = self.gitHelper.GetBranch(src)
 			if branch == self.model.Source:
 				self.model.Branch = branch
 			data.append([src, branch])
@@ -394,57 +388,25 @@ class KlaSourceBuilder:
 	def BuildSource(self, srcIndices):
 		outFileNames = [ 'Handler', 'Simulator', 'MMi', 'Mock', 'Converters' ]
 		sources = self.GetSources(srcIndices)
-
+		buildLoger = BuildLoger(self.model.LogFileName)
 		for src in sources:
-			i = 0
-			self.Log('Source : ' + src)
-			self.Log('Branch : ' + GitHelper().GetBranch(src))
-			logDataTable = [[ 'Solution', 'Succeeded', 'Failed', 'Up-to-date', 'Skipped', 'Time Taken' ],['-']]
-			for sln in self.model.Solutions:
-				# -----------------------------------------------------------
-				# For Quick Build, commenting Handler and MMi
-				#if outFileNames[i] == 'Handler' or outFileNames[i] == 'MMi':
-				#	i += 1
+			buildLoger.StartSource(src)
+			for sln, name in itertools.izip(self.model.Solutions, outFileNames):
+				#if name == 'Handler' or name == 'MMi':
 				#	continue
-				# -----------------------------------------------------------
-
-				self.logDataRow = []
-				self.logDataRow.append(outFileNames[i])
 				platform = self.model.Platform
-				if outFileNames[i] == 'Simulator':
+				if name == 'Simulator':
 					platform = 'x64' if self.model.Platform == 'x64' else 'x86'
 				BuildConf = self.model.Config + '|' + platform
 				slnFile = os.path.abspath(src + '/' + sln)
-				outFile = os.path.abspath(src + '/Out_' + outFileNames[i]) + '.txt'
+				outFile = os.path.abspath(src + '/Out_' + name) + '.txt'
 
-				self.Log('Start building : ' + slnFile)
-				startTime = datetime.now()
-
+				buildLoger.StartSolution(sln, name, self.model.Config, platform)
 				params = [self.model.VisualStudioBuild, slnFile, '/build', BuildConf, '/out', outFile]
-
-				self.osOper.Popen(params, self.PrintMsg)
-
-				self.logDataRow.append(str(datetime.now() - startTime))
-
-				i += 1
-				logDataTable.append(self.logDataRow)
-			self.Log('Completed building : ' + src)
-			self.prettyTable.SetSingleLine()
-			table = self.prettyTable.ToString(logDataTable)
-			print table
-			self.osOper.Append(self.model.LogFileName, table)
+				self.osOper.Popen(params, buildLoger.PrintMsg)
+				buildLoger.EndSolution()
+			buildLoger.EndSource(src)
 		self.osOper.Pause()
-
-	def GetBuildStatus(self, message):
-		nums = []
-		searchPattern = r'Build: (\d*) succeeded, (\d*) failed, (\d*) up-to-date, (\d*) skipped'
-		m = re.search(searchPattern, message, re.IGNORECASE)
-		if m:
-			nums.append(int(m.group(1)))
-			nums.append(int(m.group(2)))
-			nums.append(int(m.group(3)))
-			nums.append(int(m.group(4)))
-		return nums
 
 	def GetSources(self, srcIndices):
 		sources = []
@@ -458,6 +420,44 @@ class KlaSourceBuilder:
 				sources.append(self.model.Sources[index])
 		return sources
 
+class BuildLoger:
+	def __init__(self, fileName):
+		self.fileName = fileName
+		self.prettyTable = PrettyTable()
+		self.osOper = OsOperations()
+
+	def StartSource(self, src):
+		self.Log('Source : ' + src)
+		self.Log('Branch : ' + GitHelper().GetBranch(src))
+		self.logDataTable = [
+			[ 'Solution', 'Config', 'Platform', 'Succeeded', 'Failed', 'Up To Date', 'Skipped', 'Time Taken' ],
+			['-']
+		]
+
+	def EndSource(self, src):
+		self.Log('Completed building : ' + src)
+		self.prettyTable.SetSingleLine()
+		table = self.prettyTable.ToString(self.logDataTable)
+		print table
+		self.osOper.Append(self.fileName, table)
+
+	def StartSolution(self, slnFile, name, config, platform):
+		self.Log('Start building : ' + slnFile)
+		self.startTime = datetime.now()
+		self.logDataRow = []
+		self.logDataRow.append(name)
+		self.logDataRow.append(config)
+		self.logDataRow.append(platform)
+
+	def EndSolution(self):
+		self.logDataRow.append(str(datetime.now() - self.startTime))
+		self.logDataTable.append(self.logDataRow)
+
+	def Log(self, message):
+		print message
+		message = datetime.now().strftime('%Y %b %d %H:%M:%S> ') + message
+		self.osOper.Append(self.fileName, message)
+
 	def PrintMsg(self, message):
 		if '>----' in message:
 			print message
@@ -470,10 +470,16 @@ class KlaSourceBuilder:
 				self.logDataRow.append(nums[2])
 				self.logDataRow.append(nums[3])
 
-	def Log(self, message):
-		print message
-		message = datetime.now().strftime('%Y %b %d %H:%M:%S> ') + message
-		self.osOper.Append(self.model.LogFileName, message)
+	def GetBuildStatus(self, message):
+		nums = []
+		searchPattern = r'Build: (\d*) succeeded, (\d*) failed, (\d*) up-to-date, (\d*) skipped'
+		m = re.search(searchPattern, message, re.IGNORECASE)
+		if m:
+			nums.append(int(m.group(1)))
+			nums.append(int(m.group(2)))
+			nums.append(int(m.group(3)))
+			nums.append(int(m.group(4)))
+		return nums
 
 class OsOperations:
 	def CopyFile(self, Src, Des):
@@ -672,37 +678,26 @@ class GitHelper:
 		except Exception as ex:
 			print(ex)
 
+	def OpenGitGui(self, source):
+		param = [
+			'git-gui',
+			'--working-dir',
+			source
+		]
+		subprocess.Popen(param)
+
 class Model:
 	def __init__(self):
-		self.Sources = []
-		self.SrcIndex = -1
-		self.Tests = []
-		self.TestIndex = -1
-		self.Solutions = []
-		self.VisualStudioBuild = ''
-		self.VisualStudioRun = ''
-		self.VMwareWS = ''
-		self.MMiConfigPath = ''
-		self.MMiSetupsPath = ''
-		self.Config = ''
-		self.Platform = ''
-		self.StartUp = True
-		self.DebugVision = False
-		self.CopyMmi = True
-		self.LogFileName = ''
+		self.fileName = 'KlaRunner.ini'
 
 		self.Source = ''
 		self.Branch = ''
 		self.TestName = ''
 		self.slots = []
 
-	def GetSources(self):
-		return self.Sources
-
 	def ReadConfigFile(self):
-		with open('KlaRunner.ini') as f:
+		with open(self.fileName) as f:
 			_model = json.load(f)
-		#print _model
 		
 		self.Sources = _model['Sources']
 		self.SrcIndex = _model['SrcIndex']
@@ -752,7 +747,7 @@ class Model:
 		_model['CopyMmi'] = self.CopyMmi
 		_model['LogFileName'] = self.LogFileName
 
-		with open('KlaRunner.ini', 'w') as f:
+		with open(self.fileName, 'w') as f:
 			json.dump(_model, f, indent=3)
 
 KlaRunner().StartLoop()
