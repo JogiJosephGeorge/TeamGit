@@ -9,18 +9,98 @@ import subprocess
 import sys
 import shutil
 
+class Menu:
+	def __init__(self, klaRunner):
+		self.klaRunner = klaRunner
+		self.prettyTable = PrettyTable()
+		self.osOper = OsOperations()
+		self.settings = Settings(klaRunner.model)
+		self.klaSourceBuilder = KlaSourceBuilder(klaRunner.model)
+		self.appRunner = AppRunner(klaRunner.model, klaRunner.testRunner)
+
+	def PrintMainMenu(self):
+		model = self.klaRunner.model
+		testRunner = self.klaRunner.testRunner
+		gitHelper = self.klaRunner.gitHelper
+		osOper = self.klaRunner.osOper
+		sourceBuilder = self.klaSourceBuilder
+		autoTest = ('Run Auto test', 'Startup Auto test') [model.StartUp]
+		if model.DebugVision:
+			autoTest += ' (attach MMi)'
+		menuData = [
+			['Src', model.Source],
+			['Test', model.TestName],
+			['Branch', model.Branch],
+			['-'],
+			[1, 'Open Python', self.klaRunner.OpenPython],
+			[2, autoTest, testRunner.RunAutoTest],
+			[3, 'Run Handler and MMi', self.appRunner.StartHandlerMMi],
+			[4, 'Run Handler alone', self.appRunner.StartHandler],
+			[5, 'Run MMi from Source', self.appRunner.StartMMi, True],
+			[6, 'Run MMi from C:Icos', self.appRunner.StartMMi, False],
+			[],
+			[10, 'Open Solution CIT100', self.klaRunner.OpenSolution, 0],
+			[11, 'Open Solution CIT100Simulator', self.klaRunner.OpenSolution, 1],
+			[12, 'Open Solution Mmi', self.klaRunner.OpenSolution, 2],
+			[14, 'Open Solution MockLicense', self.klaRunner.OpenSolution, 3],
+			[15, 'Open Solution Converters', self.klaRunner.OpenSolution, 4],
+			[16, 'Open Test Folder', self.klaRunner.OpenTestFolder],
+			[17, 'Open Git GUI', gitHelper.OpenGitGui, model.Source],
+			[18, 'Open Local Differences', osOper.OpenLocalDif, model.Source],
+			[],
+			[20, 'Comment Line in VisionSystem', testRunner.ModifyVisionSystem],
+			[21, 'Copy Mock License', testRunner.CopyMockLicense],
+			[22, 'Copy xPort_IllumReference.xml', self.appRunner.CopyIllumRef],
+			[23, 'Print All Branches', self.klaRunner.PrintBranches],
+			[24, 'Print Missing IDs in mmi.h', self.klaRunner.PrintMissingIds],
+			[],
+			[90, 'Settings', self.PrintSettingsMenu],
+			[91, 'Build', sourceBuilder.BuildSource, [1, 3]],
+			[92, 'Clean Build', sourceBuilder.CleanSource, [1, 3]],
+			[99, 'Kill All', osOper.KillTask],
+			[0, 'EXIT']
+		]
+		userIn = self.PrintMenu(menuData, 2)
+		return userIn
+
+	def PrintSettingsMenu(self):
+		settings = self.settings
+		menuData = [
+			['Num', 'Description'],
+			['-'],
+			[1, 'Change Test', settings.ChangeTest],
+			[2, 'Change Source', settings.ChangeSource],
+			[3, 'Change Startup / Run ', settings.ChangeStartup],
+			[4, 'Change MMI Attach', settings.ChangeDebugVision],
+		]
+		userIn = self.PrintMenu(menuData, 2)
+		cnt = len(userIn)
+		if cnt == 3:
+			userIn[2]()
+
+	def PrintMenu(self, data, colCnt):
+		self.prettyTable.SetDoubleLineBorder()
+		self.prettyTable.PrintTable(data, colCnt)
+		userIn = self.osOper.InputNumber('Type the number then press ENTER: ')
+		for item in data:
+			if len(item) > 0 and item[0] == userIn:
+				return item
+		print 'Wrong input is given !!!'
+		return [-1]
+
 class KlaRunner:
 	def __init__(self):
 		self.model = Model()
 		self.model.ReadConfigFile()
+		self.testRunner = TestRunner(self.model)
 		self.prettyTable = PrettyTable()
 		self.osOper = OsOperations()
 		self.gitHelper = GitHelper()
-		self.klaSourceBuilder = KlaSourceBuilder(self.model, self.osOper, self.prettyTable)
+		self.menu = Menu(self)
 
-	def StartLoop(self):
+	def Start(self):
 		while True:
-			userIn = self.PrintMainMenu()
+			userIn = self.menu.PrintMainMenu()
 			if userIn[0] == 0:
 				break
 			cnt = len(userIn)
@@ -28,60 +108,6 @@ class KlaRunner:
 				userIn[2]()
 			elif cnt == 4:
 				userIn[2](userIn[3])
-
-	def PrintMainMenu(self):
-		autoTest = ('Run Auto test', 'Startup Auto test') [self.model.StartUp]
-		if self.model.DebugVision:
-			autoTest += ' (attach MMi)'
-		menuData = [
-			['Src', self.model.Source],
-			['Test', self.model.TestName],
-			['Branch', self.model.Branch],
-			['-'],
-			[1, 'Open Python', self.OpenPython],
-			[2, autoTest, self.RunAutoTest],
-			[3, 'Run Handler and MMi', self.StartHandlerMMi],
-			[4, 'Run Handler alone', self.StartHandler],
-			[5, 'Run MMi from Source', self.StartMMi, True],
-			[6, 'Run MMi from C:Icos', self.StartMMi, False],
-			[],
-			[10, 'Open Solution CIT100', self.OpenSolution, 0],
-			[11, 'Open Solution CIT100Simulator', self.OpenSolution, 1],
-			[12, 'Open Solution Mmi', self.OpenSolution, 2],
-			[14, 'Open Solution MockLicense', self.OpenSolution, 3],
-			[15, 'Open Solution Converters', self.OpenSolution, 4],
-			[16, 'Open Test Folder', self.OpenTestFolder],
-			[17, 'Open Git GUI', self.gitHelper.OpenGitGui, self.model.Source],
-			[18, 'Open Local Differences', self.osOper.OpenLocalDif, self.model.Source],
-			[],
-			[20, 'Comment Line in VisionSystem', self.ModifyVisionSystem],
-			[21, 'Copy Mock License', self.CopyMockLicense],
-			[22, 'Copy xPort_IllumReference.xml', self.CopyIllumRef],
-			[23, 'Print All Branches', self.PrintBranches],
-			[24, 'Print Missing IDs in mmi.h', self.PrintMissingIds],
-			[],
-			[90, 'Settings', self.PrintSettingsMenu],
-			[91, 'Build', self.klaSourceBuilder.BuildSource, []],
-			[92, 'Clean Build', self.klaSourceBuilder.CleanSource, []],
-			[99, 'Kill All', self.osOper.KillTask],
-			[0, 'EXIT']
-		]
-		userIn = self.PrintMenu(menuData, 2)
-		return userIn
-
-	def PrintSettingsMenu(self):
-		menuData = [
-			['Num', 'Description', self.ChangeTest],
-			['-'],
-			[1, 'Change Test', self.ChangeTest],
-			[2, 'Change Source', self.ChangeSource],
-			[3, 'Change Startup / Run ', self.ChangeStartup],
-			[4, 'Change MMI Attach', self.ChangeDebugVision],
-		]
-		userIn = self.PrintMenu(menuData, 2)
-		cnt = len(userIn)
-		if cnt == 3:
-			userIn[2]()
 
 	def OpenSolution(self, index):
 		param = [
@@ -98,191 +124,6 @@ class KlaRunner:
 		dirPath = self.model.Source + '/handler/tests/' + self.model.TestName
 		dirPath = os.path.abspath(dirPath)
 		subprocess.Popen(['Explorer', dirPath])
-
-	def SelectOption(self, name, arr, currentIndex = -1):
-		data = [
-			['Num', name],
-			['-']
-		]
-
-		i = 0
-		for item in arr:
-			line = ('  ', '* ')[i == currentIndex] + item
-			i += 1
-			data.append([i, line])
-		self.prettyTable.SetSingleLine()
-		self.prettyTable.PrintTable(data)
-		number = self.osOper.InputNumber('Select number : ')
-		if number > 0 and number <= len(arr):
-			return number - 1
-		else:
-			print 'Wrong input is given !!!'
-		return -1
-
-	def PrintMenu(self, data, colCnt):
-		self.prettyTable.SetDoubleLineBorder()
-		self.prettyTable.PrintTable(data, colCnt)
-		userIn = self.osOper.InputNumber('Type the number then press ENTER: ')
-		for item in data:
-			if len(item) > 0 and item[0] == userIn:
-				return item
-		print 'Wrong input is given !!!'
-		return [-1]
-
-	def ChangeTest(self):
-		number = self.SelectOption('Test Name', self.model.Tests, self.model.TestIndex)
-		if number >= 0:
-			self.model.TestIndex = number
-			self.model.UpdateTest()
-			self.model.WriteConfigFile()
-
-	def ChangeSource(self):
-		number = self.SelectOption('Source', self.model.Sources, self.model.SrcIndex)
-		if number >= 0:
-			self.model.SrcIndex = number
-			self.model.UpdateSource()
-			self.model.WriteConfigFile()
-
-	def ChangeStartup(self):
-		arr = [ 'Startup only', 'Run test' ]
-		index = 0 if self.model.StartUp else 1
-		number = self.SelectOption('Options', arr, index)
-		if number >= 0:
-			self.model.StartUp = number == 0
-			self.model.WriteConfigFile()
-
-	def ChangeDebugVision(self):
-		arr = [ 'Attach MMi', 'Do not attach' ]
-		index = 0 if self.model.DebugVision else 1
-		number = self.SelectOption('Options', arr, index)
-		if number >= 0:
-			self.model.DebugVision = number == 0
-			self.model.WriteConfigFile()
-
-	def CopyMockLicense(self):
-		LicenseFile = self.model.Source + '/mmi/mmi/mmi_stat/integration/code/MockLicenseDll/Win32/Debug/License.dll'
-		LicenseFile = os.path.abspath(LicenseFile)
-		Destin = self.model.Source + '/mmi/mmi/Bin/Win32/Debug'
-		Destin = os.path.abspath(Destin)
-		self.osOper.CopyFile(LicenseFile, Destin)
-		self.osOper.Pause()
-		#self.CopyFile(LicenseFile, 'C:/icos')
-
-	def ModifyVisionSystem(self):
-		line = 'shutil.copy2(os.path.join(mvsSlots, slot, slot + ".bat"), os.path.join(self.mvsPath, slot, slot + ".bat"))'
-		oldLine = ' ' + line
-		newLine = ' #' + line
-		fileName = os.path.abspath(self.model.Source + '/libs/testing/visionsystem.py')
-		with open(fileName) as f:
-			newText = f.read().replace(oldLine, newLine)
-		with open(fileName, "w") as f:
-			f.write(newText)
-		print 'Copying of slots in VisionSystem.py has been commented.'
-
-	def RunSlots(self):
-		vmRunExe = self.model.VMwareWS + "vmrun.exe"
-		vmWareExe = self.model.VMwareWS + "vmware.exe"
-		vmxGenericPath = r'C:\\MVS8000\\slot{}\\MVS8000_stage2.vmx'
-
-		output = subprocess.Popen([vmRunExe, '-vp', '1', 'list'], stdout=subprocess.PIPE).communicate()[0]
-		runningSlots = []
-		searchPattern = r'C:\\MVS8000\\slot(\d*)\\MVS8000_stage2\.vmx'
-		for line in output.split():
-			m = re.search(searchPattern, line, re.IGNORECASE)
-			if m:
-				runningSlots.append(int(m.group(1)))
-
-		for slot in self.model.slots:
-			vmxPath = vmxGenericPath.format(slot)
-			if slot in runningSlots:
-				print 'Slot : ' + str(slot) + ' restarted.'
-				subprocess.Popen([vmRunExe, '-vp', '1', 'reset', vmxPath])
-			else:
-				subprocess.Popen([vmWareExe, vmxPath])
-				print 'Start Slot : ' + str(slot)
-				self.osOper.Pause()
-				print 'Slot : ' + str(slot) + ' started.'
-		print 'Slots refreshed : ' + str(self.model.slots)
-
-	def RunAutoTest(self):
-
-		self.osOper.KillTask()
-
-		self.RunSlots()
-
-		self.ModifyVisionSystem()
-
-		sys.path.append(os.path.abspath(self.model.Source + '\\libs\\testing'));
-		import my
-
-		my.c.startup = self.model.StartUp
-		my.c.debugvision = self.model.DebugVision
-		my.c.copymmi = self.model.CopyMmi
-		JConfig1 = 'r' if self.model.Config == 'Release' else 'd'
-		my.c.console_config = JConfig1
-		my.c.simulator_config = JConfig1
-
-		if self.model.Config == 'Release':
-			if self.model.Platform == 'Win32':
-			  my.c.mmiBuildConfiguration = 'release'
-			else:
-			  my.c.mmiBuildConfiguration = 'releasex64'
-		else:
-			if self.model.Platform == 'Win32':
-			  my.c.mmiBuildConfiguration = 'debug'
-			else:
-			  my.c.mmiBuildConfiguration = 'debugx64'
-		my.c.platform = self.model.Platform
-		my.c.mmiConfigurationsPath = self.model.MMiConfigPath
-		my.c.mmiSetupsPath = self.model.MMiSetupsPath
-		#print str(my.c)
-
-		my.run(self.model.TestName)
-
-	def StartHandler(self):
-		self.osOper.KillTask()
-
-		consoleExe = self.model.Source + '/handler/cpp/bin/Win32/debug/system/console.exe'
-		testTempDir = self.model.Source + '/handler/tests/' + self.model.TestName + '~'
-		par = 'start ' + consoleExe + ' ' + testTempDir
-		print par
-		os.system(par)
-
-		simulatorExe = self.model.Source + '/handler/Simulator/ApplicationFiles/bin/x86/Debug/CIT100Simulator.exe'
-		handlerSysPath = self.model.Source + '/handler/cpp/bin/Win32/debug/system'
-		par = 'start ' + simulatorExe + ' ' + testTempDir + ' ' + handlerSysPath
-		print par
-		os.system(par)
-
-	def StartMMi(self, fromSrc):
-		self.osOper.KillTask('MMi.exe')
-		self.RunSlots()
-
-		MmiPath = os.path.abspath('{}/mmi/mmi/Bin/{}/{}'.format(self.model.Source, self.model.Platform, self.model.Config))
-		print 'MmiPath  :' + MmiPath
-		MockPath = os.path.abspath('{}/mmi/mmi/mmi_stat/integration/code/MockLicenseDll/{}/{}'.format(self.model.Source, self.model.Platform, self.model.Config))
-		print 'MockPath : ' + MockPath
-
-		self.osOper.CopyFile(MockPath, MmiPath)
-		self.CopyIllumRef()
-
-		self.osOper.Timeout(8)
-
-		if fromSrc:
-			mmiExe = os.path.abspath(MmiPath + '/Mmi.exe')
-		else:
-			mmiExe = os.path.abspath('C:/Icos/Mmi.exe')
-
-		par = 'start ' + mmiExe
-		print par
-		os.system(par)
-
-	def CopyIllumRef(self):
-		self.osOper.CopyFile('xPort_IllumReference.xml', 'C:/icos/xPort')
-
-	def StartHandlerMMi(self):
-		self.StartHandler()
-		self.StartMMi(True)
 
 	def PrintBranches(self, branchNums = ''):
 		data = [
@@ -340,14 +181,204 @@ class KlaRunner:
 		print 
 		self.osOper.Pause()
 
-class KlaSourceBuilder:
-	def __init__(self, model, osOper, prettyTable):
+class AppRunner:
+	def __init__(self, model, testRunner):
 		self.model = model
-		self.osOper = osOper
-		self.prettyTable = prettyTable
+		self.prettyTable = PrettyTable()
+		self.osOper = OsOperations()
+		self.testRunner = testRunner
+
+	def StartHandler(self):
+		self.osOper.KillTask()
+
+		consoleExe = self.model.Source + '/handler/cpp/bin/Win32/debug/system/console.exe'
+		testTempDir = self.model.Source + '/handler/tests/' + self.model.TestName + '~'
+		par = 'start ' + consoleExe + ' ' + testTempDir
+		print par
+		os.system(par)
+
+		simulatorExe = self.model.Source + '/handler/Simulator/ApplicationFiles/bin/x86/Debug/CIT100Simulator.exe'
+		handlerSysPath = self.model.Source + '/handler/cpp/bin/Win32/debug/system'
+		par = 'start ' + simulatorExe + ' ' + testTempDir + ' ' + handlerSysPath
+		print par
+		os.system(par)
+
+	def StartMMi(self, fromSrc):
+		self.osOper.KillTask('MMi.exe')
+		self.testRunner.RunSlots()
+
+		mmiPath = self.testRunner.CopyMockLicense(fromSrc, False)
+		self.CopyIllumRef(False)
+
+		self.osOper.Timeout(8)
+
+		mmiExe = os.path.abspath(mmiPath + '/Mmi.exe')
+
+		par = 'start ' + mmiExe
+		print par
+		os.system(par)
+
+	def StartHandlerMMi(self):
+		self.StartHandler()
+		self.StartMMi(True)
+
+	def CopyIllumRef(self, doPause = True):
+		self.osOper.CopyFile('xPort_IllumReference.xml', 'C:/icos/xPort')
+		if doPause:
+			self.osOper.Pause()
+
+class TestRunner:
+	def __init__(self, model):
+		self.model = model
+		self.osOper = OsOperations()
+
+	def CopyMockLicense(self, fromSrc = True, doPause = True):
+		if fromSrc:
+			mmiPath = os.path.abspath('{}/mmi/mmi/Bin/{}/{}'.format(self.model.Source, self.model.Platform, self.model.Config))
+		else:
+			mmiPath = 'C:/icos'
+		licencePath = '{}/mmi/mmi/mmi_stat/integration/code/MockLicenseDll/{}/{}/License.dll'
+		licenseFile = os.path.abspath(licencePath.format(self.model.Source, self.model.Platform, self.model.Config))
+		self.osOper.CopyFile(licenseFile, mmiPath)
+		if doPause:
+			self.osOper.Pause()
+		return mmiPath
+
+	def ModifyVisionSystem(self, doPause = True):
+		line = 'shutil.copy2(os.path.join(mvsSlots, slot, slot + ".bat"), os.path.join(self.mvsPath, slot, slot + ".bat"))'
+		oldLine = ' ' + line
+		newLine = ' #' + line
+		fileName = os.path.abspath(self.model.Source + '/libs/testing/visionsystem.py')
+		with open(fileName) as f:
+			newText = f.read().replace(oldLine, newLine)
+		with open(fileName, "w") as f:
+			f.write(newText)
+		print 'The line for copying of slots in VisionSystem.py has been commented.'
+		if doPause:
+			self.osOper.Pause()
+
+	def RunSlots(self):
+		vmRunExe = self.model.VMwareWS + "vmrun.exe"
+		vmWareExe = self.model.VMwareWS + "vmware.exe"
+		vmxGenericPath = r'C:\\MVS8000\\slot{}\\MVS8000_stage2.vmx'
+
+		output = subprocess.Popen([vmRunExe, '-vp', '1', 'list'], stdout=subprocess.PIPE).communicate()[0]
+		runningSlots = []
+		searchPattern = r'C:\\MVS8000\\slot(\d*)\\MVS8000_stage2\.vmx'
+		for line in output.split():
+			m = re.search(searchPattern, line, re.IGNORECASE)
+			if m:
+				runningSlots.append(int(m.group(1)))
+
+		for slot in self.model.slots:
+			vmxPath = vmxGenericPath.format(slot)
+			if slot in runningSlots:
+				print 'Slot : ' + str(slot) + ' restarted.'
+				subprocess.Popen([vmRunExe, '-vp', '1', 'reset', vmxPath])
+			else:
+				subprocess.Popen([vmWareExe, vmxPath])
+				print 'Start Slot : ' + str(slot)
+				self.osOper.Pause()
+				print 'Slot : ' + str(slot) + ' started.'
+		print 'Slots refreshed : ' + str(self.model.slots)
+
+	def RunAutoTest(self):
+		self.osOper.KillTask()
+
+		self.RunSlots()
+
+		self.ModifyVisionSystem(False)
+
+		sys.path.append(os.path.abspath(self.model.Source + '\\libs\\testing'));
+		import my
+
+		my.c.startup = self.model.StartUp
+		my.c.debugvision = self.model.DebugVision
+		my.c.copymmi = self.model.CopyMmi
+		JConfig1 = 'r' if self.model.Config == 'Release' else 'd'
+		my.c.console_config = JConfig1
+		my.c.simulator_config = JConfig1
+
+		if self.model.Config == 'Release':
+			if self.model.Platform == 'Win32':
+			  my.c.mmiBuildConfiguration = 'release'
+			else:
+			  my.c.mmiBuildConfiguration = 'releasex64'
+		else:
+			if self.model.Platform == 'Win32':
+			  my.c.mmiBuildConfiguration = 'debug'
+			else:
+			  my.c.mmiBuildConfiguration = 'debugx64'
+		my.c.platform = self.model.Platform
+		my.c.mmiConfigurationsPath = self.model.MMiConfigPath
+		my.c.mmiSetupsPath = self.model.MMiSetupsPath
+		#print str(my.c)
+
+		my.run(self.model.TestName)
+
+class Settings:
+	def __init__(self, model):
+		self.model = model
+		self.prettyTable = PrettyTable()
+		self.osOper = OsOperations()
+
+	def ChangeTest(self):
+		number = self.SelectOption('Test Name', self.model.Tests, self.model.TestIndex)
+		if number >= 0:
+			self.model.TestIndex = number
+			self.model.UpdateTest()
+			self.model.WriteConfigFile()
+
+	def ChangeSource(self):
+		number = self.SelectOption('Source', self.model.Sources, self.model.SrcIndex)
+		if number >= 0:
+			self.model.SrcIndex = number
+			self.model.UpdateSource()
+			self.model.WriteConfigFile()
+
+	def ChangeStartup(self):
+		arr = [ 'Startup only', 'Run test' ]
+		index = 0 if self.model.StartUp else 1
+		number = self.SelectOption('Options', arr, index)
+		if number >= 0:
+			self.model.StartUp = number == 0
+			self.model.WriteConfigFile()
+
+	def ChangeDebugVision(self):
+		arr = [ 'Attach MMi', 'Do not attach' ]
+		index = 0 if self.model.DebugVision else 1
+		number = self.SelectOption('Options', arr, index)
+		if number >= 0:
+			self.model.DebugVision = number == 0
+			self.model.WriteConfigFile()
+
+	def SelectOption(self, name, arr, currentIndex = -1):
+		data = [
+			['Num', name],
+			['-']
+		]
+
+		i = 0
+		for item in arr:
+			line = ('  ', '* ')[i == currentIndex] + item
+			i += 1
+			data.append([i, line])
+		self.prettyTable.SetSingleLine()
+		self.prettyTable.PrintTable(data)
+		number = self.osOper.InputNumber('Select number : ')
+		if number > 0 and number <= len(arr):
+			return number - 1
+		else:
+			print 'Wrong input is given !!!'
+		return -1
+
+class KlaSourceBuilder:
+	def __init__(self, model):
+		self.model = model
+		self.prettyTable = PrettyTable()
+		self.osOper = OsOperations()
 
 	def CleanSource(self, srcIndices):
-		print 'Preparing directories to be deleted...'
 		toDelete = []
 		excludeList = []
 		excludeList.append('libs\\external\\ezio')
@@ -360,6 +391,7 @@ class KlaSourceBuilder:
 		excludeList.append('tools\\ReportConfigurator\\ReportConfigurator.Tests')
 		sources = self.GetSources(srcIndices)
 		for src in sources:
+			print 'Preparing directories to be deleted in ' + src
 			for root, dirs, files in os.walk(src):
 				relPath = os.path.relpath(root, src)
 				if relPath in excludeList:
@@ -371,8 +403,9 @@ class KlaSourceBuilder:
 					if d == 'obj' or d == 'bin' or d == 'debug':
 						toDelete.append(os.path.abspath(root + '/' + dir))
 			if len(toDelete) == 0:
-				print 'Source is clean'
-				return
+				print src + ' is clean'
+				self.osOper.Pause()
+				continue
 			print 'The following directories will be deleted.'
 			i = 1
 			for dir in toDelete:
@@ -417,7 +450,7 @@ class KlaSourceBuilder:
 				if index < 0 or index >= len(self.model.Sources):
 					print 'Wrong index has been given !!!'
 					return
-				sources.append(self.model.Sources[index])
+				sources.append(self.model.Sources[index - 1])
 		return sources
 
 class BuildLoger:
@@ -750,4 +783,4 @@ class Model:
 		with open(self.fileName, 'w') as f:
 			json.dump(_model, f, indent=3)
 
-KlaRunner().StartLoop()
+KlaRunner().Start()
