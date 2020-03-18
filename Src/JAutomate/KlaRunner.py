@@ -12,7 +12,9 @@ class KlaRunner:
 	def __init__(self):
 		self.model = Model()
 		self.model.ReadConfigFile()
-		klaSourceBuilder.model = self.model
+		self.prettyTable = PrettyTable()
+		self.osOper = OsOperations()
+		self.klaSourceBuilder = KlaSourceBuilder(self.model, self.osOper, self.prettyTable)
 
 	def StartLoop(self):
 		while True:
@@ -48,7 +50,7 @@ class KlaRunner:
 			[15, 'Open Solution Converters', self.OpenSolution, 4],
 			[16, 'Open Test Folder', self.OpenTestFolder],
 			[17, 'Open Git GUI', self.OpenGitGui],
-			[18, 'Open Local Differences', osOper.OpenLocalDif, self.model.Source],
+			[18, 'Open Local Differences', self.osOper.OpenLocalDif, self.model.Source],
 			[],
 			[20, 'Comment Line in VisionSystem', self.ModifyVisionSystem],
 			[21, 'Copy Mock License', self.CopyMockLicense],
@@ -57,9 +59,9 @@ class KlaRunner:
 			[24, 'Print Missing IDs in mmi.h', self.PrintMissingIds],
 			[],
 			[90, 'Settings', self.PrintSettingsMenu],
-			[91, 'Build', klaSourceBuilder.BuildSource, []],
-			[92, 'Clean Build', klaSourceBuilder.CleanSource, []],
-			[99, 'Kill All', osOper.KillTask],
+			[91, 'Build', self.klaSourceBuilder.BuildSource, []],
+			[92, 'Clean Build', self.klaSourceBuilder.CleanSource, []],
+			[99, 'Kill All', self.osOper.KillTask],
 			[0, 'EXIT']
 		]
 		userIn = self.PrintMenu(menuData, 2)
@@ -67,6 +69,8 @@ class KlaRunner:
 
 	def PrintSettingsMenu(self):
 		menuData = [
+			['Num', 'Description', self.ChangeTest],
+			['-'],
 			[1, 'Change Test', self.ChangeTest],
 			[2, 'Change Source', self.ChangeSource],
 			[3, 'Change Startup / Run ', self.ChangeStartup],
@@ -112,9 +116,9 @@ class KlaRunner:
 			line = ('  ', '* ')[i == currentIndex] + item
 			i += 1
 			data.append([i, line])
-		prettyTable.SetSingleLine()
-		prettyTable.PrintTable(data)
-		number = osOper.InputNumber('Select number : ')
+		self.prettyTable.SetSingleLine()
+		self.prettyTable.PrintTable(data)
+		number = self.osOper.InputNumber('Select number : ')
 		if number > 0 and number <= len(arr):
 			return number - 1
 		else:
@@ -122,9 +126,9 @@ class KlaRunner:
 		return -1
 
 	def PrintMenu(self, data, colCnt):
-		prettyTable.SetDoubleLineBorder()
-		prettyTable.PrintTable(data, colCnt)
-		userIn = osOper.InputNumber('Type the number then press ENTER: ')
+		self.prettyTable.SetDoubleLineBorder()
+		self.prettyTable.PrintTable(data, colCnt)
+		userIn = self.osOper.InputNumber('Type the number then press ENTER: ')
 		for item in data:
 			if len(item) > 0 and item[0] == userIn:
 				return item
@@ -166,8 +170,8 @@ class KlaRunner:
 		LicenseFile = os.path.abspath(LicenseFile)
 		Destin = self.model.Source + '/mmi/mmi/Bin/Win32/Debug'
 		Destin = os.path.abspath(Destin)
-		osOper.CopyFile(LicenseFile, Destin)
-		osOper.Pause()
+		self.osOper.CopyFile(LicenseFile, Destin)
+		self.osOper.Pause()
 		#self.CopyFile(LicenseFile, 'C:/icos')
 
 	def ModifyVisionSystem(self):
@@ -202,13 +206,13 @@ class KlaRunner:
 			else:
 				subprocess.Popen([vmWareExe, vmxPath])
 				print 'Start Slot : ' + str(slot)
-				osOper.Pause()
+				self.osOper.Pause()
 				print 'Slot : ' + str(slot) + ' started.'
 		print 'Slots refreshed : ' + str(self.model.slots)
 
 	def RunAutoTest(self):
 
-		osOper.KillTask()
+		self.osOper.KillTask()
 
 		self.RunSlots()
 
@@ -242,7 +246,7 @@ class KlaRunner:
 		my.run(self.model.TestName)
 
 	def StartHandler(self):
-		osOper.KillTask()
+		self.osOper.KillTask()
 
 		consoleExe = self.model.Source + '/handler/cpp/bin/Win32/debug/system/console.exe'
 		testTempDir = self.model.Source + '/handler/tests/' + self.model.TestName + '~'
@@ -257,7 +261,7 @@ class KlaRunner:
 		os.system(par)
 
 	def StartMMi(self, fromSrc):
-		osOper.KillTask('MMi.exe')
+		self.osOper.KillTask('MMi.exe')
 		self.RunSlots()
 
 		MmiPath = os.path.abspath('{}/mmi/mmi/Bin/{}/{}'.format(self.model.Source, self.model.Platform, self.model.Config))
@@ -265,10 +269,10 @@ class KlaRunner:
 		MockPath = os.path.abspath('{}/mmi/mmi/mmi_stat/integration/code/MockLicenseDll/{}/{}'.format(self.model.Source, self.model.Platform, self.model.Config))
 		print 'MockPath : ' + MockPath
 
-		osOper.CopyFile(MockPath, MmiPath)
+		self.osOper.CopyFile(MockPath, MmiPath)
 		self.CopyIllumRef()
 
-		osOper.Timeout(8)
+		self.osOper.Timeout(8)
 
 		if fromSrc:
 			mmiExe = os.path.abspath(MmiPath + '/Mmi.exe')
@@ -280,7 +284,7 @@ class KlaRunner:
 		os.system(par)
 
 	def CopyIllumRef(self):
-		osOper.CopyFile('xPort_IllumReference.xml', 'C:/icos/xPort')
+		self.osOper.CopyFile('xPort_IllumReference.xml', 'C:/icos/xPort')
 
 	def StartHandlerMMi(self):
 		self.StartHandler()
@@ -307,9 +311,9 @@ class KlaRunner:
 			if branch == self.model.Source:
 				self.model.Branch = branch
 			data.append([src, branch])
-		prettyTable.SetSingleLine()
-		prettyTable.PrintTable(data)
-		osOper.Pause()
+		self.prettyTable.SetSingleLine()
+		self.prettyTable.PrintTable(data)
+		self.osOper.Pause()
 
 	def PrintMissingIds(self):
 		lastId = 1
@@ -340,9 +344,14 @@ class KlaRunner:
 				print 
 			print sets[i],
 		print 
-		osOper.Pause()
+		self.osOper.Pause()
 
 class KlaSourceBuilder:
+	def __init__(self, model, osOper, prettyTable):
+		self.model = model
+		self.osOper = osOper
+		self.prettyTable = prettyTable
+
 	def CleanSource(self, srcIndices):
 		print 'Preparing directories to be deleted...'
 		toDelete = []
@@ -376,24 +385,21 @@ class KlaSourceBuilder:
 				print dir
 				i += 1
 				if i == 20:
-					osOper.Pause()
+					self.osOper.Pause()
 			if raw_input('Do you want to continue (Yes/No) : ') == 'Yes':
 				for dir in toDelete:
-					shutil.rmtree(dir)
+					if os.path.isdir(dir):
+						shutil.rmtree(dir)
 
 	def BuildSource(self, srcIndices):
 		outFileNames = [ 'Handler', 'Simulator', 'MMi', 'Mock', 'Converters' ]
 		sources = self.GetSources(srcIndices)
-		logDataTable = [
-		[ 'Source', 'Branch', 'Solution', 'Succeeded', 'Failed', 'Up-to-date', 'Skipped', 'Time Taken' ],
-		['-']
-		]
 
 		for src in sources:
 			i = 0
-			self.logDataRow = [ '', '', '', '', '', '', '', '']
-			self.logDataRow[0] = self.model.Source
-			self.logDataRow[1] = GitHelper().GetBranch(self.model.Source)
+			self.Log('Source : ' + src)
+			self.Log('Branch : ' + GitHelper().GetBranch(src))
+			logDataTable = [[ 'Solution', 'Succeeded', 'Failed', 'Up-to-date', 'Skipped', 'Time Taken' ],['-']]
 			for sln in self.model.Solutions:
 				# -----------------------------------------------------------
 				# For Quick Build, commenting Handler and MMi
@@ -402,32 +408,32 @@ class KlaSourceBuilder:
 				#	continue
 				# -----------------------------------------------------------
 
+				self.logDataRow = []
+				self.logDataRow.append(outFileNames[i])
 				platform = self.model.Platform
 				if outFileNames[i] == 'Simulator':
 					platform = 'x64' if self.model.Platform == 'x64' else 'x86'
 				BuildConf = self.model.Config + '|' + platform
-				slnFile = os.path.abspath(self.model.Source + '/' + sln)
-				outFile = os.path.abspath(self.model.Source + '/' + outFileNames[i]) + '.txt'
+				slnFile = os.path.abspath(src + '/' + sln)
+				outFile = os.path.abspath(src + '/Out_' + outFileNames[i]) + '.txt'
 
-				print 'Start building : ' + slnFile
+				self.Log('Start building : ' + slnFile)
 				startTime = datetime.now()
 
 				params = [self.model.VisualStudioBuild, slnFile, '/build', BuildConf, '/out', outFile]
 
-				osOper.Popen(params, self.PrintMsg)
+				self.osOper.Popen(params, self.PrintMsg)
 
-				self.logDataRow[2] = outFileNames[i]
-
-				timedelta = datetime.now() - startTime
-				self.logDataRow[7] = osOper.TimeToStr(timedelta)
+				self.logDataRow.append(str(datetime.now() - startTime))
 
 				i += 1
-				logDataTable.append(list(self.logDataRow))
-		prettyTable.SetSingleLine()
-		table = prettyTable.ToString(logDataTable)
-		print table
-		osOper.Append(self.model.LogFileName, table)
-		osOper.Pause()
+				logDataTable.append(self.logDataRow)
+			self.Log('Completed building : ' + src)
+			self.prettyTable.SetSingleLine()
+			table = self.prettyTable.ToString(logDataTable)
+			print table
+			self.osOper.Append(self.model.LogFileName, table)
+		self.osOper.Pause()
 
 	def GetBuildStatus(self, message):
 		nums = []
@@ -459,14 +465,15 @@ class KlaSourceBuilder:
 			print message
 			nums = self.GetBuildStatus(message)
 			if len(nums) == 4:
-				self.logDataRow[3] = nums[0]
-				self.logDataRow[4] = nums[1]
-				self.logDataRow[5] = nums[2]
-				self.logDataRow[6] = nums[3]
+				self.logDataRow.append(nums[0])
+				self.logDataRow.append(nums[1])
+				self.logDataRow.append(nums[2])
+				self.logDataRow.append(nums[3])
 
 	def Log(self, message):
 		print message
-		osOper.Append(self.model.LogFileName, message)
+		message = datetime.now().strftime('%Y %b %d %H:%M:%S> ') + message
+		self.osOper.Append(self.model.LogFileName, message)
 
 class OsOperations:
 	def CopyFile(self, Src, Des):
@@ -520,10 +527,6 @@ class OsOperations:
 				else:
 					callPrint(output.strip())
 		return process.poll()
-
-	def TimeToStr(self, timeDelta):
-		seconds = timeDelta.seconds
-		return '{:02}:{:02}:{:02}'.format(seconds // 3600, (seconds % 3600) // 60, seconds % 60)
 
 	def Append(self, fileName, message):
 		with open(fileName, 'a') as f:
@@ -617,9 +620,12 @@ class PrettyTable:
 				outMessage += self.chVerLef
 				for i in range(0, colCnt):
 					cell = ''
+					alignMode = 1
 					if i < len(line):
+						if isinstance(line[i], int):
+							alignMode = 2
 						cell = str(line[i])
-					outMessage += cell.ljust(colWidths[i]) + ' '
+					outMessage += self.GetAligned(cell, colWidths[i], alignMode)
 					if i == colCnt - 1:
 						outMessage += self.chVerRig
 					else:
@@ -628,12 +634,19 @@ class PrettyTable:
 		outMessage += self.PrintLine(colWidths, self.chBotLef, self.chBotMid, self.chBotRig, self.chHorRig)
 		return outMessage
 
+	def GetAligned(self, message, width, mode):
+		if mode == 2:
+			return message.center(width)
+		elif mode == 3:
+			return message.rjust(width)
+		return message.ljust(width)
+
 	def PrintLine(self, colWidths, left, mid, right, fill):
 		line = left
 		colCnt = len(colWidths)
 		for i in range(0, colCnt - 1):
-			line += fill * (colWidths[i] + 1) + mid
-		line += fill * (colWidths[-1] + 1) + right
+			line += fill * colWidths[i] + mid
+		line += fill * colWidths[-1] + right
 		return line + '\n'
 
 	def PrintTable1(self, data):
@@ -742,7 +755,4 @@ class Model:
 		with open('KlaRunner.ini', 'w') as f:
 			json.dump(_model, f, indent=3)
 
-prettyTable = PrettyTable()
-osOper = OsOperations()
-klaSourceBuilder = KlaSourceBuilder()
 KlaRunner().StartLoop()
