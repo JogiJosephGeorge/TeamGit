@@ -27,38 +27,59 @@ class Menu:
 			autoTest += ' (attach MMi)'
 		menuData = [
 			['Src', model.Source],
-			['Test', model.TestName],
 			['Branch', model.Branch],
-			['-'],
-			[1, 'Open Python', self.klaRunner.OpenPython],
-			[2, autoTest, testRunner.RunAutoTest],
-			[3, 'Run Handler and MMi', self.appRunner.StartHandlerMMi],
-			[4, 'Run Handler alone', self.appRunner.StartHandler],
-			[5, 'Run MMi from Source', self.appRunner.StartMMi, True],
-			[6, 'Run MMi from C:Icos', self.appRunner.StartMMi, False],
-			[],
-			[10, 'Open Solution CIT100', self.klaRunner.OpenSolution, 0],
-			[11, 'Open Solution CIT100Simulator', self.klaRunner.OpenSolution, 1],
-			[12, 'Open Solution Mmi', self.klaRunner.OpenSolution, 2],
-			[14, 'Open Solution MockLicense', self.klaRunner.OpenSolution, 3],
-			[15, 'Open Solution Converters', self.klaRunner.OpenSolution, 4],
-			[16, 'Open Test Folder', self.klaRunner.OpenTestFolder],
-			[17, 'Open Git GUI', GitHelper.OpenGitGui, model.Source],
-			[18, 'Open Local Differences', OsOperations.OpenLocalDif, model.Source],
-			[],
-			[20, 'Comment Line in VisionSystem', testRunner.ModifyVisionSystem],
-			[21, 'Copy Mock License', testRunner.CopyMockLicense],
-			[22, 'Copy xPort_IllumReference.xml', self.appRunner.CopyIllumRef],
-			[23, 'Print All Branches', self.klaRunner.PrintBranches],
-			[24, 'Print Missing IDs in mmi.h', self.klaRunner.PrintMissingIds],
-			[],
-			[90, 'Settings', self.PrintSettingsMenu],
-			[91, 'Build', sourceBuilder.BuildSource, [1]],
-			[92, 'Clean Build', sourceBuilder.CleanSource, [1, 3]],
-			[99, 'Stop All KLA Apps', OsOperations.StopTask],
+			['Test', model.TestName]
+		]
+		self.prettyTable.SetSingleLine()
+		self.prettyTable.PrintTable(menuData)
+
+		group2L = [
+			[1, ['Open Python', self.klaRunner.OpenPython]],
+			[2, [autoTest, testRunner.RunAutoTest]],
+			[3, ['Run Handler and MMi', self.appRunner.StartHandlerMMi]],
+			[4, ['Run Handler alone', self.appRunner.StartHandler]],
+			[5, ['Run MMi from Source', self.appRunner.StartMMi, True]],
+			[6, ['Run MMi from C:Icos', self.appRunner.StartMMi, False]]
+		]
+		group2R = [
+			[10, ['Open Solution CIT100', self.klaRunner.OpenSolution, 0]],
+			[11, ['Open Solution CIT100Simulator', self.klaRunner.OpenSolution, 1]],
+			[12, ['Open Solution Mmi', self.klaRunner.OpenSolution, 2]],
+			[14, ['Open Solution MockLicense', self.klaRunner.OpenSolution, 3]],
+			[15, ['Open Solution Converters', self.klaRunner.OpenSolution, 4]],
+			[16, ['Open Test Folder', self.klaRunner.OpenTestFolder]],
+			[17, ['Open Git GUI', GitHelper.OpenGitGui, model.Source]],
+			[18, ['Open Local Differences', OsOperations.OpenLocalDif, model.Source]]
+		]
+		group3L = [
+			[20, ['Comment Line in VisionSystem', testRunner.ModifyVisionSystem]],
+			[21, ['Copy Mock License', testRunner.CopyMockLicense]],
+			[22, ['Copy xPort_IllumReference.xml', self.appRunner.CopyIllumRef]],
+			[23, ['Print All Branches', self.klaRunner.PrintBranches]],
+			[24, ['Print Missing IDs in mmi.h', self.klaRunner.PrintMissingIds]],
+		]
+		group3R = [
+			[90, ['Settings', self.PrintSettingsMenu]],
+			[91, ['Build', sourceBuilder.BuildSource, []]],
+			[92, ['Clean Build', sourceBuilder.CleanSource, []]],
+			[99, ['Stop All KLA Apps', OsOperations.StopTask]],
 			[0, 'EXIT']
 		]
-		userIn = self.PrintMenu(menuData, 2)
+		menuData = [ 
+			['Num', 'Description'] * 4,
+			['-']
+		]
+		for col1, col2, col3, col4 in itertools.izip_longest(group2L, group2R, group3L, group3R):
+			if col1 is None:
+				col1 = ['', '']
+			if col2 is None:
+				col2 = ['', '']
+			if col3 is None:
+				col3 = ['', '']
+			if col4 is None:
+				col4 = ['', '']
+			menuData.append(col1 + col2 + col3 + col4)
+		userIn = self.PrintMenu(menuData)
 		return userIn
 
 	def PrintSettingsMenu(self):
@@ -66,23 +87,24 @@ class Menu:
 		menuData = [
 			['Num', 'Description'],
 			['-'],
-			[1, 'Change Test', settings.ChangeTest],
-			[2, 'Change Source', settings.ChangeSource],
-			[3, 'Change Startup / Run ', settings.ChangeStartup],
-			[4, 'Change MMI Attach', settings.ChangeDebugVision],
+			[1, ['Change Test', settings.ChangeTest]],
+			[2, ['Change Source', settings.ChangeSource]],
+			[3, ['Change Startup / Run ', settings.ChangeStartup]],
+			[4, ['Change MMI Attach', settings.ChangeDebugVision]],
 		]
-		userIn = self.PrintMenu(menuData, 2)
+		userIn = self.PrintMenu(menuData)
 		cnt = len(userIn)
-		if cnt == 3:
-			userIn[2]()
+		if cnt == 2:
+			userIn[1]()
 
-	def PrintMenu(self, data, colCnt):
+	def PrintMenu(self, data):
 		self.prettyTable.SetDoubleLineBorder()
-		self.prettyTable.PrintTable(data, colCnt)
+		self.prettyTable.PrintTable(data)
 		userIn = OsOperations.InputNumber('Type the number then press ENTER: ')
-		for item in data:
-			if len(item) > 0 and item[0] == userIn:
-				return item
+		for row in data:
+			for i in range(1, len(row)):
+				if row[i - 1] == userIn:
+					return row[i]
 		print 'Wrong input is given !!!'
 		return [-1]
 
@@ -97,13 +119,13 @@ class KlaRunner:
 	def Start(self):
 		while True:
 			userIn = self.menu.PrintMainMenu()
-			if userIn[0] == 0:
+			if userIn == 'EXIT':
 				break
 			cnt = len(userIn)
-			if cnt == 3:
-				userIn[2]()
-			elif cnt == 4:
-				userIn[2](userIn[3])
+			if cnt == 2:
+				userIn[1]()
+			elif cnt == 3:
+				userIn[1](userIn[2])
 
 	def OpenSolution(self, index):
 		param = [
@@ -417,8 +439,8 @@ class KlaSourceBuilder:
 		for src in sources:
 			buildLoger.StartSource(src)
 			for sln, name in itertools.izip(self.model.Solutions, outFileNames):
-				if name == 'Handler' or name == 'MMi':
-					continue
+				#if name == 'Handler' or name == 'MMi':
+				#	continue
 				platform = self.model.Platform
 				if name == 'Simulator':
 					platform = 'x64' if self.model.Platform == 'x64' else 'x86'
@@ -663,27 +685,30 @@ class PrettyTable:
 		self.chHorMid = u'═'
 		self.chHorRig = u'═'
 
-	def PrintTable(self, data, colCnt = 0):
-		print self.ToString(data, colCnt)
+	def PrintTable(self, data):
+		print self.ToString(data),
 
-	def ToString(self, data, colCnt = 0):
+	def ToString(self, data):
 		outMessage = ''
-		calculateColCnt = colCnt == 0
+		colCnt = 0
 		colWidths = []
 
 		for line in data:
 			i = 0
 			for cell in line:
+				cellStr = ''
+				if isinstance(cell, list):
+					if len(cell) > 0:
+						celStr = cell[0]
+				else:
+					celStr = str(cell)
+				width = len(celStr)
 				if len(colWidths) > i:
-					colWidths[i] = max(colWidths[i], len(str(cell)))
+					colWidths[i] = max(colWidths[i], width)
 				else:
-					colWidths.append(len(str(cell)))
+					colWidths.append(width)
 				i = i + 1
-				if calculateColCnt:
-					colCnt = max(colCnt, i)
-				else:
-					if colCnt == i:
-						break;
+				colCnt = max(colCnt, i)
 
 		outMessage += self.PrintLine(colWidths, self.chTopLef, self.chTopMid, self.chTopRig, self.chHorLef)
 
@@ -700,7 +725,11 @@ class PrettyTable:
 					if i < len(line):
 						if isinstance(line[i], int):
 							alignMode = 2
-						cell = str(line[i])
+						if isinstance(line[i], list):
+							if len(line[i]) > 0:
+								cell = str(line[i][0])
+						else:
+							cell = str(line[i])
 					outMessage += self.GetAligned(cell, colWidths[i], alignMode)
 					if i == colCnt - 1:
 						outMessage += self.chVerRig
