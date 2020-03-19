@@ -10,19 +10,17 @@ import sys
 import shutil
 
 class Menu:
-	def __init__(self, klaRunner):
+	def __init__(self, klaRunner, testRunner):
 		self.klaRunner = klaRunner
+		self.testRunner = testRunner
 		self.prettyTable = PrettyTable()
-		self.osOper = OsOperations()
 		self.settings = Settings(klaRunner.model)
 		self.klaSourceBuilder = KlaSourceBuilder(klaRunner.model)
-		self.appRunner = AppRunner(klaRunner.model, klaRunner.testRunner)
+		self.appRunner = AppRunner(klaRunner.model, testRunner)
 
 	def PrintMainMenu(self):
 		model = self.klaRunner.model
-		testRunner = self.klaRunner.testRunner
-		gitHelper = self.klaRunner.gitHelper
-		osOper = self.klaRunner.osOper
+		testRunner = self.testRunner
 		sourceBuilder = self.klaSourceBuilder
 		autoTest = ('Run Auto test', 'Startup Auto test') [model.StartUp]
 		if model.DebugVision:
@@ -45,8 +43,8 @@ class Menu:
 			[14, 'Open Solution MockLicense', self.klaRunner.OpenSolution, 3],
 			[15, 'Open Solution Converters', self.klaRunner.OpenSolution, 4],
 			[16, 'Open Test Folder', self.klaRunner.OpenTestFolder],
-			[17, 'Open Git GUI', gitHelper.OpenGitGui, model.Source],
-			[18, 'Open Local Differences', osOper.OpenLocalDif, model.Source],
+			[17, 'Open Git GUI', GitHelper.OpenGitGui, model.Source],
+			[18, 'Open Local Differences', OsOperations.OpenLocalDif, model.Source],
 			[],
 			[20, 'Comment Line in VisionSystem', testRunner.ModifyVisionSystem],
 			[21, 'Copy Mock License', testRunner.CopyMockLicense],
@@ -55,9 +53,9 @@ class Menu:
 			[24, 'Print Missing IDs in mmi.h', self.klaRunner.PrintMissingIds],
 			[],
 			[90, 'Settings', self.PrintSettingsMenu],
-			[91, 'Build', sourceBuilder.BuildSource, [1, 3]],
+			[91, 'Build', sourceBuilder.BuildSource, [1]],
 			[92, 'Clean Build', sourceBuilder.CleanSource, [1, 3]],
-			[99, 'Kill All', osOper.KillTask],
+			[99, 'Stop All KLA Apps', OsOperations.StopTask],
 			[0, 'EXIT']
 		]
 		userIn = self.PrintMenu(menuData, 2)
@@ -81,7 +79,7 @@ class Menu:
 	def PrintMenu(self, data, colCnt):
 		self.prettyTable.SetDoubleLineBorder()
 		self.prettyTable.PrintTable(data, colCnt)
-		userIn = self.osOper.InputNumber('Type the number then press ENTER: ')
+		userIn = OsOperations.InputNumber('Type the number then press ENTER: ')
 		for item in data:
 			if len(item) > 0 and item[0] == userIn:
 				return item
@@ -92,11 +90,9 @@ class KlaRunner:
 	def __init__(self):
 		self.model = Model()
 		self.model.ReadConfigFile()
-		self.testRunner = TestRunner(self.model)
 		self.prettyTable = PrettyTable()
-		self.osOper = OsOperations()
-		self.gitHelper = GitHelper()
-		self.menu = Menu(self)
+		testRunner = TestRunner(self.model)
+		self.menu = Menu(self, testRunner)
 
 	def Start(self):
 		while True:
@@ -142,13 +138,13 @@ class KlaRunner:
 				else:
 					tempSources.append(orgSources[num - 1])
 		for src in tempSources:
-			branch = self.gitHelper.GetBranch(src)
+			branch = GitHelper.GetBranch(src)
 			if branch == self.model.Source:
 				self.model.Branch = branch
 			data.append([src, branch])
 		self.prettyTable.SetSingleLine()
 		self.prettyTable.PrintTable(data)
-		self.osOper.Pause()
+		OsOperations.Pause()
 
 	def PrintMissingIds(self):
 		lastId = 1
@@ -179,17 +175,16 @@ class KlaRunner:
 				print 
 			print sets[i],
 		print 
-		self.osOper.Pause()
+		OsOperations.Pause()
 
 class AppRunner:
 	def __init__(self, model, testRunner):
 		self.model = model
 		self.prettyTable = PrettyTable()
-		self.osOper = OsOperations()
 		self.testRunner = testRunner
 
 	def StartHandler(self):
-		self.osOper.KillTask()
+		OsOperations.StopTask()
 
 		consoleExe = self.model.Source + '/handler/cpp/bin/Win32/debug/system/console.exe'
 		testTempDir = self.model.Source + '/handler/tests/' + self.model.TestName + '~'
@@ -204,13 +199,13 @@ class AppRunner:
 		os.system(par)
 
 	def StartMMi(self, fromSrc):
-		self.osOper.KillTask('MMi.exe')
+		OsOperations.StopTask('MMi.exe')
 		self.testRunner.RunSlots()
 
 		mmiPath = self.testRunner.CopyMockLicense(fromSrc, False)
 		self.CopyIllumRef(False)
 
-		self.osOper.Timeout(8)
+		OsOperations.Timeout(8)
 
 		mmiExe = os.path.abspath(mmiPath + '/Mmi.exe')
 
@@ -223,14 +218,13 @@ class AppRunner:
 		self.StartMMi(True)
 
 	def CopyIllumRef(self, doPause = True):
-		self.osOper.CopyFile('xPort_IllumReference.xml', 'C:/icos/xPort')
+		OsOperations.CopyFile('xPort_IllumReference.xml', 'C:/icos/xPort')
 		if doPause:
-			self.osOper.Pause()
+			OsOperations.Pause()
 
 class TestRunner:
 	def __init__(self, model):
 		self.model = model
-		self.osOper = OsOperations()
 
 	def CopyMockLicense(self, fromSrc = True, doPause = True):
 		if fromSrc:
@@ -239,9 +233,9 @@ class TestRunner:
 			mmiPath = 'C:/icos'
 		licencePath = '{}/mmi/mmi/mmi_stat/integration/code/MockLicenseDll/{}/{}/License.dll'
 		licenseFile = os.path.abspath(licencePath.format(self.model.Source, self.model.Platform, self.model.Config))
-		self.osOper.CopyFile(licenseFile, mmiPath)
+		OsOperations.CopyFile(licenseFile, mmiPath)
 		if doPause:
-			self.osOper.Pause()
+			OsOperations.Pause()
 		return mmiPath
 
 	def ModifyVisionSystem(self, doPause = True):
@@ -255,7 +249,7 @@ class TestRunner:
 			f.write(newText)
 		print 'The line for copying of slots in VisionSystem.py has been commented.'
 		if doPause:
-			self.osOper.Pause()
+			OsOperations.Pause()
 
 	def RunSlots(self):
 		vmRunExe = self.model.VMwareWS + "vmrun.exe"
@@ -278,12 +272,12 @@ class TestRunner:
 			else:
 				subprocess.Popen([vmWareExe, vmxPath])
 				print 'Start Slot : ' + str(slot)
-				self.osOper.Pause()
+				OsOperations.Pause()
 				print 'Slot : ' + str(slot) + ' started.'
 		print 'Slots refreshed : ' + str(self.model.slots)
 
 	def RunAutoTest(self):
-		self.osOper.KillTask()
+		OsOperations.StopTask()
 
 		self.RunSlots()
 
@@ -320,7 +314,6 @@ class Settings:
 	def __init__(self, model):
 		self.model = model
 		self.prettyTable = PrettyTable()
-		self.osOper = OsOperations()
 
 	def ChangeTest(self):
 		number = self.SelectOption('Test Name', self.model.Tests, self.model.TestIndex)
@@ -365,7 +358,7 @@ class Settings:
 			data.append([i, line])
 		self.prettyTable.SetSingleLine()
 		self.prettyTable.PrintTable(data)
-		number = self.osOper.InputNumber('Select number : ')
+		number = OsOperations.InputNumber('Select number : ')
 		if number > 0 and number <= len(arr):
 			return number - 1
 		else:
@@ -376,7 +369,6 @@ class KlaSourceBuilder:
 	def __init__(self, model):
 		self.model = model
 		self.prettyTable = PrettyTable()
-		self.osOper = OsOperations()
 
 	def CleanSource(self, srcIndices):
 		toDelete = []
@@ -404,7 +396,7 @@ class KlaSourceBuilder:
 						toDelete.append(os.path.abspath(root + '/' + dir))
 			if len(toDelete) == 0:
 				print src + ' is clean'
-				self.osOper.Pause()
+				OsOperations.Pause()
 				continue
 			print 'The following directories will be deleted.'
 			i = 1
@@ -412,7 +404,7 @@ class KlaSourceBuilder:
 				print dir
 				i += 1
 				if i == 20:
-					self.osOper.Pause()
+					OsOperations.Pause()
 			if raw_input('Do you want to continue (Yes/No) : ') == 'Yes':
 				for dir in toDelete:
 					if os.path.isdir(dir):
@@ -425,8 +417,8 @@ class KlaSourceBuilder:
 		for src in sources:
 			buildLoger.StartSource(src)
 			for sln, name in itertools.izip(self.model.Solutions, outFileNames):
-				#if name == 'Handler' or name == 'MMi':
-				#	continue
+				if name == 'Handler' or name == 'MMi':
+					continue
 				platform = self.model.Platform
 				if name == 'Simulator':
 					platform = 'x64' if self.model.Platform == 'x64' else 'x86'
@@ -436,10 +428,10 @@ class KlaSourceBuilder:
 
 				buildLoger.StartSolution(sln, name, self.model.Config, platform)
 				params = [self.model.VisualStudioBuild, slnFile, '/build', BuildConf, '/out', outFile]
-				self.osOper.Popen(params, buildLoger.PrintMsg)
+				OsOperations.Popen(params, buildLoger.PrintMsg)
 				buildLoger.EndSolution()
 			buildLoger.EndSource(src)
-		self.osOper.Pause()
+		OsOperations.Pause()
 
 	def GetSources(self, srcIndices):
 		sources = []
@@ -457,39 +449,41 @@ class BuildLoger:
 	def __init__(self, fileName):
 		self.fileName = fileName
 		self.prettyTable = PrettyTable()
-		self.osOper = OsOperations()
 
 	def StartSource(self, src):
+		self.srcStartTime = datetime.now()
 		self.Log('Source : ' + src)
-		self.Log('Branch : ' + GitHelper().GetBranch(src))
+		self.Log('Branch : ' + GitHelper.GetBranch(src))
 		self.logDataTable = [
 			[ 'Solution', 'Config', 'Platform', 'Succeeded', 'Failed', 'Up To Date', 'Skipped', 'Time Taken' ],
 			['-']
 		]
 
 	def EndSource(self, src):
-		self.Log('Completed building : ' + src)
+		timeDelta = OsOperations.TimeDeltaToStr(datetime.now() - self.srcStartTime)
+		self.Log('Completed building : {} in {}'.format(src, timeDelta))
 		self.prettyTable.SetSingleLine()
 		table = self.prettyTable.ToString(self.logDataTable)
 		print table
-		self.osOper.Append(self.fileName, table)
+		OsOperations.Append(self.fileName, table)
 
 	def StartSolution(self, slnFile, name, config, platform):
 		self.Log('Start building : ' + slnFile)
-		self.startTime = datetime.now()
+		self.slnStartTime = datetime.now()
 		self.logDataRow = []
 		self.logDataRow.append(name)
 		self.logDataRow.append(config)
 		self.logDataRow.append(platform)
 
 	def EndSolution(self):
-		self.logDataRow.append(str(datetime.now() - self.startTime))
+		timeDelta = OsOperations.TimeDeltaToStr(datetime.now() - self.slnStartTime)
+		self.logDataRow.append(timeDelta)
 		self.logDataTable.append(self.logDataRow)
 
 	def Log(self, message):
 		print message
 		message = datetime.now().strftime('%Y %b %d %H:%M:%S> ') + message
-		self.osOper.Append(self.fileName, message)
+		OsOperations.Append(self.fileName, message)
 
 	def PrintMsg(self, message):
 		if '>----' in message:
@@ -515,11 +509,13 @@ class BuildLoger:
 		return nums
 
 class OsOperations:
+	@classmethod
 	def CopyFile(self, Src, Des):
 		par = 'COPY /Y "' + Src + '" "' + Des + '"'
 		print 'par : ' + par
 		os.system(par)
 
+	@classmethod
 	def CopyDir(self, Src, Des):
 		par = 'XCOPY /S /Y "' + Src + '" "' + Des + '"'
 		print 'Src : ' + Src
@@ -527,15 +523,45 @@ class OsOperations:
 		print 'par : ' + par
 		os.system(par)
 
+	@classmethod
 	def Pause(self):
 		raw_input('Press any key to continue...')
 
-	def KillTask(self, exeName = ''):
-		print 'exeName : ' + exeName
-		par = 'KillAll ' + exeName
-		print 'par : ' + par
-		os.system(par)
+	@classmethod
+	def StopTask(self, exeName = ''):
+		exeList = []
+		if exeName is '':
+			exeList = [
+				'Mmi.exe',
+				'console.exe',
+				'CIT100Simulator.exe',
+				'HostCamServer.exe',
+				'Ves.exe'
+			]
+		else:
+			exeList.append(exeName)
 
+		params = [ 'TASKKILL', '/IM', '', '/T', '/F' ]
+		for exe in exeList:
+			if self.GetExeInstanceCount(exe) > 0:
+				print exeName
+				params[2] = exe
+				OsOperations.Popen(params)
+
+	@classmethod
+	def GetExeInstanceCount(self, exeName):
+		exeName = exeName.lower()
+		params = [ 'TASKLIST', '/FI' ]
+		params.append('IMAGENAME eq {}'.format(exeName))
+		output = subprocess.Popen(params, stdout=subprocess.PIPE).communicate()[0]
+		count = 0
+		for line in output.splitlines():
+			line = line.lower()
+			if line[:len(exeName)] == exeName:
+				count += 1
+		return count
+
+	@classmethod
 	def OpenLocalDif(self, source):
 		par = [ 'TortoiseGitProc.exe' ]
 		par.append('/command:diff')
@@ -543,10 +569,12 @@ class OsOperations:
 		print 'subprocess.Popen : ' + str(par)
 		subprocess.Popen(par)
 
+	@classmethod
 	def Timeout(self, seconds):
 		par = 'timeout ' + str(seconds)
 		os.system(par)
 
+	@classmethod
 	def InputNumber(self, message):
 		userIn = raw_input(message)
 		while True:
@@ -554,6 +582,7 @@ class OsOperations:
 				return int(userIn)
 			userIn = raw_input()
 
+	@classmethod
 	def Popen(self, params, callPrint = None):
 		process = subprocess.Popen(params, stdout=subprocess.PIPE)
 		while True:
@@ -561,15 +590,23 @@ class OsOperations:
 			if output == '' and process.poll() is not None:
 				break
 			if output:
-				if callPrint is None:
-					print output.strip()
-				else:
+				outLine = output.strip()
+				if callPrint is not None:
 					callPrint(output.strip())
+				else:
+					print output.strip()
 		return process.poll()
 
+	@classmethod
 	def Append(self, fileName, message):
 		with open(fileName, 'a') as f:
 			 f.write((message + '\n').encode('utf8'))
+
+	@classmethod
+	def TimeDeltaToStr(self, delta):
+		s = delta.seconds
+		t = '{:02}:{:02}:{:02}'.format(s // 3600, s % 3600 // 60, s % 60)
+		return t
 
 class PrettyTable:
 	def __init__(self):
@@ -698,6 +735,7 @@ class PrettyTable:
 			print(ex)
 
 class GitHelper:
+	@classmethod
 	def GetBranch(self, Source):
 		try:
 			params = ['git', '-C', Source, 'branch']
@@ -711,6 +749,7 @@ class GitHelper:
 		except Exception as ex:
 			print(ex)
 
+	@classmethod
 	def OpenGitGui(self, source):
 		param = [
 			'git-gui',
@@ -754,7 +793,7 @@ class Model:
 
 	def UpdateSource(self):
 		self.Source = self.Sources[self.SrcIndex]
-		self.Branch = GitHelper().GetBranch(self.Source)
+		self.Branch = GitHelper.GetBranch(self.Source)
 		
 	def UpdateTest(self):
 		testAndSlots = self.Tests[self.TestIndex].split()
