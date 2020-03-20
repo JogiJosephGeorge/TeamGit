@@ -1,5 +1,6 @@
 # coding=utf-8
 from collections import OrderedDict
+import ctypes
 from datetime import datetime
 import itertools
 import json
@@ -26,14 +27,14 @@ class Menu:
 		if model.DebugVision:
 			autoTest += ' (attach MMi)'
 		menuData = [
-			['Src', model.Source],
+			['Source', model.Source],
 			['Branch', model.Branch],
 			['Test', model.TestName]
 		]
 		self.prettyTable.SetSingleLine()
 		self.prettyTable.PrintTable(menuData)
 
-		group2L = [
+		group1 = [
 			[1, ['Open Python', self.klaRunner.OpenPython]],
 			[2, [autoTest, testRunner.RunAutoTest]],
 			[3, ['Run Handler and MMi', self.appRunner.StartHandlerMMi]],
@@ -41,7 +42,7 @@ class Menu:
 			[5, ['Run MMi from Source', self.appRunner.StartMMi, True]],
 			[6, ['Run MMi from C:Icos', self.appRunner.StartMMi, False]]
 		]
-		group2R = [
+		group2 = [
 			[10, ['Open Solution CIT100', self.klaRunner.OpenSolution, 0]],
 			[11, ['Open Solution CIT100Simulator', self.klaRunner.OpenSolution, 1]],
 			[12, ['Open Solution Mmi', self.klaRunner.OpenSolution, 2]],
@@ -51,36 +52,56 @@ class Menu:
 			[17, ['Open Git GUI', GitHelper.OpenGitGui, model.Source]],
 			[18, ['Open Local Differences', OsOperations.OpenLocalDif, model.Source]]
 		]
-		group3L = [
+		group3 = [
 			[20, ['Comment Line in VisionSystem', testRunner.ModifyVisionSystem]],
 			[21, ['Copy Mock License', testRunner.CopyMockLicense]],
 			[22, ['Copy xPort_IllumReference.xml', self.appRunner.CopyIllumRef]],
-			[23, ['Print All Branches', self.klaRunner.PrintBranches]],
+			[23, ['Print All Branches', sourceBuilder.PrintBranches, model.Sources]],
 			[24, ['Print Missing IDs in mmi.h', self.klaRunner.PrintMissingIds]],
 		]
-		group3R = [
+		group4 = [
 			[90, ['Settings', self.PrintSettingsMenu]],
-			[91, ['Build', sourceBuilder.BuildSource, []]],
-			[92, ['Clean Build', sourceBuilder.CleanSource, []]],
+			[91, ['Build', sourceBuilder.BuildSource]],
+			[92, ['Clean Build', sourceBuilder.CleanSource]],
 			[99, ['Stop All KLA Apps', OsOperations.StopTask]],
 			[0, 'EXIT']
 		]
+		colCnt = model.MenuColCnt if model.MenuColCnt in [2, 4] else 1
 		menuData = [ 
-			['Num', 'Description'] * 4,
+			['Num', 'Description'] * colCnt,
 			['-']
 		]
-		for col1, col2, col3, col4 in itertools.izip_longest(group2L, group2R, group3L, group3R):
-			if col1 is None:
-				col1 = ['', '']
-			if col2 is None:
-				col2 = ['', '']
-			if col3 is None:
-				col3 = ['', '']
-			if col4 is None:
-				col4 = ['', '']
-			menuData.append(col1 + col2 + col3 + col4)
-		userIn = self.PrintMenu(menuData)
-		return userIn
+		if colCnt == 4:
+			for col1, col2, col3, col4 in itertools.izip_longest(group1, group2, group3, group4):
+				if col1 is None:
+					col1 = ['', '']
+				if col2 is None:
+					col2 = ['', '']
+				if col3 is None:
+					col3 = ['', '']
+				if col4 is None:
+					col4 = ['', '']
+				menuData.append(col1 + col2 + col3 + col4)
+		elif colCnt == 2:
+			def AddTwoGroup(arr, groupA, groupB):
+				for col1, col2 in itertools.izip_longest(groupA, groupB):
+					if col1 is None:
+						col1 = ['', '']
+					if col2 is None:
+						col2 = ['', '']
+					arr.append(col1 + col2)
+			AddTwoGroup(menuData, group1, group2)
+			menuData.append([])
+			AddTwoGroup(menuData, group3, group4)
+		else:
+			menuData += group1
+			menuData.append([])
+			menuData += group2
+			menuData.append([])
+			menuData += group3
+			menuData.append([])
+			menuData += group4
+		return self.PrintMenu(menuData)
 
 	def PrintSettingsMenu(self):
 		settings = self.settings
@@ -92,10 +113,10 @@ class Menu:
 			[3, ['Change Startup / Run ', settings.ChangeStartup]],
 			[4, ['Change MMI Attach', settings.ChangeDebugVision]],
 		]
-		userIn = self.PrintMenu(menuData)
-		cnt = len(userIn)
+		selItem = self.PrintMenu(menuData)
+		cnt = len(selItem)
 		if cnt == 2:
-			userIn[1]()
+			selItem[1]()
 
 	def PrintMenu(self, data):
 		self.prettyTable.SetDoubleLineBorder()
@@ -118,14 +139,14 @@ class KlaRunner:
 
 	def Start(self):
 		while True:
-			userIn = self.menu.PrintMainMenu()
-			if userIn == 'EXIT':
+			selItem = self.menu.PrintMainMenu()
+			if selItem == 'EXIT':
 				break
-			cnt = len(userIn)
+			cnt = len(selItem)
 			if cnt == 2:
-				userIn[1]()
+				selItem[1]()
 			elif cnt == 3:
-				userIn[1](userIn[2])
+				selItem[1](selItem[2])
 
 	def OpenSolution(self, index):
 		param = [
@@ -142,31 +163,6 @@ class KlaRunner:
 		dirPath = self.model.Source + '/handler/tests/' + self.model.TestName
 		dirPath = os.path.abspath(dirPath)
 		subprocess.Popen(['Explorer', dirPath])
-
-	def PrintBranches(self, branchNums = ''):
-		data = [
-			['Source', 'Branch'],
-			['-']
-		]
-		tempSources = []
-		orgSources = self.model.Sources
-		if branchNums == '':
-			tempSources = orgSources
-		else:
-			for branchNum in branchNums.split():
-				num = int(branchNum)
-				if num > len(orgSources):
-					print 'Wrong Source index is given !!!'
-				else:
-					tempSources.append(orgSources[num - 1])
-		for src in tempSources:
-			branch = GitHelper.GetBranch(src)
-			if branch == self.model.Source:
-				self.model.Branch = branch
-			data.append([src, branch])
-		self.prettyTable.SetSingleLine()
-		self.prettyTable.PrintTable(data)
-		OsOperations.Pause()
 
 	def PrintMissingIds(self):
 		lastId = 1
@@ -345,7 +341,8 @@ class Settings:
 			self.model.WriteConfigFile()
 
 	def ChangeSource(self):
-		number = self.SelectOption('Source', self.model.Sources, self.model.SrcIndex)
+		arr = [ '{} ({})'.format(src, GitHelper.GetBranch(src)) for src in self.model.Sources ]
+		number = self.SelectOption('  Source and Branch', arr, self.model.SrcIndex)
 		if number >= 0:
 			self.model.SrcIndex = number
 			self.model.UpdateSource()
@@ -392,7 +389,28 @@ class KlaSourceBuilder:
 		self.model = model
 		self.prettyTable = PrettyTable()
 
-	def CleanSource(self, srcIndices):
+	def PrintBranches(self, sources, doPause = True):
+		data = [
+			['Source', 'Branch'],
+			['-']
+		]
+		for src in sources:
+			branch = GitHelper.GetBranch(src)
+			if branch == self.model.Source:
+				self.model.Branch = branch
+			data.append([src, branch])
+		self.prettyTable.SetSingleLine()
+		self.prettyTable.PrintTable(data)
+		if doPause:
+			OsOperations.Pause()
+
+	def Describe(self, message):
+		sources = self.model.GetSources(self.model.ActiveSrcs)
+		print 'The following branche(s) are ready for {}.'.format(message)
+		self.PrintBranches(sources)
+
+	def CleanSource(self):
+		self.Describe('cleaning')
 		toDelete = []
 		excludeList = []
 		excludeList.append('libs\\external\\ezio')
@@ -403,7 +421,6 @@ class KlaSourceBuilder:
 		excludeList.append('handler\\FabLink\\FabLinkLib\\lib')
 		excludeList.append('tools\\ReportConfigurator\\ReportConfigurator.Tests\\bin')
 		excludeList.append('tools\\ReportConfigurator\\ReportConfigurator.Tests')
-		sources = self.GetSources(srcIndices)
 		for src in sources:
 			print 'Preparing directories to be deleted in ' + src
 			for root, dirs, files in os.walk(src):
@@ -432,9 +449,14 @@ class KlaSourceBuilder:
 					if os.path.isdir(dir):
 						shutil.rmtree(dir)
 
-	def BuildSource(self, srcIndices):
+	def BuildSource(self):
+		self.Describe('build')
+		if raw_input('Do you want to continue (Yes/No) : ') != 'Yes':
+			return
 		outFileNames = [ 'Handler', 'Simulator', 'MMi', 'Mock', 'Converters' ]
-		sources = self.GetSources(srcIndices)
+		sources = self.model.GetSources(self.model.ActiveSrcs)
+		print 'The following branche(s) are ready for build.'
+		self.prettyTable.PrintTable([sources])
 		buildLoger = BuildLoger(self.model.LogFileName)
 		for src in sources:
 			buildLoger.StartSource(src)
@@ -454,18 +476,6 @@ class KlaSourceBuilder:
 				buildLoger.EndSolution()
 			buildLoger.EndSource(src)
 		OsOperations.Pause()
-
-	def GetSources(self, srcIndices):
-		sources = []
-		if len(srcIndices) == 0:
-			sources.append(self.model.Source)
-		else:
-			for index in srcIndices:
-				if index < 0 or index >= len(self.model.Sources):
-					print 'Wrong index has been given !!!'
-					return
-				sources.append(self.model.Sources[index - 1])
-		return sources
 
 class BuildLoger:
 	def __init__(self, fileName):
@@ -547,7 +557,7 @@ class OsOperations:
 
 	@classmethod
 	def Pause(self):
-		raw_input('Press any key to continue...')
+		raw_input('Press ENTER key to continue . . .')
 
 	@classmethod
 	def StopTask(self, exeName = ''):
@@ -692,7 +702,6 @@ class PrettyTable:
 		outMessage = ''
 		colCnt = 0
 		colWidths = []
-
 		for line in data:
 			i = 0
 			for cell in line:
@@ -709,9 +718,7 @@ class PrettyTable:
 					colWidths.append(width)
 				i = i + 1
 				colCnt = max(colCnt, i)
-
 		outMessage += self.PrintLine(colWidths, self.chTopLef, self.chTopMid, self.chTopRig, self.chHorLef)
-
 		for line in data:
 			if len(line) == 0:
 				outMessage += self.PrintLine(colWidths, self.chVerLef, self.chVerMid, self.chVerRig, ' ')
@@ -740,11 +747,13 @@ class PrettyTable:
 		return outMessage
 
 	def GetAligned(self, message, width, mode):
-		if mode == 2:
+		if mode == 1:
+			return message.ljust(width)
+		elif mode == 2:
 			return message.center(width)
 		elif mode == 3:
 			return message.rjust(width)
-		return message.ljust(width)
+		return message
 
 	def PrintLine(self, colWidths, left, mid, right, fill):
 		line = left
@@ -789,7 +798,7 @@ class GitHelper:
 
 class Model:
 	def __init__(self):
-		self.fileName = 'KlaRunner.ini'
+		self.fileName = os.path.dirname(os.path.abspath(__file__)) + '\\KlaRunner.ini'
 
 		self.Source = ''
 		self.Branch = ''
@@ -802,6 +811,7 @@ class Model:
 		
 		self.Sources = _model['Sources']
 		self.SrcIndex = _model['SrcIndex']
+		self.ActiveSrcs = _model['ActiveSrcs']
 		self.Tests = _model['Tests']
 		self.TestIndex = _model['TestIndex']
 		self.Solutions = _model['Solutions']
@@ -816,6 +826,7 @@ class Model:
 		self.DebugVision = _model['DebugVision']
 		self.CopyMmi = _model['CopyMmi']
 		self.LogFileName = _model['LogFileName']
+		self.MenuColCnt = _model['MenuColCnt']
 		
 		self.UpdateSource()
 		self.UpdateTest()
@@ -833,6 +844,7 @@ class Model:
 		_model = OrderedDict()
 		_model['Sources'] = self.Sources
 		_model['SrcIndex'] = self.SrcIndex
+		_model['ActiveSrcs'] = self.ActiveSrcs
 		_model['Tests'] = self.Tests
 		_model['TestIndex'] = self.TestIndex
 		_model['Solutions'] = self.Solutions
@@ -847,8 +859,25 @@ class Model:
 		_model['DebugVision'] = self.DebugVision
 		_model['CopyMmi'] = self.CopyMmi
 		_model['LogFileName'] = self.LogFileName
+		_model['MenuColCnt'] = self.MenuColCnt
 
 		with open(self.fileName, 'w') as f:
 			json.dump(_model, f, indent=3)
 
-KlaRunner().Start()
+	def GetSources(self, srcIndices):
+		sources = []
+		if len(srcIndices) == 0:
+			sources.append(self.Source)
+		else:
+			for index in srcIndices:
+				if index < 0 or index >= len(self.Sources):
+					print 'Wrong index has been given !!!'
+					return []
+				sources.append(self.Sources[index])
+		return sources
+
+if ctypes.windll.shell32.IsUserAnAdmin():
+	KlaRunner().Start()
+else:
+	print 'Please run this application with Administrator privilates'
+	OsOperations.Pause()
