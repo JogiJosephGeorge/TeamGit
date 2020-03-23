@@ -31,7 +31,7 @@ class Menu:
 			['Branch', model.Branch],
 			['Test', model.TestName]
 		]
-		self.prettyTable.SetSingleLine()
+		self.prettyTable.SetNoBorder(' : ')
 		self.prettyTable.PrintTable(menuData)
 
 		group1 = [
@@ -43,21 +43,22 @@ class Menu:
 			[6, ['Run MMi from C:Icos', self.appRunner.StartMMi, False]]
 		]
 		group2 = [
-			[10, ['Open Solution CIT100', self.klaRunner.OpenSolution, 0]],
-			[11, ['Open Solution CIT100Simulator', self.klaRunner.OpenSolution, 1]],
-			[12, ['Open Solution Mmi', self.klaRunner.OpenSolution, 2]],
-			[14, ['Open Solution MockLicense', self.klaRunner.OpenSolution, 3]],
-			[15, ['Open Solution Converters', self.klaRunner.OpenSolution, 4]],
+			[10, ['Open CIT100', self.klaRunner.OpenSolution, 0]],
+			[11, ['Open CIT100Simulator', self.klaRunner.OpenSolution, 1]],
+			[12, ['Open Mmi', self.klaRunner.OpenSolution, 2]],
+			[14, ['Open MockLicense', self.klaRunner.OpenSolution, 3]],
+			[15, ['Open Converters', self.klaRunner.OpenSolution, 4]],
 			[16, ['Open Test Folder', self.klaRunner.OpenTestFolder]],
-			[17, ['Open Git GUI', GitHelper.OpenGitGui, model.Source]],
-			[18, ['Open Local Differences', OsOperations.OpenLocalDif, model.Source]]
+			[17, ['Open Local Diff', OsOperations.OpenLocalDif, model.Source]],
+			[18, ['Open Git GUI', GitHelper.OpenGitGui, model.Source]],
+			#[19, ['Open Git Bash', GitHelper.OpenGitBash, model.Source]],
 		]
 		group3 = [
-			[20, ['Comment Line in VisionSystem', testRunner.ModifyVisionSystem]],
+			[20, ['Comment VisionSystem', testRunner.ModifyVisionSystem]],
 			[21, ['Copy Mock License', testRunner.CopyMockLicense]],
-			[22, ['Copy xPort_IllumReference.xml', self.appRunner.CopyIllumRef]],
+			[22, ['Copy xPort xml', self.appRunner.CopyIllumRef]],
 			[23, ['Print All Branches', sourceBuilder.PrintBranches, model.Sources]],
-			[24, ['Print Missing IDs in mmi.h', self.klaRunner.PrintMissingIds]],
+			[24, ['Print mmi.h IDs', self.klaRunner.PrintMissingIds]],
 		]
 		group4 = [
 			[90, ['Settings', self.PrintSettingsMenu]],
@@ -138,6 +139,10 @@ class KlaRunner:
 		self.menu = Menu(self, testRunner)
 
 	def Start(self):
+		if not ctypes.windll.shell32.IsUserAnAdmin():
+			print 'Please run this application with Administrator privilates'
+			OsOperations.Pause()
+			return
 		while True:
 			selItem = self.menu.PrintMainMenu()
 			if selItem == 'EXIT':
@@ -404,70 +409,53 @@ class KlaSourceBuilder:
 		if doPause:
 			OsOperations.Pause()
 
-	def Describe(self, message):
-		sources = self.model.GetSources(self.model.ActiveSrcs)
-		print 'The following branche(s) are ready for {}.'.format(message)
-		self.PrintBranches(sources)
-
 	def CleanSource(self):
-		self.Describe('cleaning')
-		toDelete = []
-		excludeList = []
-		excludeList.append('libs\\external\\ezio')
-		excludeList.append('handler\\scripts\\appy')
-		excludeList.append('handler\\BNR\\CI_controller\\VS\\Devices\\BaseMotor')
-		excludeList.append('handler\\BNR\\CI_controller\\VS\\Kito\\master')
-		excludeList.append('handler\\BNR\\CI_controller\\VS\\PSM\\io_ctrl')
-		excludeList.append('handler\\FabLink\\FabLinkLib\\lib')
-		excludeList.append('tools\\ReportConfigurator\\ReportConfigurator.Tests\\bin')
-		excludeList.append('tools\\ReportConfigurator\\ReportConfigurator.Tests')
-		for src in sources:
-			print 'Preparing directories to be deleted in ' + src
-			for root, dirs, files in os.walk(src):
-				relPath = os.path.relpath(root, src)
-				if relPath in excludeList:
-					continue
-				if relPath[:4] == 'libs':
-					continue
-				for dir in dirs:
-					d = dir.lower()
-					if d == 'obj' or d == 'bin' or d == 'debug':
-						toDelete.append(os.path.abspath(root + '/' + dir))
-			if len(toDelete) == 0:
-				print src + ' is clean'
-				OsOperations.Pause()
-				continue
-			print 'The following directories will be deleted.'
-			i = 1
-			for dir in toDelete:
-				print dir
-				i += 1
-				if i == 20:
-					OsOperations.Pause()
-			if raw_input('Do you want to continue (Yes/No) : ') == 'Yes':
-				for dir in toDelete:
-					if os.path.isdir(dir):
-						shutil.rmtree(dir)
-
-	def BuildSource(self):
-		self.Describe('build')
+		sources = self.model.GetSources(self.model.ActiveSrcs)
+		print 'The following branche(s) are ready for cleaning.'
+		self.PrintBranches(sources, False)
 		if raw_input('Do you want to continue (Yes/No) : ') != 'Yes':
 			return
-		outFileNames = [ 'Handler', 'Simulator', 'MMi', 'Mock', 'Converters' ]
+		gitIgnore = '.gitignore'
+		for src in sources:
+			print 'Cleaning files in ' + src
+			for root, dirs, files in os.walk(src):
+				if gitIgnore in files:
+					os.remove('{}/{}'.format(root, gitIgnore))
+			with open(src + '/' + gitIgnore, 'w') as f:
+				f.writelines([
+					'/mmi/mmi/.vs\n',
+					'/handler/cpp/.vs\n',
+					'/mmi/mmi/packages\n'
+				])
+			GitHelper.Clean(src, '-fd')
+			print 'Reseting files in ' + src
+			GitHelper.ResetHard(src)
+			print 'Submodule Update'
+			GitHelper.SubmoduleUpdate(src)
+			print 'Cleaning completed for ' + src
+
+	def BuildSource(self):
+		sources = self.model.GetSources(self.model.ActiveSrcs)
+		print 'The following branche(s) are ready for building.'
+		self.PrintBranches(sources, False)
+		if raw_input('Do you want to continue (Yes/No) : ') != 'Yes':
+			return
 		sources = self.model.GetSources(self.model.ActiveSrcs)
 		print 'The following branche(s) are ready for build.'
 		self.prettyTable.PrintTable([sources])
 		buildLoger = BuildLoger(self.model.LogFileName)
 		for src in sources:
 			buildLoger.StartSource(src)
-			for sln, name in itertools.izip(self.model.Solutions, outFileNames):
-				#if name == 'Handler' or name == 'MMi':
-				#	continue
+			for sln in self.model.Solutions:
+				slnFile = os.path.abspath(src + '/' + sln)
+				if not os.path.exists(slnFile):
+					print "Solution file doesn't exist : " + slnFile
+					continue
+				name = sln.split('/')[-1].split('.')[0]
 				platform = self.model.Platform
-				if name == 'Simulator':
+				if name.lower() == 'cit100simulator':
 					platform = 'x64' if self.model.Platform == 'x64' else 'x86'
 				BuildConf = self.model.Config + '|' + platform
-				slnFile = os.path.abspath(src + '/' + sln)
 				outFile = os.path.abspath(src + '/Out_' + name) + '.txt'
 
 				buildLoger.StartSolution(sln, name, self.model.Config, platform)
@@ -524,20 +512,15 @@ class BuildLoger:
 			print message
 			nums = self.GetBuildStatus(message)
 			if len(nums) == 4:
-				self.logDataRow.append(nums[0])
-				self.logDataRow.append(nums[1])
-				self.logDataRow.append(nums[2])
-				self.logDataRow.append(nums[3])
+				self.logDataRow += nums
 
 	def GetBuildStatus(self, message):
 		nums = []
 		searchPattern = r'Build: (\d*) succeeded, (\d*) failed, (\d*) up-to-date, (\d*) skipped'
 		m = re.search(searchPattern, message, re.IGNORECASE)
 		if m:
-			nums.append(int(m.group(1)))
-			nums.append(int(m.group(2)))
-			nums.append(int(m.group(3)))
-			nums.append(int(m.group(4)))
+			for i in range(1, 5):
+				nums.append(int(m.group(i)))
 		return nums
 
 class OsOperations:
@@ -695,6 +678,23 @@ class PrettyTable:
 		self.chHorMid = u'═'
 		self.chHorRig = u'═'
 
+	def SetNoBorder(self, seperator):
+		self.chTopLef = ''
+		self.chTopMid = ''
+		self.chTopRig = ''
+		self.chMidLef = ''
+		self.chMidMid = ''
+		self.chMidRig = ''
+		self.chBotLef = ''
+		self.chBotMid = ''
+		self.chBotRig = ''
+		self.chVerLef = ''
+		self.chVerMid = seperator
+		self.chVerRig = ''
+		self.chHorLef = ''
+		self.chHorMid = ''
+		self.chHorRig = ''
+
 	def PrintTable(self, data):
 		print self.ToString(data),
 
@@ -761,9 +761,11 @@ class PrettyTable:
 		for i in range(0, colCnt - 1):
 			line += fill * colWidths[i] + mid
 		line += fill * colWidths[-1] + right
+		if line == '':
+			return ''
 		return line + '\n'
 
-	def PrintTable1(self, data):
+	def PrintTableNoFormat(self, data):
 		try:
 			for line in data:
 				for cell in line:
@@ -774,18 +776,33 @@ class PrettyTable:
 
 class GitHelper:
 	@classmethod
-	def GetBranch(self, Source):
-		try:
-			params = ['git', '-C', Source, 'branch']
-			output = subprocess.Popen(params, stdout=subprocess.PIPE).communicate()[0]
-			isCurrent = False
-			for part in output.split():
-				if isCurrent:
-					return part
-				if part == '*':
-					isCurrent = True
-		except Exception as ex:
-			print(ex)
+	def GetBranch(self, source):
+		params = ['git', '-C', source, 'branch']
+		output = subprocess.Popen(params, stdout=subprocess.PIPE).communicate()[0]
+		isCurrent = False
+		for part in output.split():
+			if isCurrent:
+				return part
+			if part == '*':
+				isCurrent = True
+
+	@classmethod
+	def Clean(self, source, options):
+		params = ['git', '-C', source, 'clean', options]
+		subprocess.Popen(params)
+
+	@classmethod
+	def ResetHard(self, source):
+		params = ['git', '-C', source, 'reset', '--hard']
+		subprocess.Popen(params)
+
+	@classmethod
+	def SubmoduleUpdate(self, source):
+		params = ['git', '-C', source, 'submodule', 'update', '--init', '--recursive']
+		output = subprocess.call(params)
+
+		params = ['git', '-C', source, 'submodule', 'foreach', 'git', 'reset', '--hard']
+		output = subprocess.call(params)
 
 	@classmethod
 	def OpenGitGui(self, source):
@@ -794,6 +811,16 @@ class GitHelper:
 			'--working-dir',
 			source
 		]
+		print 'Staring Git GUI'
+		subprocess.Popen(param)
+
+	@classmethod
+	def OpenGitBash(self, source):
+		param = [
+			'C:/Progra~1/Git/bin/sh.exe',
+			'--cd=' + source
+		]
+		print 'Staring Git Bash'
 		subprocess.Popen(param)
 
 class Model:
@@ -876,8 +903,4 @@ class Model:
 				sources.append(self.Sources[index])
 		return sources
 
-if ctypes.windll.shell32.IsUserAnAdmin():
-	KlaRunner().Start()
-else:
-	print 'Please run this application with Administrator privilates'
-	OsOperations.Pause()
+KlaRunner().Start()
