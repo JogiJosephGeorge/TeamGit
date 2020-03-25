@@ -24,6 +24,7 @@ class Menu:
 		model = self.klaRunner.model
 		testRunner = self.testRunner
 		sourceBuilder = self.klaSourceBuilder
+		settings = self.settings
 		autoTest = ''
 		if model.DebugVision:
 			autoTest += ' (attach MMi)'
@@ -63,9 +64,12 @@ class Menu:
 			[24, ['Print mmi.h IDs', self.klaRunner.PrintMissingIds]],
 		]
 		group4 = [
-			[90, ['Settings', self.PrintSettingsMenu]],
 			[91, ['Build', sourceBuilder.BuildSource]],
 			[92, ['Clean Build', sourceBuilder.CleanSource]],
+			[93, ['Change Test', settings.ChangeTest]],
+			[94, ['Add Test', settings.AddTest]],
+			[95, ['Change Source', settings.ChangeSource]],
+			[96, ['Change MMI Attach', settings.ChangeDebugVision]],
 			[99, ['Stop All KLA Apps', OsOperations.StopTask]],
 			[0, 'EXIT']
 		]
@@ -114,8 +118,8 @@ class Menu:
 			[1, ['Change Test', settings.ChangeTest]],
 			[2, ['Add Test', settings.AddTest]],
 			[3, ['Change Source', settings.ChangeSource]],
-			[4, ['Change Startup / Run ', settings.ChangeStartup]],
-			[5, ['Change MMI Attach', settings.ChangeDebugVision]],
+			#[4, ['Change Startup / Run ', settings.ChangeStartup]],
+			[4, ['Change MMI Attach', settings.ChangeDebugVision]],
 		]
 		selItem = self.PrintMenu(menuData)
 		cnt = len(selItem)
