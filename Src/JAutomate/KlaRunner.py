@@ -110,9 +110,10 @@ class Menu:
 			['Num', 'Description'],
 			['-'],
 			[1, ['Change Test', settings.ChangeTest]],
-			[2, ['Change Source', settings.ChangeSource]],
-			[3, ['Change Startup / Run ', settings.ChangeStartup]],
-			[4, ['Change MMI Attach', settings.ChangeDebugVision]],
+			[2, ['Add Test', settings.AddTest]],
+			[3, ['Change Source', settings.ChangeSource]],
+			[4, ['Change Startup / Run ', settings.ChangeStartup]],
+			[5, ['Change MMI Attach', settings.ChangeDebugVision]],
 		]
 		selItem = self.PrintMenu(menuData)
 		cnt = len(selItem)
@@ -339,19 +340,27 @@ class Settings:
 		self.prettyTable = PrettyTable()
 
 	def ChangeTest(self):
-		number = self.SelectOption('Test Name', self.model.Tests, self.model.TestIndex)
-		if number >= 0:
-			self.model.TestIndex = number
-			self.model.UpdateTest()
-			self.model.WriteConfigFile()
+		index = self.SelectOption('Test Name', self.model.Tests, self.model.TestIndex)
+		self.model.UpdateTest(index, True)
+
+	def AddTest(self):
+		number = OsOperations.InputNumber('Type the number of test then press ENTER: ')
+		testName = self.GetTestName(number)
+		if testName == '':
+			print 'There is no test exists for the number : ' + str(number)
+			return
+		if OsOperations.ContainsInArray(testName, self.model.Tests) >= 0:
+			print 'The given test ({}) already exists'.format(testName)
+			return
+		slots = raw_input('Enter slots : ')
+		testNameAndSlot = '{} {}'.format(testName, slots)
+		self.model.Tests.append(testNameAndSlot)
+		self.model.UpdateTest(len(self.model.Tests) - 1, True)
 
 	def ChangeSource(self):
 		arr = [ '{} ({})'.format(src, GitHelper.GetBranch(src)) for src in self.model.Sources ]
-		number = self.SelectOption('  Source and Branch', arr, self.model.SrcIndex)
-		if number >= 0:
-			self.model.SrcIndex = number
-			self.model.UpdateSource()
-			self.model.WriteConfigFile()
+		index = self.SelectOption('  Source and Branch', arr, self.model.SrcIndex)
+		self.model.UpdateSource(index, True)
 
 	def ChangeStartup(self):
 		arr = [ 'Startup only', 'Run test' ]
@@ -374,7 +383,6 @@ class Settings:
 			['Num', name],
 			['-']
 		]
-
 		i = 0
 		for item in arr:
 			line = ('  ', '* ')[i == currentIndex] + item
@@ -388,6 +396,31 @@ class Settings:
 		else:
 			print 'Wrong input is given !!!'
 		return -1
+
+	def GetTestName(self, number):
+		print sys.path
+		self.UpdateLibsTestingPath()
+		print sys.path
+		sys.stdout = SysRedirect()
+		from my import TestRunnerHelper
+		TestRunnerHelper().l(number)
+		msgs = sys.stdout.ResetOriginal()
+		for msg in msgs.split('\n'):
+			arr = msg.split(':')
+			if len(arr) == 2 and arr[0].strip() == str(number):
+				return arr[1].strip()
+		return ''
+
+	def UpdateLibsTestingPath(self):
+		libsTesting = '/libs/testing'
+		index = OsOperations.ContainsInArray(libsTesting, sys.path)
+		newPath = self.model.Source + libsTesting
+		if index >= 0:
+			print 'Old path ({}) has been replaced with new path ({}).'.format(sys.path[index], newPath)
+			sys.path[index] = newPath
+		else:
+			print 'New path ({}) has been added.'.format(newPath)
+			sys.path.append(newPath)
 
 class KlaSourceBuilder:
 	def __init__(self, model):
@@ -623,6 +656,13 @@ class OsOperations:
 		t = '{:02}:{:02}:{:02}'.format(s // 3600, s % 3600 // 60, s % 60)
 		return t
 
+	@classmethod
+	def ContainsInArray(self, str, strArray):
+		for inx, item in enumerate(strArray):
+			if str in item:
+				return inx
+		return -1
+
 class PrettyTable:
 	def __init__(self):
 		self.SetSingleLine()
@@ -855,17 +895,27 @@ class Model:
 		self.LogFileName = _model['LogFileName']
 		self.MenuColCnt = _model['MenuColCnt']
 		
-		self.UpdateSource()
-		self.UpdateTest()
+		self.UpdateSource(self.SrcIndex, False)
+		self.UpdateTest(self.TestIndex, False)
 
-	def UpdateSource(self):
+	def UpdateSource(self, index, writeToFile):
+		if index < 0 or index >= len(self.Sources):
+			return
+		self.SrcIndex = index
 		self.Source = self.Sources[self.SrcIndex]
 		self.Branch = GitHelper.GetBranch(self.Source)
+		if writeToFile:
+			self.WriteConfigFile()
 		
-	def UpdateTest(self):
+	def UpdateTest(self, index, writeToFile):
+		if index < 0 or index >= len(self.Tests):
+			return
+		self.TestIndex = index
 		testAndSlots = self.Tests[self.TestIndex].split()
 		self.TestName = testAndSlots[0]
 		self.slots = map(int, testAndSlots[1].split('_'))
+		if writeToFile:
+			self.WriteConfigFile()
 
 	def WriteConfigFile(self):
 		_model = OrderedDict()
@@ -902,5 +952,23 @@ class Model:
 					return []
 				sources.append(self.Sources[index])
 		return sources
+
+class SysRedirect(object):
+	def __init__(self):
+		self.messages = ''
+		#self.orig___stdout__ = sys.__stdout__
+		#self.orig___stderr__ = sys.__stderr__
+		self.orig_stdout = sys.stdout
+		#self.orig_stderr = sys.stderr
+
+	def write(self, message):
+		self.messages += message
+
+	def ResetOriginal(self):
+		#sys.__stdout__ = self.orig___stdout__
+		#sys.__stderr__ = self.orig___stderr__
+		sys.stdout = self.orig_stdout
+		#sys.stderr = self.orig_stderr
+		return self.messages
 
 KlaRunner().Start()
