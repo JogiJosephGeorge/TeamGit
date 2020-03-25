@@ -4,6 +4,7 @@ import ctypes
 from datetime import datetime
 import itertools
 import json
+import threading
 import os
 import re
 import subprocess
@@ -23,7 +24,7 @@ class Menu:
 		model = self.klaRunner.model
 		testRunner = self.testRunner
 		sourceBuilder = self.klaSourceBuilder
-		autoTest = ('Run Auto test', 'Startup Auto test') [model.StartUp]
+		autoTest = ''
 		if model.DebugVision:
 			autoTest += ' (attach MMi)'
 		menuData = [
@@ -36,11 +37,12 @@ class Menu:
 
 		group1 = [
 			[1, ['Open Python', self.klaRunner.OpenPython]],
-			[2, [autoTest, testRunner.RunAutoTest]],
-			[3, ['Run Handler and MMi', self.appRunner.StartHandlerMMi]],
-			[4, ['Run Handler alone', self.appRunner.StartHandler]],
-			[5, ['Run MMi from Source', self.appRunner.StartMMi, True]],
-			[6, ['Run MMi from C:Icos', self.appRunner.StartMMi, False]]
+			[2, ['Run test' + autoTest, testRunner.RunAutoTest, False]],
+			[3, ['Start test' + autoTest, testRunner.RunAutoTest, True]],
+			[4, ['Run Handler and MMi', self.appRunner.StartHandlerMMi]],
+			[5, ['Run Handler alone', self.appRunner.StartHandler]],
+			[6, ['Run MMi from Source', self.appRunner.StartMMi, True]],
+			[7, ['Run MMi from C:Icos', self.appRunner.StartMMi, False]]
 		]
 		group2 = [
 			[10, ['Open CIT100', self.klaRunner.OpenSolution, 0]],
@@ -56,7 +58,7 @@ class Menu:
 		group3 = [
 			[20, ['Comment VisionSystem', testRunner.ModifyVisionSystem]],
 			[21, ['Copy Mock License', testRunner.CopyMockLicense]],
-			[22, ['Copy xPort xml', self.appRunner.CopyIllumRef]],
+			[22, ['Copy xPort xml', testRunner.CopyIllumRef, True]],
 			[23, ['Print All Branches', sourceBuilder.PrintBranches, model.Sources]],
 			[24, ['Print mmi.h IDs', self.klaRunner.PrintMissingIds]],
 		]
@@ -227,7 +229,7 @@ class AppRunner:
 		self.testRunner.RunSlots()
 
 		mmiPath = self.testRunner.CopyMockLicense(fromSrc, False)
-		self.CopyIllumRef(False)
+		self.testRunner.CopyIllumRef(False)
 
 		OsOperations.Timeout(8)
 
@@ -241,10 +243,6 @@ class AppRunner:
 		self.StartHandler()
 		self.StartMMi(True)
 
-	def CopyIllumRef(self, doPause = True):
-		OsOperations.CopyFile('xPort_IllumReference.xml', 'C:/icos/xPort')
-		if doPause:
-			OsOperations.Pause()
 
 class TestRunner:
 	def __init__(self, model):
@@ -261,6 +259,11 @@ class TestRunner:
 		if doPause:
 			OsOperations.Pause()
 		return mmiPath
+
+	def CopyIllumRef(self, doPause = False):
+		OsOperations.CopyFile('xPort_IllumReference.xml', 'C:/icos/xPort')
+		if doPause:
+			OsOperations.Pause()
 
 	def ModifyVisionSystem(self, doPause = True):
 		line = 'shutil.copy2(os.path.join(mvsSlots, slot, slot + ".bat"), os.path.join(self.mvsPath, slot, slot + ".bat"))'
@@ -300,7 +303,7 @@ class TestRunner:
 				print 'Slot : ' + str(slot) + ' started.'
 		print 'Slots refreshed : ' + str(self.model.slots)
 
-	def RunAutoTest(self):
+	def RunAutoTest(self, startUp):
 		OsOperations.StopTask()
 
 		self.RunSlots()
@@ -310,7 +313,7 @@ class TestRunner:
 		sys.path.append(os.path.abspath(self.model.Source + '\\libs\\testing'));
 		import my
 
-		my.c.startup = self.model.StartUp
+		my.c.startup = startUp
 		my.c.debugvision = self.model.DebugVision
 		my.c.copymmi = self.model.CopyMmi
 		JConfig1 = 'r' if self.model.Config == 'Release' else 'd'
@@ -331,6 +334,8 @@ class TestRunner:
 		my.c.mmiConfigurationsPath = self.model.MMiConfigPath
 		my.c.mmiSetupsPath = self.model.MMiSetupsPath
 		#print str(my.c)
+
+		threading.Timer(10, self.CopyIllumRef).start()
 
 		my.run(self.model.TestName)
 
