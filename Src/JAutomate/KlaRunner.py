@@ -20,19 +20,17 @@ class Menu:
 		self.klaSourceBuilder = KlaSourceBuilder(klaRunner.model)
 		self.appRunner = AppRunner(klaRunner.model, testRunner)
 
-	def PrintMainMenu(self):
+	def PrepareMainMenu(self):
 		model = self.klaRunner.model
 		testRunner = self.testRunner
 		sourceBuilder = self.klaSourceBuilder
 		settings = self.settings
-		autoTest = ''
-		if model.DebugVision:
-			autoTest += ' (attach MMi)'
+		autoTest = ('', ' (attach MMi)')[model.DebugVision]
 		seperator = ' : '
 		menuData = [
 			['Source', seperator, model.Source, ' '*5, 'Platform', seperator, model.Platform],
 			['Branch', seperator, model.Branch, ' '*5, 'Config', seperator, model.Config],
-			['Test', seperator, model.TestName]
+			['Test', seperator, model.TestName, ' '*5, 'Copy MMI to Icos', seperator, model.CopyMmi]
 		]
 		print
 		self.prettyTable.SetNoBorder('')
@@ -48,15 +46,15 @@ class Menu:
 			[6, ['Run MMi from Source', self.appRunner.StartMMi, True]],
 			[7, ['Run MMi from C:Icos', self.appRunner.StartMMi, False]]
 		],[
-			[10, ['Open CIT100', self.klaRunner.OpenSolution, 0]],
-			[11, ['Open CIT100Simulator', self.klaRunner.OpenSolution, 1]],
-			[12, ['Open Mmi', self.klaRunner.OpenSolution, 2]],
-			[14, ['Open MockLicense', self.klaRunner.OpenSolution, 3]],
-			[15, ['Open Converters', self.klaRunner.OpenSolution, 4]],
+			[10, ['Open CIT100', sourceBuilder.OpenSolution, 0]],
+			[11, ['Open Simulator', sourceBuilder.OpenSolution, 1]],
+			[12, ['Open Mmi', sourceBuilder.OpenSolution, 2]],
+			[14, ['Open MockLicense', sourceBuilder.OpenSolution, 3]],
+			[15, ['Open Converters', sourceBuilder.OpenSolution, 4]],
 			[16, ['Open Test Folder', self.klaRunner.OpenTestFolder]],
 			[17, ['Open Local Diff', AppRunner.OpenLocalDif, model.Source]],
 			[18, ['Open Git GUI', GitHelper.OpenGitGui, model.Source]],
-			[19, ['Open Git Bash', GitHelper.OpenGitBash, model.Source]],
+			[19, ['Open Git Bash', GitHelper.OpenGitBash, (model.GitBin, model.Source)]],
 		],[
 			[20, ['Add Test', settings.AddTest]],
 			[21, ['Comment VisionSystem', testRunner.ModifyVisionSystem]],
@@ -73,19 +71,19 @@ class Menu:
 			[96, ['Stop All KLA Apps', AppRunner.StopTask]],
 			[0, 'EXIT']
 		]]
-		colCnt = model.MenuColCnt if model.MenuColCnt in [2, 4] else 1
+		colCnt = model.MenuColCnt
 		menuData = [ 
 			['Num', 'Description'] * colCnt,
 			['-']
 		]
-		menuData += ArrayOrganizer().Transform(group, colCnt)
-		return self.PrintMenu(menuData)
+		return menuData + ArrayOrganizer().Transform(group, colCnt)
 
-	def PrintMenu(self, data):
+	def ReadUserInput(self):
+		menuData = self.PrepareMainMenu()
 		self.prettyTable.SetDoubleLineBorder()
-		self.prettyTable.PrintTable(data)
+		self.prettyTable.PrintTable(menuData)
 		userIn = OsOperations.InputNumber('Type the number then press ENTER: ')
-		for row in data:
+		for row in menuData:
 			for i in range(1, len(row)):
 				if row[i - 1] == userIn:
 					return row[i]
@@ -106,7 +104,7 @@ class KlaRunner:
 			OsOperations.Pause()
 			return
 		while True:
-			selItem = self.menu.PrintMainMenu()
+			selItem = self.menu.ReadUserInput()
 			if selItem == 'EXIT':
 				break
 			cnt = len(selItem)
@@ -115,15 +113,6 @@ class KlaRunner:
 			elif cnt == 3:
 				selItem[1](selItem[2])
 
-	def OpenSolution(self, index):
-		fileName = self.model.Source + self.model.Solutions[index]
-		param = [
-			self.model.VisualStudioRun,
-			fileName
-		]
-		subprocess.Popen(param)
-		print 'Open solution : ' + fileName
-
 	def OpenPython(self):
 		fileName = os.path.abspath(self.model.Source + '/libs/testing/my.py')
 		par = 'start python -i ' + fileName
@@ -131,39 +120,31 @@ class KlaRunner:
 		os.system(par)
 
 	def OpenTestFolder(self):
-		dirPath = self.model.Source + '/handler/tests/' + self.model.TestName
-		dirPath = os.path.abspath(dirPath)
+		dirPath = os.path.abspath(self.model.Source + '/handler/tests/' + self.model.TestName)
 		subprocess.Popen(['Explorer', dirPath])
 		print 'Open directory : ' + dirPath
 
 	def PrintMissingIds(self):
-		lastId = 1
 		fileName = os.path.abspath(self.model.Source + '/mmi/mmi/mmi_lang/mmi.h')
+		ids = []
+		with open(fileName) as file:
+			for line in file.read().splitlines():
+				parts = line.split()
+				if len(parts) == 3:
+					ids.append(int(parts[2]))
 		print 'Missing IDs in ' + fileName
 		singles = []
 		sets = []
-		with open(fileName) as file:
-			lines = file.read().splitlines()
-		for line in lines:
-			parts = line.split()
-			if len(parts) == 3:
-				id = int(parts[2])
-				if lastId + 1 < id:
-					setStart = lastId + 1
-					setEnd = id - 1
-					if setStart == setEnd:
-						singles.append(str(setStart).rjust(5))
-					else:
-						sets.append(('[' + str(setStart)).rjust(6) + ', ' + (str(setEnd) + ']').ljust(6))
-				lastId = max(lastId, id)
-		for i in range(0, len(singles)):
-			if i % 15 == 0:
-				print 
-			print singles[i],
-		for i in range(0, len(sets)):
-			if i % 6 == 0:
-				print 
-			print sets[i],
+		lastId = 1
+		for id in ids:
+			if lastId + 2 == id:
+				singles.append(lastId + 1)
+			elif lastId + 2 < id:
+				sets.append((lastId + 1, id - 1))
+			lastId = max(lastId, id)
+		self.prettyTable.PrintArray([str(id).rjust(5) for id in singles], 15)
+		pr = lambda st : '{:>6}, {:<6}'.format('[' + str(st[0]), str(st[1]) + ']')
+		self.prettyTable.PrintArray([pr(st) for st in sets], 6)
 		print 
 		OsOperations.Pause()
 
@@ -297,38 +278,24 @@ class TestRunner:
 
 	def RunAutoTest(self, startUp):
 		AppRunner.StopTask()
-
 		self.RunSlots()
-
 		self.ModifyVisionSystem(False)
+		debugConfigSet = ('debugx64', 'debug')
+		releaseConfigSet = ('releasex64', 'release')
+		configSet = (debugConfigSet, releaseConfigSet)[self.model.Config == 'Release']
 
 		sys.path.append(os.path.abspath(self.model.Source + '\\libs\\testing'));
 		import my
-
-		my.c.startup = self.startUp
+		my.c.startup = startUp
 		my.c.debugvision = self.model.DebugVision
 		my.c.copymmi = self.model.CopyMmi
-		JConfig1 = 'r' if self.model.Config == 'Release' else 'd'
-		my.c.console_config = JConfig1
-		my.c.simulator_config = JConfig1
-
-		if self.model.Config == 'Release':
-			if self.model.Platform == 'Win32':
-			  my.c.mmiBuildConfiguration = 'release'
-			else:
-			  my.c.mmiBuildConfiguration = 'releasex64'
-		else:
-			if self.model.Platform == 'Win32':
-			  my.c.mmiBuildConfiguration = 'debug'
-			else:
-			  my.c.mmiBuildConfiguration = 'debugx64'
+		my.c.console_config = my.c.simulator_config = ('d', 'r')[self.model.Config == 'Release']
+		my.c.mmiBuildConfiguration = configSet[self.model.Platform == 'Win32']
 		my.c.platform = self.model.Platform
 		my.c.mmiConfigurationsPath = self.model.MMiConfigPath
 		my.c.mmiSetupsPath = self.model.MMiSetupsPath
-		#print str(my.c)
 
 		threading.Timer(10, self.CopyIllumRef).start()
-
 		my.run(self.model.TestName)
 
 class Settings:
@@ -422,9 +389,17 @@ class KlaSourceBuilder:
 	def __init__(self, model):
 		self.model = model
 		self.prettyTable = PrettyTable()
+		self.Solutions = [
+			'/handler/cpp/CIT100.sln',
+			'/handler/Simulator/CIT100Simulator/CIT100Simulator.sln',
+			'/mmi/mmi/Mmi.sln',
+			'/mmi/mmi/MockLicense.sln',
+			'/mmi/mmi/Converters.sln'
+		]
+		self.SlnNames = ['CIT100', 'Simulator', 'MMi', 'Mock', 'Converters']
 
-	def PrintBranches(self, sources, doPause = True):
-		data = [
+	def PrintBranches(self, sources):
+		menuData = [
 			['Source', 'Branch'],
 			['-']
 		]
@@ -432,11 +407,24 @@ class KlaSourceBuilder:
 			branch = GitHelper.GetBranch(src)
 			if branch == self.model.Source:
 				self.model.Branch = branch
-			data.append([src, branch])
+			menuData.append([src, branch])
 		self.prettyTable.SetSingleLine()
-		self.prettyTable.PrintTable(data)
-		if doPause:
-			OsOperations.Pause()
+		self.prettyTable.PrintTable(menuData)
+
+	def PrintInfo(self, message):
+		sources = self.model.GetSources(self.model.ActiveSrcs)
+		if len(sources) == 0:
+			sources = [self.model.Source]
+		isAre = (' is', 's are')[len(sources) > 1]
+		print 'The following source{} ready for {}.'.format(isAre, message)
+		self.PrintBranches(sources)
+		question = 'Please type "Yes" to continue {} : '.format(message)
+		if raw_input(question) == 'Yes':
+			print 'Started {}...'.format(message)
+		else:
+			print 'Cancelled {}.'.format(message)
+			sources = []
+		return sources
 
 	def CleanSource(self):
 		excludeDirs = [
@@ -446,13 +434,8 @@ class KlaSourceBuilder:
 			'/Handler/FabLink/cpp/bin',
 			'/Handler/FabLink/FabLinkLib/System32',
 			]
-		sources = self.model.GetSources(self.model.ActiveSrcs)
-		print 'The following branche(s) are ready for cleaning.'
-		self.PrintBranches(sources, False)
-		if raw_input('Do you want to continue (Yes/No) : ') != 'Yes':
-			return
 		gitIgnore = '.gitignore'
-		for src in sources:
+		for src in self.PrintInfo('cleaning'):
 			print 'Cleaning files in ' + src
 			for root, dirs, files in os.walk(src):
 				if gitIgnore in files:
@@ -467,35 +450,34 @@ class KlaSourceBuilder:
 			print 'Cleaning completed for ' + src
 
 	def BuildSource(self):
-		sources = self.model.GetSources(self.model.ActiveSrcs)
-		print 'The following branche(s) are ready for building.'
-		self.PrintBranches(sources, False)
-		if raw_input('Do you want to continue (Yes/No) : ') != 'Yes':
-			return
-		sources = self.model.GetSources(self.model.ActiveSrcs)
-		print 'The following branche(s) are ready for build.'
-		self.prettyTable.PrintTable([sources])
 		buildLoger = BuildLoger(self.model.LogFileName)
-		for src in sources:
+		for src in self.PrintInfo('building'):
 			buildLoger.StartSource(src)
-			for sln in self.model.Solutions:
+			for inx,sln in enumerate(self.Solutions):
 				slnFile = os.path.abspath(src + '/' + sln)
 				if not os.path.exists(slnFile):
 					print "Solution file doesn't exist : " + slnFile
 					continue
-				name = sln.split('/')[-1].split('.')[0]
 				platform = self.model.Platform
-				if name.lower() == 'cit100simulator':
+				if sln.split('/')[-1].split('.')[0] == 'CIT100Simulator':
 					platform = 'x64' if self.model.Platform == 'x64' else 'x86'
 				BuildConf = self.model.Config + '|' + platform
-				outFile = os.path.abspath(src + '/Out_' + name) + '.txt'
+				outFile = os.path.abspath(src + '/Out_' + self.SlnNames[inx]) + '.txt'
 
-				buildLoger.StartSolution(sln, name, self.model.Config, platform)
+				buildLoger.StartSolution(sln, self.SlnNames[inx], self.model.Config, platform)
 				params = [self.model.VisualStudioBuild, slnFile, '/build', BuildConf, '/out', outFile]
 				OsOperations.Popen(params, buildLoger.PrintMsg)
 				buildLoger.EndSolution()
 			buildLoger.EndSource(src)
-		OsOperations.Pause()
+
+	def OpenSolution(self, index):
+		fileName = self.model.Source + self.Solutions[index]
+		param = [
+			self.model.VisualStudioRun,
+			fileName
+		]
+		subprocess.Popen(param)
+		print 'Open solution : ' + fileName
 
 class BuildLoger:
 	def __init__(self, fileName):
@@ -540,20 +522,17 @@ class BuildLoger:
 	def PrintMsg(self, message):
 		if '>----' in message:
 			print message
-		if '=====' in message:
+		elif '=====' in message:
 			print message
 			nums = self.GetBuildStatus(message)
-			if len(nums) == 4:
+			if nums:
 				self.logDataRow += nums
 
 	def GetBuildStatus(self, message):
-		nums = []
 		searchPattern = r'Build: (\d*) succeeded, (\d*) failed, (\d*) up-to-date, (\d*) skipped'
 		m = re.search(searchPattern, message, re.IGNORECASE)
 		if m:
-			for i in range(1, 5):
-				nums.append(int(m.group(i)))
-		return nums
+			return [(int(m.group(i))) for i in range(1, 5)]
 
 	@classmethod
 	def TimeDeltaToStr(self, delta):
@@ -571,8 +550,6 @@ class OsOperations:
 	@classmethod
 	def CopyDir(self, Src, Des):
 		par = 'XCOPY /S /Y "' + Src + '" "' + Des + '"'
-		print 'Src : ' + Src
-		print 'Des : ' + Des
 		print 'par : ' + par
 		os.system(par)
 
@@ -608,6 +585,10 @@ class OsOperations:
 
 	@classmethod
 	def Popen(self, params, callPrint = None):
+		if not callPrint:
+			print params
+			subprocess.Popen(params)
+			return
 		process = subprocess.Popen(params, stdout=subprocess.PIPE)
 		while True:
 			output = process.stdout.readline()
@@ -615,11 +596,13 @@ class OsOperations:
 				break
 			if output:
 				outLine = output.strip()
-				if callPrint is not None:
-					callPrint(output.strip())
-				else:
-					print output.strip()
-		return process.poll()
+				callPrint(output.strip())
+		process.poll()
+
+	@classmethod
+	def Call(self, params):
+		print params
+		subprocess.call(params)
 
 	@classmethod
 	def Append(self, fileName, message):
@@ -697,8 +680,8 @@ class PrettyTable:
 		colCnt = 0
 		colWidths = []
 		for line in data:
-			i = 0
-			for cell in line:
+			colCnt = max(colCnt, len(line))
+			for i, cell in enumerate(line):
 				if isinstance(cell, list):
 					if len(cell) > 0:
 						celStr = str(cell[0])
@@ -709,8 +692,6 @@ class PrettyTable:
 					colWidths[i] = max(colWidths[i], width)
 				else:
 					colWidths.append(width)
-				i = i + 1
-				colCnt = max(colCnt, i)
 		return colCnt, colWidths
 
 	def ToString(self, data):
@@ -723,53 +704,35 @@ class PrettyTable:
 				outMessage += self.PrintLine(colWidths, self.chMidLef, self.chMidMid, self.chMidRig, self.chHorMid)
 			else:
 				outMessage += self.chVerLef
-				for i in range(0, colCnt):
-					cell = ''
-					alignMode = 1
-					if i < len(line):
-						if isinstance(line[i], int):
-							alignMode = 2
-						if isinstance(line[i], list):
-							if len(line[i]) > 0:
-								cell = str(line[i][0])
-						else:
-							cell = str(line[i])
-					outMessage += self.GetAligned(cell, colWidths[i], alignMode)
-					if i == colCnt - 1:
-						outMessage += self.chVerRig
-					else:
-						outMessage += self.chVerMid
+				for inx,cell in enumerate(line):
+					alignMode = ('<', '^')[isinstance(cell, int)]
+					if isinstance(cell, list) and len(cell) > 0:
+						cell = cell[0]
+					outMessage += self.GetAligned(str(cell), colWidths[inx], alignMode)
+					outMessage += (self.chVerMid, self.chVerRig)[inx == colCnt - 1]
 				outMessage += '\n'
 		outMessage += self.PrintLine(colWidths, self.chBotLef, self.chBotMid, self.chBotRig, self.chHorRig)
 		return outMessage
 
 	def GetAligned(self, message, width, mode):
-		if mode == 1:
-			return message.ljust(width)
-		elif mode == 2:
-			return message.center(width)
-		elif mode == 3:
-			return message.rjust(width)
-		return message
+		return '{{:{}{}}}'.format(mode, width).format(message)
 
 	def PrintLine(self, colWidths, left, mid, right, fill):
-		line = left
 		colCnt = len(colWidths)
-		for i in range(0, colCnt - 1):
-			line += fill * colWidths[i] + mid
-		line += fill * colWidths[-1] + right
-		if line == '':
-			return ''
-		return line + '\n'
+		getCell = lambda : fill * colWidth + (mid, right)[colCnt - 1 == inx]
+		line = left + ''.join([getCell() for inx,colWidth in enumerate(colWidths)])
+		return (line + '\n', '')[line == '']
 
 	def PrintTableNoFormat(self, data):
-		try:
-			for line in data:
-				for cell in line:
-					print cell,
-				print ''
-		except Exception as ex:
-			print(ex)
+		for line in data:
+			print ''.join(line)
+
+	@classmethod
+	def PrintArray(self, arr, colCnt):
+		for inx, item in enumerate(arr):
+			if inx % colCnt == 0:
+				print
+			print item,
 
 class GitHelper:
 	@classmethod
@@ -785,39 +748,31 @@ class GitHelper:
 
 	@classmethod
 	def Clean(self, source, options):
-		params = ['git', '-C', source, 'clean', options]
-		subprocess.Popen(params)
+		OsOperations.Popen(['git', '-C', source, 'clean', options])
 
 	@classmethod
 	def ResetHard(self, source):
-		params = ['git', '-C', source, 'reset', '--hard']
-		subprocess.Popen(params)
+		OsOperations.Popen(['git', '-C', source, 'reset', '--hard'])
 
 	@classmethod
 	def SubmoduleUpdate(self, source):
-		params = ['git', '-C', source, 'submodule', 'update', '--init', '--recursive']
-		output = subprocess.call(params)
-
-		params = ['git', '-C', source, 'submodule', 'foreach', 'git', 'reset', '--hard']
-		output = subprocess.call(params)
+		gitSubModule = ['git', '-C', source, 'submodule']
+		OsOperations.Call(gitSubModule + ['update', '--init', '--recursive'])
+		OsOperations.Call(gitSubModule + ['foreach', 'git', 'reset', '--hard'])
 
 	@classmethod
 	def OpenGitGui(self, source):
-		param = [
-			'git-gui',
-			'--working-dir',
-			source
-		]
+		param = [ 'git-gui', '--working-dir', source ]
 		print 'Staring Git GUI'
 		subprocess.Popen(param)
 
 	@classmethod
-	def OpenGitBash(self, source):
+	def OpenGitBash(self, args):
 		print 'Staring Git Bash'
-		par = 'start C:/Progra~1/Git/bin/sh.exe --cd=' + source
+		par = 'start {}sh.exe --cd={}'.format(*args)
 		os.system(par)
 
-class SysRedirect(object):
+class StdOutRedirect(object):
 	def __init__(self):
 		self.messages = ''
 		#self.orig___stdout__ = sys.__stdout__
@@ -838,7 +793,6 @@ class SysRedirect(object):
 class ArrayOrganizer:
 	def __init__(self):
 		self.DefaultCell = ['', '']
-		self.DefaultRow = []
 
 	def Transform(self, arrOfArr, colCnt):
 		newArrArr = []
@@ -850,20 +804,10 @@ class ArrayOrganizer:
 					group.append(arrOfArr[j]),
 			for tranGrp in itertools.izip_longest(*tuple(group)):
 				row = []
-				#print 'tranGrp : ' + str(list(tranGrp))
 				for item in tranGrp:
-					if item:
-						row += item
-					else:
-						row += self.DefaultCell
+					row += item if item else self.DefaultCell
 				newArrArr.append(row)
 		return newArrArr
-
-	def Print(self, arrOfArr):
-		for row in arrOfArr:
-			#for item in row:
-			#	print item,
-			print row
 
 class Model:
 	def __init__(self):
@@ -883,15 +827,14 @@ class Model:
 		self.ActiveSrcs = _model['ActiveSrcs']
 		self.Tests = _model['Tests']
 		self.TestIndex = _model['TestIndex']
-		self.Solutions = _model['Solutions']
 		self.VisualStudioBuild = _model['VisualStudioBuild']
 		self.VisualStudioRun = _model['VisualStudioRun']
+		self.GitBin = _model['GitBin']
 		self.VMwareWS = _model['VMwareWS']
 		self.MMiConfigPath = _model['MMiConfigPath']
 		self.MMiSetupsPath = _model['MMiSetupsPath']
 		self.Config = _model['Config']
 		self.Platform = _model['Platform']
-		self.StartUp = _model['StartUp']
 		self.DebugVision = _model['DebugVision']
 		self.CopyMmi = _model['CopyMmi']
 		self.LogFileName = _model['LogFileName']
@@ -907,15 +850,14 @@ class Model:
 		_model['ActiveSrcs'] = self.ActiveSrcs
 		_model['Tests'] = self.Tests
 		_model['TestIndex'] = self.TestIndex
-		_model['Solutions'] = self.Solutions
 		_model['VisualStudioBuild'] = self.VisualStudioBuild
 		_model['VisualStudioRun'] = self.VisualStudioRun
+		_model['GitBin'] = self.GitBin
 		_model['VMwareWS'] = self.VMwareWS
 		_model['MMiConfigPath'] = self.MMiConfigPath
 		_model['MMiSetupsPath'] = self.MMiSetupsPath
 		_model['Config'] = self.Config
 		_model['Platform'] = self.Platform
-		_model['StartUp'] = self.StartUp
 		_model['DebugVision'] = self.DebugVision
 		_model['CopyMmi'] = self.CopyMmi
 		_model['LogFileName'] = self.LogFileName
@@ -945,14 +887,11 @@ class Model:
 
 	def GetSources(self, srcIndices):
 		sources = []
-		if len(srcIndices) == 0:
-			sources.append(self.Source)
-		else:
-			for index in srcIndices:
-				if index < 0 or index >= len(self.Sources):
-					print 'Wrong index has been given !!!'
-					return []
-				sources.append(self.Sources[index])
+		for index in srcIndices:
+			if index < 0 or index >= len(self.Sources):
+				print 'Wrong index has been given !!!'
+				return []
+			sources.append(self.Sources[index])
 		return sources
 
 KlaRunner().Start()
