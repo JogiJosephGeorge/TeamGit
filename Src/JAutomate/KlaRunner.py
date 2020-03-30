@@ -12,13 +12,12 @@ import sys
 import shutil
 
 class Menu:
-	def __init__(self, klaRunner, testRunner):
+	def __init__(self, klaRunner, model):
 		self.klaRunner = klaRunner
-		self.testRunner = testRunner
-		self.prettyTable = PrettyTable()
-		self.settings = Settings(klaRunner.model)
-		self.klaSourceBuilder = KlaSourceBuilder(klaRunner.model)
-		self.appRunner = AppRunner(klaRunner.model, testRunner)
+		self.testRunner = TestRunner(model)
+		self.settings = Settings(model)
+		self.appRunner = AppRunner(model)
+		self.klaSourceBuilder = KlaSourceBuilder(model)
 
 	def PrepareMainMenu(self):
 		model = self.klaRunner.model
@@ -33,8 +32,7 @@ class Menu:
 			['Test', seperator, model.TestName, ' '*5, 'Copy MMI to Icos', seperator, model.CopyMmi]
 		]
 		print
-		self.prettyTable.SetNoBorder('')
-		self.prettyTable.PrintTable(menuData)
+		PrettyTable().SetNoBorder('').PrintTable(menuData)
 
 		group = [
 		[
@@ -59,7 +57,7 @@ class Menu:
 			[20, ['Add Test', settings.AddTest]],
 			[21, ['Comment VisionSystem', testRunner.ModifyVisionSystem]],
 			[22, ['Copy Mock License', testRunner.CopyMockLicense]],
-			[23, ['Copy xPort xml', testRunner.CopyIllumRef, True]],
+			[23, ['Copy xPort xml', TestRunner.CopyIllumRef, True]],
 			[24, ['Print All Branches', sourceBuilder.PrintBranches, model.Sources]],
 			[25, ['Print mmi.h IDs', self.klaRunner.PrintMissingIds]],
 		],[
@@ -80,8 +78,7 @@ class Menu:
 
 	def ReadUserInput(self):
 		menuData = self.PrepareMainMenu()
-		self.prettyTable.SetDoubleLineBorder()
-		self.prettyTable.PrintTable(menuData)
+		PrettyTable().SetDoubleLineBorder().PrintTable(menuData)
 		userIn = OsOperations.InputNumber('Type the number then press ENTER: ')
 		for row in menuData:
 			for i in range(1, len(row)):
@@ -94,9 +91,7 @@ class KlaRunner:
 	def __init__(self):
 		self.model = Model()
 		self.model.ReadConfigFile()
-		self.prettyTable = PrettyTable()
-		testRunner = TestRunner(self.model)
-		self.menu = Menu(self, testRunner)
+		self.menu = Menu(self, self.model)
 
 	def Start(self):
 		if not ctypes.windll.shell32.IsUserAnAdmin():
@@ -142,39 +137,46 @@ class KlaRunner:
 			elif lastId + 2 < id:
 				sets.append((lastId + 1, id - 1))
 			lastId = max(lastId, id)
-		self.prettyTable.PrintArray([str(id).rjust(5) for id in singles], 15)
+		PrettyTable.PrintArray([str(id).rjust(5) for id in singles], 15)
 		pr = lambda st : '{:>6}, {:<6}'.format('[' + str(st[0]), str(st[1]) + ']')
-		self.prettyTable.PrintArray([pr(st) for st in sets], 6)
+		PrettyTable.PrintArray([pr(st) for st in sets], 6)
 		print 
 		OsOperations.Pause()
 
 class AppRunner:
-	def __init__(self, model, testRunner):
+	def __init__(self, model):
 		self.model = model
-		self.prettyTable = PrettyTable()
-		self.testRunner = testRunner
+
+	@classmethod
+	def GetPlatform(self, platform, isSimulator = False):
+		win32 = ('Win32', 'x86')[isSimulator]
+		return ('x64', win32)[platform == 'Win32']
 
 	def StartHandler(self):
 		self.StopTask()
 
-		consoleExe = self.model.Source + '/handler/cpp/bin/Win32/debug/system/console.exe'
+		config = self.model.Config
+		platform = self.GetPlatform(self.model.Platform)
+		handlerPath = '{}/handler/cpp/bin/{}/{}/system'.format(self.model.Source, platform, config)
+		consoleExe = handlerPath + '/console.exe'
 		testTempDir = self.model.Source + '/handler/tests/' + self.model.TestName + '~'
 		par = 'start ' + consoleExe + ' ' + testTempDir
 		print par
 		os.system(par)
 
-		simulatorExe = self.model.Source + '/handler/Simulator/ApplicationFiles/bin/x86/Debug/CIT100Simulator.exe'
-		handlerSysPath = self.model.Source + '/handler/cpp/bin/Win32/debug/system'
-		par = 'start ' + simulatorExe + ' ' + testTempDir + ' ' + handlerSysPath
+		platform = self.GetPlatform(self.model.Platform, True)
+		simulatorExe = '{}/handler/Simulator/ApplicationFiles/bin/{}/{}/CIT100Simulator.exe'
+		simulatorExe = simulatorExe.format(self.model.Source, platform, config)
+		par = 'start ' + simulatorExe + ' ' + testTempDir + ' ' + handlerPath
 		print par
 		os.system(par)
 
 	def StartMMi(self, fromSrc):
 		self.StopTask('MMi.exe')
-		self.testRunner.RunSlots()
+		VMWareRunner.RunSlots(self.model.VMwareWS, self.model.slots)
 
 		mmiPath = self.testRunner.CopyMockLicense(fromSrc, False)
-		self.testRunner.CopyIllumRef(False)
+		TestRunner.CopyIllumRef(False)
 
 		OsOperations.Timeout(8)
 
@@ -217,6 +219,33 @@ class AppRunner:
 		print 'subprocess.Popen : ' + str(par)
 		subprocess.Popen(par)
 
+class VMWareRunner:
+	@classmethod
+	def RunSlots(self, vMwareWS, slots):
+		vmRunExe = vMwareWS + "vmrun.exe"
+		vmWareExe = vMwareWS + "vmware.exe"
+		vmxGenericPath = r'C:\\MVS8000\\slot{}\\MVS8000_stage2.vmx'
+
+		output = subprocess.Popen([vmRunExe, '-vp', '1', 'list'], stdout=subprocess.PIPE).communicate()[0]
+		runningSlots = []
+		searchPattern = r'C:\\MVS8000\\slot(\d*)\\MVS8000_stage2\.vmx'
+		for line in output.split():
+			m = re.search(searchPattern, line, re.IGNORECASE)
+			if m:
+				runningSlots.append(int(m.group(1)))
+
+		for slot in slots:
+			vmxPath = vmxGenericPath.format(slot)
+			if slot in runningSlots:
+				print 'Slot : ' + str(slot) + ' restarted.'
+				subprocess.Popen([vmRunExe, '-vp', '1', 'reset', vmxPath])
+			else:
+				subprocess.Popen([vmWareExe, vmxPath])
+				print 'Start Slot : ' + str(slot)
+				OsOperations.Pause()
+				print 'Slot : ' + str(slot) + ' started.'
+		print 'Slots refreshed : ' + str(slots)
+
 class TestRunner:
 	def __init__(self, model):
 		self.model = model
@@ -233,6 +262,7 @@ class TestRunner:
 			OsOperations.Pause()
 		return mmiPath
 
+	@classmethod
 	def CopyIllumRef(self, doPause = False):
 		OsOperations.CopyFile('xPort_IllumReference.xml', 'C:/icos/xPort')
 		if doPause:
@@ -251,46 +281,24 @@ class TestRunner:
 		if doPause:
 			OsOperations.Pause()
 
-	def RunSlots(self):
-		vmRunExe = self.model.VMwareWS + "vmrun.exe"
-		vmWareExe = self.model.VMwareWS + "vmware.exe"
-		vmxGenericPath = r'C:\\MVS8000\\slot{}\\MVS8000_stage2.vmx'
-
-		output = subprocess.Popen([vmRunExe, '-vp', '1', 'list'], stdout=subprocess.PIPE).communicate()[0]
-		runningSlots = []
-		searchPattern = r'C:\\MVS8000\\slot(\d*)\\MVS8000_stage2\.vmx'
-		for line in output.split():
-			m = re.search(searchPattern, line, re.IGNORECASE)
-			if m:
-				runningSlots.append(int(m.group(1)))
-
-		for slot in self.model.slots:
-			vmxPath = vmxGenericPath.format(slot)
-			if slot in runningSlots:
-				print 'Slot : ' + str(slot) + ' restarted.'
-				subprocess.Popen([vmRunExe, '-vp', '1', 'reset', vmxPath])
-			else:
-				subprocess.Popen([vmWareExe, vmxPath])
-				print 'Start Slot : ' + str(slot)
-				OsOperations.Pause()
-				print 'Slot : ' + str(slot) + ' started.'
-		print 'Slots refreshed : ' + str(self.model.slots)
-
-	def RunAutoTest(self, startUp):
-		AppRunner.StopTask()
-		self.RunSlots()
-		self.ModifyVisionSystem(False)
+	def GetBuildConfig(self):
 		debugConfigSet = ('debugx64', 'debug')
 		releaseConfigSet = ('releasex64', 'release')
 		configSet = (debugConfigSet, releaseConfigSet)[self.model.Config == 'Release']
+		return configSet[self.model.Platform == 'Win32']
+
+	def RunAutoTest(self, startUp):
+		AppRunner.StopTask()
+		VMWareRunner.RunSlots(self.model.VMwareWS, self.model.slots)
+		self.ModifyVisionSystem(False)
 
 		sys.path.append(os.path.abspath(self.model.Source + '\\libs\\testing'));
 		import my
 		my.c.startup = startUp
 		my.c.debugvision = self.model.DebugVision
 		my.c.copymmi = self.model.CopyMmi
-		my.c.console_config = my.c.simulator_config = ('d', 'r')[self.model.Config == 'Release']
-		my.c.mmiBuildConfiguration = configSet[self.model.Platform == 'Win32']
+		my.c.mmiBuildConfiguration = self.GetBuildConfig()
+		my.c.console_config = my.c.simulator_config = my.c.mmiBuildConfiguration[0]
 		my.c.platform = self.model.Platform
 		my.c.mmiConfigurationsPath = self.model.MMiConfigPath
 		my.c.mmiSetupsPath = self.model.MMiSetupsPath
@@ -298,10 +306,36 @@ class TestRunner:
 		threading.Timer(10, self.CopyIllumRef).start()
 		my.run(self.model.TestName)
 
+	@classmethod
+	def GetTestName(self, source, number):
+		print sys.path
+		self.UpdateLibsTestingPath(source)
+		print sys.path
+		sys.stdout = stdOutRedirect = StdOutRedirect()
+		from my import TestRunnerHelper
+		TestRunnerHelper().l(number)
+		msgs = stdOutRedirect.ResetOriginal()
+		for msg in msgs.split('\n'):
+			arr = msg.split(':')
+			if len(arr) == 2 and arr[0].strip() == str(number):
+				return arr[1].strip()
+		return ''
+
+	@classmethod
+	def UpdateLibsTestingPath(self, source):
+		libsTesting = '/libs/testing'
+		index = OsOperations.ContainsInArray(libsTesting, sys.path)
+		newPath = source + libsTesting
+		if index >= 0:
+			print 'Old path ({}) has been replaced with new path ({}).'.format(sys.path[index], newPath)
+			sys.path[index] = newPath
+		else:
+			print 'New path ({}) has been added.'.format(newPath)
+			sys.path.append(newPath)
+
 class Settings:
 	def __init__(self, model):
 		self.model = model
-		self.prettyTable = PrettyTable()
 
 	def ChangeTest(self):
 		index = self.SelectOption('Test Name', self.model.Tests, self.model.TestIndex)
@@ -309,11 +343,11 @@ class Settings:
 
 	def AddTest(self):
 		number = OsOperations.InputNumber('Type the number of test then press ENTER: ')
-		testName = self.GetTestName(number)
+		testName = TestRunner.GetTestName(self.model.Source, number)
 		if testName == '':
 			print 'There is no test exists for the number : ' + str(number)
 			return
-		if self.ContainsInArray(testName, self.model.Tests) >= 0:
+		if OsOperations.ContainsInArray(testName, self.model.Tests) >= 0:
 			print 'The given test ({}) already exists'.format(testName)
 			return
 		slots = raw_input('Enter slots : ')
@@ -344,8 +378,7 @@ class Settings:
 			line = ('  ', '* ')[i == currentIndex] + item
 			i += 1
 			data.append([i, line])
-		self.prettyTable.SetSingleLine()
-		self.prettyTable.PrintTable(data)
+		PrettyTable().SetSingleLine().PrintTable(data)
 		number = OsOperations.InputNumber('Type the number then press ENTER: ')
 		if number > 0 and number <= len(arr):
 			return number - 1
@@ -353,42 +386,9 @@ class Settings:
 			print 'Wrong input is given !!!'
 		return -1
 
-	def GetTestName(self, number):
-		print sys.path
-		self.UpdateLibsTestingPath()
-		print sys.path
-		sys.stdout = SysRedirect()
-		from my import TestRunnerHelper
-		TestRunnerHelper().l(number)
-		msgs = sys.stdout.ResetOriginal()
-		for msg in msgs.split('\n'):
-			arr = msg.split(':')
-			if len(arr) == 2 and arr[0].strip() == str(number):
-				return arr[1].strip()
-		return ''
-
-	def UpdateLibsTestingPath(self):
-		libsTesting = '/libs/testing'
-		index = self.ContainsInArray(libsTesting, sys.path)
-		newPath = self.model.Source + libsTesting
-		if index >= 0:
-			print 'Old path ({}) has been replaced with new path ({}).'.format(sys.path[index], newPath)
-			sys.path[index] = newPath
-		else:
-			print 'New path ({}) has been added.'.format(newPath)
-			sys.path.append(newPath)
-
-	@classmethod
-	def ContainsInArray(self, str, strArray):
-		for inx, item in enumerate(strArray):
-			if str in item:
-				return inx
-		return -1
-
 class KlaSourceBuilder:
 	def __init__(self, model):
 		self.model = model
-		self.prettyTable = PrettyTable()
 		self.Solutions = [
 			'/handler/cpp/CIT100.sln',
 			'/handler/Simulator/CIT100Simulator/CIT100Simulator.sln',
@@ -408,8 +408,7 @@ class KlaSourceBuilder:
 			if branch == self.model.Source:
 				self.model.Branch = branch
 			menuData.append([src, branch])
-		self.prettyTable.SetSingleLine()
-		self.prettyTable.PrintTable(menuData)
+		PrettyTable().SetSingleLine().PrintTable(menuData)
 
 	def PrintInfo(self, message):
 		sources = self.model.GetSources(self.model.ActiveSrcs)
@@ -458,9 +457,8 @@ class KlaSourceBuilder:
 				if not os.path.exists(slnFile):
 					print "Solution file doesn't exist : " + slnFile
 					continue
-				platform = self.model.Platform
-				if sln.split('/')[-1].split('.')[0] == 'CIT100Simulator':
-					platform = 'x64' if self.model.Platform == 'x64' else 'x86'
+				isSimulator = sln.split('/')[-1] == 'CIT100Simulator.sln'
+				platform = AppRunner.GetPlatform(self.model.Platform, isSimulator)
 				BuildConf = self.model.Config + '|' + platform
 				outFile = os.path.abspath(src + '/Out_' + self.SlnNames[inx]) + '.txt'
 
@@ -482,7 +480,6 @@ class KlaSourceBuilder:
 class BuildLoger:
 	def __init__(self, fileName):
 		self.fileName = fileName
-		self.prettyTable = PrettyTable()
 
 	def StartSource(self, src):
 		self.srcStartTime = datetime.now()
@@ -496,8 +493,7 @@ class BuildLoger:
 	def EndSource(self, src):
 		timeDelta = self.TimeDeltaToStr(datetime.now() - self.srcStartTime)
 		self.Log('Completed building : {} in {}'.format(src, timeDelta))
-		self.prettyTable.SetSingleLine()
-		table = self.prettyTable.ToString(self.logDataTable)
+		table = PrettyTable().SetSingleLine().ToString(self.logDataTable)
 		print table
 		OsOperations.Append(self.fileName, table)
 
@@ -609,10 +605,14 @@ class OsOperations:
 		with open(fileName, 'a') as f:
 			 f.write((message + '\n').encode('utf8'))
 
-class PrettyTable:
-	def __init__(self):
-		self.SetNoBorder('')
+	@classmethod
+	def ContainsInArray(self, str, strArray):
+		for inx, item in enumerate(strArray):
+			if str in item:
+				return inx
+		return -1
 
+class PrettyTable:
 	def SetSingleLine(self):
 		self.chTopLef = u'┌'
 		self.chTopMid = u'┬'
@@ -625,6 +625,7 @@ class PrettyTable:
 		self.chBotRig = u'┘'
 		self.chVerLef = self.chVerMid = self.chVerRig = u'│'
 		self.chHorLef = self.chHorMid = self.chHorRig = u'─'
+		return self
 
 	def SetDoubleLineBorder(self):
 		self.chTopLef = u'╔'
@@ -642,6 +643,7 @@ class PrettyTable:
 		self.chHorLef = u'═'
 		self.chHorMid = u'─'
 		self.chHorRig = u'═'
+		return self
 
 	def SetDoubleLine(self):
 		self.chTopLef = u'╔'
@@ -655,6 +657,7 @@ class PrettyTable:
 		self.chBotRig = u'╝'
 		self.chVerLef = self.chVerMid = self.chVerRig = u'║'
 		self.chHorLef = self.chHorMid = self.chHorRig = u'═'
+		return self
 
 	def SetNoBorder(self, seperator):
 		self.chTopLef = ''
@@ -672,6 +675,7 @@ class PrettyTable:
 		self.chHorLef = ''
 		self.chHorMid = ''
 		self.chHorRig = ''
+		return self
 
 	def PrintTable(self, data):
 		print self.ToString(data),
