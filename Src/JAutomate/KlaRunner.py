@@ -16,24 +16,24 @@ class Menu:
 		self.klaRunner = klaRunner
 		self.testRunner = TestRunner(model)
 		self.settings = Settings(model)
-		self.appRunner = AppRunner(model)
+		self.appRunner = AppRunner(model, self.testRunner)
 		self.klaSourceBuilder = KlaSourceBuilder(model)
 
 	def PrepareMainMenu(self):
 		model = self.klaRunner.model
+		seperator = ' : '
+		menuData = [
+			['Source', seperator, model.Source, ' '*5, 'Config', seperator, model.Config],
+			['Branch', seperator, model.Branch, ' '*5, 'Platform', seperator, model.Platform],
+			['Test', seperator, model.TestName, ' '*5, 'Copy MMI to Icos', seperator, model.CopyMmi]
+		]
+		PrettyTable().SetNoBorder('').PrintTable(menuData)
+
 		testRunner = self.testRunner
 		sourceBuilder = self.klaSourceBuilder
 		settings = self.settings
 		autoTest = ('', ' (attach MMi)')[model.DebugVision]
-		seperator = ' : '
-		menuData = [
-			['Source', seperator, model.Source, ' '*5, 'Platform', seperator, model.Platform],
-			['Branch', seperator, model.Branch, ' '*5, 'Config', seperator, model.Config],
-			['Test', seperator, model.TestName, ' '*5, 'Copy MMI to Icos', seperator, model.CopyMmi]
-		]
-		print
-		PrettyTable().SetNoBorder('').PrintTable(menuData)
-
+		activeSrcs = str([i + 1 for i in model.ActiveSrcs]).replace(' ', '') if len(model.ActiveSrcs) > 0 else ''
 		group = [
 		[
 			[1, ['Open Python', self.klaRunner.OpenPython]],
@@ -49,24 +49,23 @@ class Menu:
 			[12, ['Open Mmi', sourceBuilder.OpenSolution, 2]],
 			[14, ['Open MockLicense', sourceBuilder.OpenSolution, 3]],
 			[15, ['Open Converters', sourceBuilder.OpenSolution, 4]],
-			[16, ['Open Test Folder', self.klaRunner.OpenTestFolder]],
-			[17, ['Open Local Diff', AppRunner.OpenLocalDif, model.Source]],
-			[18, ['Open Git GUI', GitHelper.OpenGitGui, model.Source]],
-			[19, ['Open Git Bash', GitHelper.OpenGitBash, (model.GitBin, model.Source)]],
 		],[
-			[20, ['Add Test', settings.AddTest]],
-			[21, ['Comment VisionSystem', testRunner.ModifyVisionSystem]],
-			[22, ['Copy Mock License', testRunner.CopyMockLicense]],
-			[23, ['Copy xPort xml', TestRunner.CopyIllumRef, True]],
-			[24, ['Print All Branches', sourceBuilder.PrintBranches, model.Sources]],
-			[25, ['Print mmi.h IDs', self.klaRunner.PrintMissingIds]],
+			[20, ['Open Test Folder', self.klaRunner.OpenTestFolder]],
+			[21, ['Open Local Diff', AppRunner.OpenLocalDif, model.Source]],
+			[22, ['Open Git GUI', GitHelper.OpenGitGui, model.Source]],
+			[23, ['Open Git Bash', GitHelper.OpenGitBash, (model.GitBin, model.Source)]],
+			[24, ['Comment VisionSystem', testRunner.ModifyVisionSystem]],
+			[25, ['Copy Mock License', testRunner.CopyMockLicense]],
+			[26, ['Copy xPort xml', TestRunner.CopyIllumRef, model.ClearHistory]],
+			[27, ['Print mmi.h IDs', self.klaRunner.PrintMissingIds]],
 		],[
-			[91, ['Build', sourceBuilder.BuildSource]],
-			[92, ['Clean Build', sourceBuilder.CleanSource]],
-			[93, ['Change Test', settings.ChangeTest]],
-			[94, ['Change Source', settings.ChangeSource]],
-			[95, ['Change MMI Attach', settings.ChangeDebugVision]],
-			[96, ['Stop All KLA Apps', AppRunner.StopTask]],
+			[91, ['Build Source ' + activeSrcs, sourceBuilder.BuildSource]],
+			[92, ['Clean Source ' + activeSrcs, sourceBuilder.CleanSource]],
+			[93, ['Add Test', settings.AddTest]],
+			[94, ['Change Test', settings.ChangeTest]],
+			[95, ['Change Source', settings.ChangeSource]],
+			[96, ['Change MMI Attach', settings.ChangeDebugVision]],
+			[99, ['Stop All KLA Apps', AppRunner.StopTasks, True]],
 			[0, 'EXIT']
 		]]
 		colCnt = model.MenuColCnt
@@ -99,6 +98,10 @@ class KlaRunner:
 			OsOperations.Pause()
 			return
 		while True:
+			if self.model.ClearHistory:
+				OsOperations.Cls()
+			else:
+				print
 			selItem = self.menu.ReadUserInput()
 			if selItem == 'EXIT':
 				break
@@ -118,6 +121,8 @@ class KlaRunner:
 		dirPath = os.path.abspath(self.model.Source + '/handler/tests/' + self.model.TestName)
 		subprocess.Popen(['Explorer', dirPath])
 		print 'Open directory : ' + dirPath
+		if self.model.ClearHistory:
+			OsOperations.Pause()
 
 	def PrintMissingIds(self):
 		fileName = os.path.abspath(self.model.Source + '/mmi/mmi/mmi_lang/mmi.h')
@@ -141,19 +146,22 @@ class KlaRunner:
 		pr = lambda st : '{:>6}, {:<6}'.format('[' + str(st[0]), str(st[1]) + ']')
 		PrettyTable.PrintArray([pr(st) for st in sets], 6)
 		print 
-		OsOperations.Pause()
+		if self.model.ClearHistory:
+			OsOperations.Pause()
 
 class AppRunner:
-	def __init__(self, model):
+	def __init__(self, model, testRunner):
 		self.model = model
+		self.testRunner = testRunner
 
 	@classmethod
 	def GetPlatform(self, platform, isSimulator = False):
-		win32 = ('Win32', 'x86')[isSimulator]
-		return ('x64', win32)[platform == 'Win32']
+		if isSimulator and 'Win32' == platform:
+			platform = 'x86'
+		return platform
 
-	def StartHandler(self):
-		self.StopTask()
+	def StartHandler(self, doPause = True):
+		self.StopTasks(False)
 
 		config = self.model.Config
 		platform = self.GetPlatform(self.model.Platform)
@@ -170,8 +178,10 @@ class AppRunner:
 		par = 'start ' + simulatorExe + ' ' + testTempDir + ' ' + handlerPath
 		print par
 		os.system(par)
+		if doPause and self.model.ClearHistory:
+			OsOperations.Pause()
 
-	def StartMMi(self, fromSrc):
+	def StartMMi(self, fromSrc, doPause = True):
 		self.StopTask('MMi.exe')
 		VMWareRunner.RunSlots(self.model.VMwareWS, self.model.slots)
 
@@ -185,31 +195,33 @@ class AppRunner:
 		par = 'start ' + mmiExe
 		print par
 		os.system(par)
+		if doPause and self.model.ClearHistory:
+			OsOperations.Pause()
 
 	def StartHandlerMMi(self):
-		self.StartHandler()
-		self.StartMMi(True)
+		self.StartHandler(False)
+		self.StartMMi(True, False)
+		if self.model.ClearHistory:
+			OsOperations.Pause()
 
 	@classmethod
-	def StopTask(self, exeName = ''):
-		exeList = []
-		if exeName is '':
-			exeList = [
-				'Mmi.exe',
-				'console.exe',
-				'CIT100Simulator.exe',
-				'HostCamServer.exe',
-				'Ves.exe'
-			]
-		else:
-			exeList.append(exeName)
+	def StopTasks(self, doPause):
+		for exeName in [
+			'Mmi.exe',
+			'console.exe',
+			'CIT100Simulator.exe',
+			'HostCamServer.exe',
+			'Ves.exe'
+		]:
+			AppRunner.StopTask(exeName)
+		if doPause:
+			OsOperations.Pause()
 
-		params = [ 'TASKKILL', '/IM', '', '/T', '/F' ]
-		for exe in exeList:
-			if OsOperations.GetExeInstanceCount(exe) > 0:
-				print exeName
-				params[2] = exe
-				OsOperations.Popen(params)
+	@classmethod
+	def StopTask(self, exeName):
+		if OsOperations.GetExeInstanceCount(exeName) > 0:
+			print exeName
+			OsOperations.Popen([ 'TASKKILL', '/IM', exeName, '/T', '/F' ])
 
 	@classmethod
 	def OpenLocalDif(self, source):
@@ -218,6 +230,7 @@ class AppRunner:
 		par.append('/path:' + source + '')
 		print 'subprocess.Popen : ' + str(par)
 		subprocess.Popen(par)
+		OsOperations.Pause()
 
 class VMWareRunner:
 	@classmethod
@@ -252,19 +265,21 @@ class TestRunner:
 
 	def CopyMockLicense(self, fromSrc = True, doPause = True):
 		if fromSrc:
-			mmiPath = os.path.abspath('{}/mmi/mmi/Bin/{}/{}'.format(self.model.Source, self.model.Platform, self.model.Config))
+			args = (self.model.Source, self.model.Platform, self.model.Config)
+			mmiPath = os.path.abspath('{}/mmi/mmi/Bin/{}/{}'.format(*args))
 		else:
 			mmiPath = 'C:/icos'
 		licencePath = '{}/mmi/mmi/mmi_stat/integration/code/MockLicenseDll/{}/{}/License.dll'
-		licenseFile = os.path.abspath(licencePath.format(self.model.Source, self.model.Platform, self.model.Config))
+		args = (self.model.Source, self.model.Platform, self.model.Config)
+		licenseFile = os.path.abspath(licencePath.format(*args))
 		OsOperations.CopyFile(licenseFile, mmiPath)
-		if doPause:
+		if doPause and self.model.ClearHistory:
 			OsOperations.Pause()
 		return mmiPath
 
 	@classmethod
 	def CopyIllumRef(self, doPause = False):
-		OsOperations.CopyFile('xPort_IllumReference.xml', 'C:/icos/xPort')
+		OsOperations.CopyFile('xPort_IllumReference.xml', 'C:/icos/xPort/')
 		if doPause:
 			OsOperations.Pause()
 
@@ -278,7 +293,7 @@ class TestRunner:
 		with open(fileName, "w") as f:
 			f.write(newText)
 		print 'The line for copying of slots in VisionSystem.py has been commented.'
-		if doPause:
+		if doPause and self.model.ClearHistory:
 			OsOperations.Pause()
 
 	def GetBuildConfig(self):
@@ -288,7 +303,7 @@ class TestRunner:
 		return configSet[self.model.Platform == 'Win32']
 
 	def RunAutoTest(self, startUp):
-		AppRunner.StopTask()
+		AppRunner.StopTasks(False)
 		VMWareRunner.RunSlots(self.model.VMwareWS, self.model.slots)
 		self.ModifyVisionSystem(False)
 
@@ -303,8 +318,10 @@ class TestRunner:
 		my.c.mmiConfigurationsPath = self.model.MMiConfigPath
 		my.c.mmiSetupsPath = self.model.MMiSetupsPath
 
-		threading.Timer(10, self.CopyIllumRef).start()
+		threading.Timer(15, self.CopyIllumRef).start()
 		my.run(self.model.TestName)
+		if self.model.ClearHistory:
+			OsOperations.Pause()
 
 	@classmethod
 	def GetTestName(self, source, number):
@@ -338,8 +355,10 @@ class Settings:
 		self.model = model
 
 	def ChangeTest(self):
-		index = self.SelectOption('Test Name', self.model.Tests, self.model.TestIndex)
+		index = self.SelectOption1('Test Name', self.model.Tests, self.model.TestIndex)
 		self.model.UpdateTest(index, True)
+		if self.model.ClearHistory:
+			OsOperations.Pause()
 
 	def AddTest(self):
 		number = OsOperations.InputNumber('Type the number of test then press ENTER: ')
@@ -354,33 +373,41 @@ class Settings:
 		testNameAndSlot = '{} {}'.format(testName, slots)
 		self.model.Tests.append(testNameAndSlot)
 		self.model.UpdateTest(len(self.model.Tests) - 1, True)
+		if self.model.ClearHistory:
+			OsOperations.Pause()
 
 	def ChangeSource(self):
-		arr = [ '{} ({})'.format(src, GitHelper.GetBranch(src)) for src in self.model.Sources ]
-		index = self.SelectOption('  Source and Branch', arr, self.model.SrcIndex)
+		heading, data = KlaSourceBuilder(self.model).GetSourceInfo(None)
+		index = self.SelectOption(heading, data, self.model.SrcIndex)
 		self.model.UpdateSource(index, True)
+		if self.model.ClearHistory:
+			OsOperations.Pause()
 
 	def ChangeDebugVision(self):
 		arr = [ 'Attach MMi', 'Do not attach' ]
 		index = 0 if self.model.DebugVision else 1
-		number = self.SelectOption('Options', arr, index)
+		number = self.SelectOption1('Options', arr, index)
 		if number >= 0:
 			self.model.DebugVision = number == 0
 			self.model.WriteConfigFile()
+		if self.model.ClearHistory:
+			OsOperations.Pause()
 
-	def SelectOption(self, name, arr, currentIndex = -1):
+	def SelectOption1(self, heading, arr, currentIndex):
+		arrOfArr = [[item] for item in arr]
+		return self.SelectOption([heading], arrOfArr, currentIndex)
+
+	def SelectOption(self, heading, arrOfArr, currentIndex):
 		data = [
-			['Num', name],
+			['Num'] + heading,
 			['-']
 		]
-		i = 0
-		for item in arr:
-			line = ('  ', '* ')[i == currentIndex] + item
-			i += 1
-			data.append([i, line])
+		for i,line in enumerate(arrOfArr):
+			line[0] = ('  ', '* ')[i == currentIndex] + line[0]
+			data.append([i + 1] + line)
 		PrettyTable().SetSingleLine().PrintTable(data)
 		number = OsOperations.InputNumber('Type the number then press ENTER: ')
-		if number > 0 and number <= len(arr):
+		if number > 0 and number <= len(arrOfArr):
 			return number - 1
 		else:
 			print 'Wrong input is given !!!'
@@ -398,25 +425,32 @@ class KlaSourceBuilder:
 		]
 		self.SlnNames = ['CIT100', 'Simulator', 'MMi', 'Mock', 'Converters']
 
-	def PrintBranches(self, sources):
-		menuData = [
-			['Source', 'Branch'],
-			['-']
-		]
+	def GetSourceInfo(self, activeSrcs):
+		heading = ['Source', 'Branch', 'Config', 'Platform']
+		if activeSrcs == None:
+			sources = list(self.model.Sources)
+		elif len(activeSrcs) == 0:
+			sources = [self.model.Sources[self.model.SrcIndex]]
+		else:
+			sources = [self.model.Sources[inx] for inx in activeSrcs]
+		menuData = []
 		for src in sources:
-			branch = GitHelper.GetBranch(src)
-			if branch == self.model.Source:
+			branch = GitHelper.GetBranch(src[0])
+			if src[0] == self.model.Source:
 				self.model.Branch = branch
-			menuData.append([src, branch])
-		PrettyTable().SetSingleLine().PrintTable(menuData)
+			menuData.append([src[0], branch, src[1], src[2]])
+		return (heading, menuData)
 
-	def PrintInfo(self, message):
-		sources = self.model.GetSources(self.model.ActiveSrcs)
-		if len(sources) == 0:
-			sources = [self.model.Source]
-		isAre = (' is', 's are')[len(sources) > 1]
+	def PrintBranches(self, activeSrcs = None):
+		heading, data = self.GetSourceInfo(activeSrcs)
+		menuData = [ heading, ['-'] ] + data
+		PrettyTable().SetSingleLine().PrintTable(menuData)
+		return data
+
+	def VerifySources(self, message):
+		isAre = (' is', 's are')[len(self.model.ActiveSrcs) > 1]
 		print 'The following source{} ready for {}.'.format(isAre, message)
-		self.PrintBranches(sources)
+		sources = self.PrintBranches(self.model.ActiveSrcs)
 		question = 'Please type "Yes" to continue {} : '.format(message)
 		if raw_input(question) == 'Yes':
 			print 'Started {}...'.format(message)
@@ -434,7 +468,8 @@ class KlaSourceBuilder:
 			'/Handler/FabLink/FabLinkLib/System32',
 			]
 		gitIgnore = '.gitignore'
-		for src in self.PrintInfo('cleaning'):
+		for srcSet in self.VerifySources('cleaning'):
+			src = srcSet[0]
 			print 'Cleaning files in ' + src
 			for root, dirs, files in os.walk(src):
 				if gitIgnore in files:
@@ -447,26 +482,30 @@ class KlaSourceBuilder:
 			print 'Submodule Update'
 			GitHelper.SubmoduleUpdate(src)
 			print 'Cleaning completed for ' + src
+		if self.model.ClearHistory:
+			OsOperations.Pause()
 
 	def BuildSource(self):
 		buildLoger = BuildLoger(self.model.LogFileName)
-		for src in self.PrintInfo('building'):
-			buildLoger.StartSource(src)
+		for source, branch, config, srcPlatform in self.VerifySources('building'):
+			buildLoger.StartSource(source)
 			for inx,sln in enumerate(self.Solutions):
-				slnFile = os.path.abspath(src + '/' + sln)
+				slnFile = os.path.abspath(source + '/' + sln)
 				if not os.path.exists(slnFile):
 					print "Solution file doesn't exist : " + slnFile
 					continue
 				isSimulator = sln.split('/')[-1] == 'CIT100Simulator.sln'
-				platform = AppRunner.GetPlatform(self.model.Platform, isSimulator)
-				BuildConf = self.model.Config + '|' + platform
-				outFile = os.path.abspath(src + '/Out_' + self.SlnNames[inx]) + '.txt'
+				platform = AppRunner.GetPlatform(srcPlatform, isSimulator)
+				BuildConf = config + '|' + platform
+				outFile = os.path.abspath(source + '/Out_' + self.SlnNames[inx]) + '.txt'
 
-				buildLoger.StartSolution(sln, self.SlnNames[inx], self.model.Config, platform)
+				buildLoger.StartSolution(sln, self.SlnNames[inx], config, platform)
 				params = [self.model.VisualStudioBuild, slnFile, '/build', BuildConf, '/out', outFile]
 				OsOperations.Popen(params, buildLoger.PrintMsg)
 				buildLoger.EndSolution()
-			buildLoger.EndSource(src)
+			buildLoger.EndSource(source)
+		if self.model.ClearHistory:
+			OsOperations.Pause()
 
 	def OpenSolution(self, index):
 		fileName = self.model.Source + self.Solutions[index]
@@ -476,6 +515,8 @@ class KlaSourceBuilder:
 		]
 		subprocess.Popen(param)
 		print 'Open solution : ' + fileName
+		if self.model.ClearHistory:
+			OsOperations.Pause()
 
 class BuildLoger:
 	def __init__(self, fileName):
@@ -506,6 +547,8 @@ class BuildLoger:
 		self.logDataRow.append(platform)
 
 	def EndSolution(self):
+		if len(self.logDataRow) == 3:
+			self.logDataRow += [''] * 4
 		timeDelta = self.TimeDeltaToStr(datetime.now() - self.slnStartTime)
 		self.logDataRow.append(timeDelta)
 		self.logDataTable.append(self.logDataRow)
@@ -537,6 +580,10 @@ class BuildLoger:
 		return t
 
 class OsOperations:
+	@classmethod
+	def Cls(self):
+		os.system('cls')
+
 	@classmethod
 	def CopyFile(self, Src, Des):
 		par = 'COPY /Y "' + Src + '" "' + Des + '"'
@@ -708,8 +755,9 @@ class PrettyTable:
 				outMessage += self.PrintLine(colWidths, self.chMidLef, self.chMidMid, self.chMidRig, self.chHorMid)
 			else:
 				outMessage += self.chVerLef
-				for inx,cell in enumerate(line):
-					alignMode = ('<', '^')[isinstance(cell, int)]
+				for inx,colWidth in enumerate(colWidths):
+					cell = line[inx] if len(line) > inx else ''
+					alignMode = ('<', '^')[isinstance(cell, int) and not isinstance(cell, bool)]
 					if isinstance(cell, list) and len(cell) > 0:
 						cell = cell[0]
 					outMessage += self.GetAligned(str(cell), colWidths[inx], alignMode)
@@ -769,12 +817,14 @@ class GitHelper:
 		param = [ 'git-gui', '--working-dir', source ]
 		print 'Staring Git GUI'
 		subprocess.Popen(param)
+		OsOperations.Pause()
 
 	@classmethod
 	def OpenGitBash(self, args):
 		print 'Staring Git Bash'
 		par = 'start {}sh.exe --cd={}'.format(*args)
 		os.system(par)
+		OsOperations.Pause()
 
 class StdOutRedirect(object):
 	def __init__(self):
@@ -821,12 +871,14 @@ class Model:
 		self.Branch = ''
 		self.TestName = ''
 		self.slots = []
+		self.Config = ''
+		self.Platform = ''
 
 	def ReadConfigFile(self):
 		with open(self.fileName) as f:
 			_model = json.load(f)
 
-		self.Sources = _model['Sources']
+		self.Sources = [self.DecodeSource(item) for item in _model['Sources']]
 		self.SrcIndex = _model['SrcIndex']
 		self.ActiveSrcs = _model['ActiveSrcs']
 		self.Tests = _model['Tests']
@@ -837,19 +889,18 @@ class Model:
 		self.VMwareWS = _model['VMwareWS']
 		self.MMiConfigPath = _model['MMiConfigPath']
 		self.MMiSetupsPath = _model['MMiSetupsPath']
-		self.Config = _model['Config']
-		self.Platform = _model['Platform']
 		self.DebugVision = _model['DebugVision']
 		self.CopyMmi = _model['CopyMmi']
 		self.LogFileName = _model['LogFileName']
 		self.MenuColCnt = _model['MenuColCnt']
+		self.ClearHistory = _model['ClearHistory']
 
 		self.UpdateSource(self.SrcIndex, False)
 		self.UpdateTest(self.TestIndex, False)
 
 	def WriteConfigFile(self):
 		_model = OrderedDict()
-		_model['Sources'] = self.Sources
+		_model['Sources'] = [self.EncodeSource(item) for item in self.Sources]
 		_model['SrcIndex'] = self.SrcIndex
 		_model['ActiveSrcs'] = self.ActiveSrcs
 		_model['Tests'] = self.Tests
@@ -860,21 +911,29 @@ class Model:
 		_model['VMwareWS'] = self.VMwareWS
 		_model['MMiConfigPath'] = self.MMiConfigPath
 		_model['MMiSetupsPath'] = self.MMiSetupsPath
-		_model['Config'] = self.Config
-		_model['Platform'] = self.Platform
 		_model['DebugVision'] = self.DebugVision
 		_model['CopyMmi'] = self.CopyMmi
 		_model['LogFileName'] = self.LogFileName
 		_model['MenuColCnt'] = self.MenuColCnt
+		_model['ClearHistory'] = self.ClearHistory
 
 		with open(self.fileName, 'w') as f:
 			json.dump(_model, f, indent=3)
+
+	def DecodeSource(self, srcArr):
+		source = srcArr[0]
+		config = ('Debug', 'Release')[srcArr[1][0] == 'R']
+		platform = ('Win32', 'x64')[srcArr[1][1:] == '64']
+		return (source, config, platform)
+
+	def EncodeSource(self, srcSet):
+		return [srcSet[0], srcSet[1][0] + srcSet[2][-2:]]
 
 	def UpdateSource(self, index, writeToFile):
 		if index < 0 or index >= len(self.Sources):
 			return
 		self.SrcIndex = index
-		self.Source = self.Sources[self.SrcIndex]
+		self.Source, self.Config, self.Platform = self.Sources[self.SrcIndex]
 		self.Branch = GitHelper.GetBranch(self.Source)
 		if writeToFile:
 			self.WriteConfigFile()
@@ -889,7 +948,9 @@ class Model:
 		if writeToFile:
 			self.WriteConfigFile()
 
-	def GetSources(self, srcIndices):
+	def GetSources(self, srcIndices = None):
+		if None == srcIndices:
+			return list(self.Sources)
 		sources = []
 		for index in srcIndices:
 			if index < 0 or index >= len(self.Sources):
@@ -898,4 +959,5 @@ class Model:
 			sources.append(self.Sources[index])
 		return sources
 
-KlaRunner().Start()
+if (__name__ == '__main__'):
+	KlaRunner().Start()
