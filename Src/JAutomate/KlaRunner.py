@@ -121,8 +121,7 @@ class KlaRunner:
 		dirPath = os.path.abspath(self.model.Source + '/handler/tests/' + self.model.TestName)
 		subprocess.Popen(['Explorer', dirPath])
 		print 'Open directory : ' + dirPath
-		if self.model.ClearHistory:
-			OsOperations.Pause()
+		OsOperations.Pause(self.model.ClearHistory)
 
 	def PrintMissingIds(self):
 		fileName = os.path.abspath(self.model.Source + '/mmi/mmi/mmi_lang/mmi.h')
@@ -146,8 +145,7 @@ class KlaRunner:
 		pr = lambda st : '{:>6}, {:<6}'.format('[' + str(st[0]), str(st[1]) + ']')
 		PrettyTable.PrintArray([pr(st) for st in sets], 6)
 		print 
-		if self.model.ClearHistory:
-			OsOperations.Pause()
+		OsOperations.Pause(self.model.ClearHistory)
 
 class AppRunner:
 	def __init__(self, model, testRunner):
@@ -178,8 +176,7 @@ class AppRunner:
 		par = 'start ' + simulatorExe + ' ' + testTempDir + ' ' + handlerPath
 		print par
 		os.system(par)
-		if doPause and self.model.ClearHistory:
-			OsOperations.Pause()
+		OsOperations.Pause(doPause and self.model.ClearHistory)
 
 	def StartMMi(self, fromSrc, doPause = True):
 		self.StopTask('MMi.exe')
@@ -195,14 +192,12 @@ class AppRunner:
 		par = 'start ' + mmiExe
 		print par
 		os.system(par)
-		if doPause and self.model.ClearHistory:
-			OsOperations.Pause()
+		OsOperations.Pause(doPause and self.model.ClearHistory)
 
 	def StartHandlerMMi(self):
 		self.StartHandler(False)
 		self.StartMMi(True, False)
-		if self.model.ClearHistory:
-			OsOperations.Pause()
+		OsOperations.Pause(self.model.ClearHistory)
 
 	@classmethod
 	def StopTasks(self, doPause):
@@ -214,8 +209,7 @@ class AppRunner:
 			'Ves.exe'
 		]:
 			AppRunner.StopTask(exeName)
-		if doPause:
-			OsOperations.Pause()
+		OsOperations.Pause(doPause)
 
 	@classmethod
 	def StopTask(self, exeName):
@@ -273,15 +267,13 @@ class TestRunner:
 		args = (self.model.Source, self.model.Platform, self.model.Config)
 		licenseFile = os.path.abspath(licencePath.format(*args))
 		OsOperations.CopyFile(licenseFile, mmiPath)
-		if doPause and self.model.ClearHistory:
-			OsOperations.Pause()
+		OsOperations.Pause(doPause and self.model.ClearHistory)
 		return mmiPath
 
 	@classmethod
 	def CopyIllumRef(self, doPause = False):
 		OsOperations.CopyFile('xPort_IllumReference.xml', 'C:/icos/xPort/')
-		if doPause:
-			OsOperations.Pause()
+		OsOperations.Pause(doPause)
 
 	def ModifyVisionSystem(self, doPause = True):
 		line = 'shutil.copy2(os.path.join(mvsSlots, slot, slot + ".bat"), os.path.join(self.mvsPath, slot, slot + ".bat"))'
@@ -293,8 +285,7 @@ class TestRunner:
 		with open(fileName, "w") as f:
 			f.write(newText)
 		print 'The line for copying of slots in VisionSystem.py has been commented.'
-		if doPause and self.model.ClearHistory:
-			OsOperations.Pause()
+		OsOperations.Pause(doPause and self.model.ClearHistory)
 
 	def GetBuildConfig(self):
 		debugConfigSet = ('debugx64', 'debug')
@@ -320,8 +311,7 @@ class TestRunner:
 
 		threading.Timer(15, self.CopyIllumRef).start()
 		my.run(self.model.TestName)
-		if self.model.ClearHistory:
-			OsOperations.Pause()
+		OsOperations.Pause(self.model.ClearHistory)
 
 	@classmethod
 	def GetTestName(self, source, number):
@@ -357,8 +347,7 @@ class Settings:
 	def ChangeTest(self):
 		index = self.SelectOption1('Test Name', self.model.Tests, self.model.TestIndex)
 		self.model.UpdateTest(index, True)
-		if self.model.ClearHistory:
-			OsOperations.Pause()
+		OsOperations.Pause(self.model.ClearHistory)
 
 	def AddTest(self):
 		number = OsOperations.InputNumber('Type the number of test then press ENTER: ')
@@ -373,15 +362,13 @@ class Settings:
 		testNameAndSlot = '{} {}'.format(testName, slots)
 		self.model.Tests.append(testNameAndSlot)
 		self.model.UpdateTest(len(self.model.Tests) - 1, True)
-		if self.model.ClearHistory:
-			OsOperations.Pause()
+		OsOperations.Pause(self.model.ClearHistory)
 
 	def ChangeSource(self):
 		heading, data = KlaSourceBuilder(self.model).GetSourceInfo(None)
 		index = self.SelectOption(heading, data, self.model.SrcIndex)
 		self.model.UpdateSource(index, True)
-		if self.model.ClearHistory:
-			OsOperations.Pause()
+		OsOperations.Pause(self.model.ClearHistory)
 
 	def ChangeDebugVision(self):
 		arr = [ 'Attach MMi', 'Do not attach' ]
@@ -390,8 +377,7 @@ class Settings:
 		if number >= 0:
 			self.model.DebugVision = number == 0
 			self.model.WriteConfigFile()
-		if self.model.ClearHistory:
-			OsOperations.Pause()
+		OsOperations.Pause(self.model.ClearHistory)
 
 	def SelectOption1(self, heading, arr, currentIndex):
 		arrOfArr = [[item] for item in arr]
@@ -471,9 +457,7 @@ class KlaSourceBuilder:
 		for srcSet in self.VerifySources('cleaning'):
 			src = srcSet[0]
 			print 'Cleaning files in ' + src
-			for root, dirs, files in os.walk(src):
-				if gitIgnore in files:
-					os.remove('{}/{}'.format(root, gitIgnore))
+			OsOperations.DeleteAllInTree(src, gitIgnore)
 			with open(src + '/' + gitIgnore, 'w') as f:
 				f.writelines(str.join('\n', excludeDirs))
 			GitHelper.Clean(src, '-fd')
@@ -482,8 +466,7 @@ class KlaSourceBuilder:
 			print 'Submodule Update'
 			GitHelper.SubmoduleUpdate(src)
 			print 'Cleaning completed for ' + src
-		if self.model.ClearHistory:
-			OsOperations.Pause()
+		OsOperations.Pause(self.model.ClearHistory)
 
 	def BuildSource(self):
 		buildLoger = BuildLoger(self.model.LogFileName)
@@ -504,8 +487,7 @@ class KlaSourceBuilder:
 				OsOperations.Popen(params, buildLoger.PrintMsg)
 				buildLoger.EndSolution()
 			buildLoger.EndSource(source)
-		if self.model.ClearHistory:
-			OsOperations.Pause()
+		OsOperations.Pause(self.model.ClearHistory)
 
 	def OpenSolution(self, index):
 		fileName = self.model.Source + self.Solutions[index]
@@ -515,8 +497,7 @@ class KlaSourceBuilder:
 		]
 		subprocess.Popen(param)
 		print 'Open solution : ' + fileName
-		if self.model.ClearHistory:
-			OsOperations.Pause()
+		OsOperations.Pause(self.model.ClearHistory)
 
 class BuildLoger:
 	def __init__(self, fileName):
@@ -597,8 +578,9 @@ class OsOperations:
 		os.system(par)
 
 	@classmethod
-	def Pause(self):
-		raw_input('Press ENTER key to continue . . .')
+	def Pause(self, condition = True):
+		if condition:
+			raw_input('Press ENTER key to continue . . .')
 
 	@classmethod
 	def GetExeInstanceCount(self, exeName):
@@ -658,6 +640,12 @@ class OsOperations:
 			if str in item:
 				return inx
 		return -1
+
+	@classmethod
+	def DeleteAllInTree(self, dirName, fileName):
+		for root, dirs, files in os.walk(dirName):
+			if fileName in files:
+				os.remove('{}/{}'.format(root, fileName))
 
 class PrettyTable:
 	def SetSingleLine(self):
@@ -829,19 +817,13 @@ class GitHelper:
 class StdOutRedirect(object):
 	def __init__(self):
 		self.messages = ''
-		#self.orig___stdout__ = sys.__stdout__
-		#self.orig___stderr__ = sys.__stderr__
 		self.orig_stdout = sys.stdout
-		#self.orig_stderr = sys.stderr
 
 	def write(self, message):
 		self.messages += message
 
 	def ResetOriginal(self):
-		#sys.__stdout__ = self.orig___stdout__
-		#sys.__stderr__ = self.orig___stderr__
 		sys.stdout = self.orig_stdout
-		#sys.stderr = self.orig_stderr
 		return self.messages
 
 class ArrayOrganizer:
