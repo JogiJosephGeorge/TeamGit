@@ -1,7 +1,9 @@
 # coding=utf-8
 from collections import OrderedDict
 import ctypes
-from datetime import datetime
+from datetime import datetime, timedelta
+import time
+import inspect
 import itertools
 import json
 import threading
@@ -32,6 +34,7 @@ class Menu:
 		testRunner = self.testRunner
 		sourceBuilder = self.klaSourceBuilder
 		settings = self.settings
+		effortLogger = EffortLogger(model)
 		autoTest = ('', ' (attach MMi)')[model.DebugVision]
 		activeSrcs = str([i + 1 for i in model.ActiveSrcs]).replace(' ', '') if len(model.ActiveSrcs) > 0 else ''
 		group = [
@@ -42,7 +45,8 @@ class Menu:
 			[4, ['Run Handler and MMi', self.appRunner.StartHandlerMMi]],
 			[5, ['Run Handler alone', self.appRunner.StartHandler]],
 			[6, ['Run MMi from Source', self.appRunner.StartMMi, True]],
-			[7, ['Run MMi from C:Icos', self.appRunner.StartMMi, False]]
+			[7, ['Run MMi from C:Icos', self.appRunner.StartMMi, False]],
+			[8, ['Effort Log', effortLogger.ReadEffortLog]]
 		],[
 			[10, ['Open CIT100', sourceBuilder.OpenSolution, 0]],
 			[11, ['Open Simulator', sourceBuilder.OpenSolution, 1]],
@@ -52,11 +56,11 @@ class Menu:
 		],[
 			[20, ['Open Test Folder', self.klaRunner.OpenTestFolder]],
 			[21, ['Open Local Diff', AppRunner.OpenLocalDif, model.Source]],
-			[22, ['Open Git GUI', GitHelper.OpenGitGui, model.Source]],
-			[23, ['Open Git Bash', GitHelper.OpenGitBash, (model.GitBin, model.Source)]],
+			[22, ['Open Git GUI', Git.OpenGitGui, model.Source]],
+			[23, ['Open Git Bash', Git.OpenGitBash, (model.GitBin, model.Source)]],
 			[24, ['Comment VisionSystem', testRunner.ModifyVisionSystem]],
 			[25, ['Copy Mock License', testRunner.CopyMockLicense]],
-			[26, ['Copy xPort xml', TestRunner.CopyIllumRef, model.ClearHistory]],
+			[26, ['Copy xPort xml', testRunner.CopyIllumRef, model.ClearHistory]],
 			[27, ['Print mmi.h IDs', self.klaRunner.PrintMissingIds]],
 		],[
 			[91, ['Build Source ' + activeSrcs, sourceBuilder.BuildSource]],
@@ -114,8 +118,7 @@ class KlaRunner:
 	def OpenPython(self):
 		fileName = os.path.abspath(self.model.Source + '/libs/testing/my.py')
 		par = 'start python -i ' + fileName
-		print 'Starting my.py'
-		os.system(par)
+		OsOperations.System(par, 'Starting my.py')
 
 	def OpenTestFolder(self):
 		dirPath = os.path.abspath(self.model.Source + '/handler/tests/' + self.model.TestName)
@@ -166,16 +169,19 @@ class AppRunner:
 		handlerPath = '{}/handler/cpp/bin/{}/{}/system'.format(self.model.Source, platform, config)
 		consoleExe = handlerPath + '/console.exe'
 		testTempDir = self.model.Source + '/handler/tests/' + self.model.TestName + '~'
-		par = 'start ' + consoleExe + ' ' + testTempDir
-		print par
-		os.system(par)
 
 		platform = self.GetPlatform(self.model.Platform, True)
 		simulatorExe = '{}/handler/Simulator/ApplicationFiles/bin/{}/{}/CIT100Simulator.exe'
 		simulatorExe = simulatorExe.format(self.model.Source, platform, config)
-		par = 'start ' + simulatorExe + ' ' + testTempDir + ' ' + handlerPath
-		print par
-		os.system(par)
+
+		for file in [consoleExe, testTempDir, simulatorExe]:
+			if not os.path.exists(file):
+				print 'File not found : ' + file
+				OsOperations.Pause()
+				return
+
+		OsOperations.System('start ' + consoleExe + ' ' + testTempDir)
+		OsOperations.System('start {} {} {}'.format(simulatorExe, testTempDir, handlerPath))
 		OsOperations.Pause(doPause and self.model.ClearHistory)
 
 	def StartMMi(self, fromSrc, doPause = True):
@@ -183,15 +189,17 @@ class AppRunner:
 		VMWareRunner.RunSlots(self.model.VMwareWS, self.model.slots)
 
 		mmiPath = self.testRunner.CopyMockLicense(fromSrc, False)
-		TestRunner.CopyIllumRef(False)
+		self.testRunner.CopyIllumRef(False)
 
 		OsOperations.Timeout(8)
 
 		mmiExe = os.path.abspath(mmiPath + '/Mmi.exe')
+		if not os.path.exists(mmiExe):
+			print 'File not found : ' + mmiExe
+			OsOperations.Pause()
+			return
 
-		par = 'start ' + mmiExe
-		print par
-		os.system(par)
+		OsOperations.System('start ' + mmiExe)
 		OsOperations.Pause(doPause and self.model.ClearHistory)
 
 	def StartHandlerMMi(self):
@@ -219,9 +227,7 @@ class AppRunner:
 
 	@classmethod
 	def OpenLocalDif(self, source):
-		par = [ 'TortoiseGitProc.exe' ]
-		par.append('/command:diff')
-		par.append('/path:' + source + '')
+		par = [ 'TortoiseGitProc.exe', '/command:diff', '/path:' + source + '' ]
 		print 'subprocess.Popen : ' + str(par)
 		subprocess.Popen(par)
 		OsOperations.Pause()
@@ -232,8 +238,8 @@ class VMWareRunner:
 		vmRunExe = vMwareWS + "vmrun.exe"
 		vmWareExe = vMwareWS + "vmware.exe"
 		vmxGenericPath = r'C:\\MVS8000\\slot{}\\MVS8000_stage2.vmx'
-
-		output = subprocess.Popen([vmRunExe, '-vp', '1', 'list'], stdout=subprocess.PIPE).communicate()[0]
+		par = [vmRunExe, '-vp', '1', 'list']
+		output = subprocess.Popen(par, stdout=subprocess.PIPE).communicate()[0]
 		runningSlots = []
 		searchPattern = r'C:\\MVS8000\\slot(\d*)\\MVS8000_stage2\.vmx'
 		for line in output.split():
@@ -270,9 +276,11 @@ class TestRunner:
 		OsOperations.Pause(doPause and self.model.ClearHistory)
 		return mmiPath
 
-	@classmethod
 	def CopyIllumRef(self, doPause = False):
-		OsOperations.CopyFile('xPort_IllumReference.xml', 'C:/icos/xPort/')
+		destin = 'C:/icos/xPort/'
+		while not os.path.exists(destin):
+			time.sleep(3)
+		OsOperations.CopyFile(self.model.StartPath + '\\xPort_IllumReference.xml', destin)
 		OsOperations.Pause(doPause)
 
 	def ModifyVisionSystem(self, doPause = True):
@@ -298,7 +306,9 @@ class TestRunner:
 		VMWareRunner.RunSlots(self.model.VMwareWS, self.model.slots)
 		self.ModifyVisionSystem(False)
 
-		sys.path.append(os.path.abspath(self.model.Source + '\\libs\\testing'));
+		cwd = os.getcwd()
+		os.chdir(os.path.abspath(self.model.Source + '\\libs\\testing'))
+		sys.path.append(os.getcwd());
 		import my
 		my.c.startup = startUp
 		my.c.debugvision = self.model.DebugVision
@@ -309,7 +319,7 @@ class TestRunner:
 		my.c.mmiConfigurationsPath = self.model.MMiConfigPath
 		my.c.mmiSetupsPath = self.model.MMiSetupsPath
 
-		threading.Timer(15, self.CopyIllumRef).start()
+		threading.Timer(8, self.CopyIllumRef).start()
 		my.run(self.model.TestName)
 		OsOperations.Pause(self.model.ClearHistory)
 
@@ -421,7 +431,7 @@ class KlaSourceBuilder:
 			sources = [self.model.Sources[inx] for inx in activeSrcs]
 		menuData = []
 		for src in sources:
-			branch = GitHelper.GetBranch(src[0])
+			branch = Git.GetBranch(src[0])
 			if src[0] == self.model.Source:
 				self.model.Branch = branch
 			menuData.append([src[0], branch, src[1], src[2]])
@@ -460,18 +470,18 @@ class KlaSourceBuilder:
 			OsOperations.DeleteAllInTree(src, gitIgnore)
 			with open(src + '/' + gitIgnore, 'w') as f:
 				f.writelines(str.join('\n', excludeDirs))
-			GitHelper.Clean(src, '-fd')
+			Git.Clean(src, '-fd')
 			print 'Reseting files in ' + src
-			GitHelper.ResetHard(src)
+			Git.ResetHard(src)
 			print 'Submodule Update'
-			GitHelper.SubmoduleUpdate(src)
+			Git.SubmoduleUpdate(src)
 			print 'Cleaning completed for ' + src
 		OsOperations.Pause(self.model.ClearHistory)
 
 	def BuildSource(self):
 		buildLoger = BuildLoger(self.model.LogFileName)
 		for source, branch, config, srcPlatform in self.VerifySources('building'):
-			buildLoger.StartSource(source)
+			buildLoger.StartSource(source, branch)
 			for inx,sln in enumerate(self.Solutions):
 				slnFile = os.path.abspath(source + '/' + sln)
 				if not os.path.exists(slnFile):
@@ -503,10 +513,10 @@ class BuildLoger:
 	def __init__(self, fileName):
 		self.fileName = fileName
 
-	def StartSource(self, src):
+	def StartSource(self, src, branch):
 		self.srcStartTime = datetime.now()
 		self.Log('Source : ' + src)
-		self.Log('Branch : ' + GitHelper.GetBranch(src))
+		self.Log('Branch : ' + branch)
 		self.logDataTable = [
 			[ 'Solution', 'Config', 'Platform', 'Succeeded', 'Failed', 'Up To Date', 'Skipped', 'Time Taken' ],
 			['-']
@@ -517,15 +527,12 @@ class BuildLoger:
 		self.Log('Completed building : {} in {}'.format(src, timeDelta))
 		table = PrettyTable().SetSingleLine().ToString(self.logDataTable)
 		print table
-		OsOperations.Append(self.fileName, table)
+		FileOperations.Append(self.fileName, table)
 
 	def StartSolution(self, slnFile, name, config, platform):
 		self.Log('Start building : ' + slnFile)
 		self.slnStartTime = datetime.now()
-		self.logDataRow = []
-		self.logDataRow.append(name)
-		self.logDataRow.append(config)
-		self.logDataRow.append(platform)
+		self.logDataRow = [name, config, platform]
 
 	def EndSolution(self):
 		if len(self.logDataRow) == 3:
@@ -537,7 +544,7 @@ class BuildLoger:
 	def Log(self, message):
 		print message
 		message = datetime.now().strftime('%Y %b %d %H:%M:%S> ') + message
-		OsOperations.Append(self.fileName, message)
+		FileOperations.Append(self.fileName, message)
 
 	def PrintMsg(self, message):
 		if '>----' in message:
@@ -560,22 +567,44 @@ class BuildLoger:
 		t = '{:02}:{:02}:{:02}'.format(s // 3600, s % 3600 // 60, s % 60)
 		return t
 
+class FileOperations:
+	@classmethod
+	def ReadLine(cls, fileName, utf = 'utf-8'):
+		with open(fileName) as f:
+			fileContent = f.read().decode(utf)
+			for line in fileContent.split('\n'):
+				yield line
+
+	@classmethod
+	def Append(self, fileName, message):
+		with open(fileName, 'a') as f:
+			 f.write((message + '\n').encode('utf8'))
+
+	@classmethod
+	def Write(self, fileName, message):
+		with open(fileName, 'w') as f:
+			 f.write((message + '\n').encode('utf8'))
+
 class OsOperations:
 	@classmethod
 	def Cls(self):
 		os.system('cls')
 
 	@classmethod
+	def System(self, params, message = None):
+		if message is None:
+			print 'params : ' + params
+		else:
+			print message
+		os.system(params)
+
+	@classmethod
 	def CopyFile(self, Src, Des):
-		par = 'COPY /Y "' + Src + '" "' + Des + '"'
-		print 'par : ' + par
-		os.system(par)
+		OsOperations.System('COPY /Y "' + Src + '" "' + Des + '"')
 
 	@classmethod
 	def CopyDir(self, Src, Des):
-		par = 'XCOPY /S /Y "' + Src + '" "' + Des + '"'
-		print 'par : ' + par
-		os.system(par)
+		OsOperations.System('XCOPY /S /Y "' + Src + '" "' + Des + '"')
 
 	@classmethod
 	def Pause(self, condition = True):
@@ -628,11 +657,6 @@ class OsOperations:
 	def Call(self, params):
 		print params
 		subprocess.call(params)
-
-	@classmethod
-	def Append(self, fileName, message):
-		with open(fileName, 'a') as f:
-			 f.write((message + '\n').encode('utf8'))
 
 	@classmethod
 	def ContainsInArray(self, str, strArray):
@@ -774,7 +798,7 @@ class PrettyTable:
 				print
 			print item,
 
-class GitHelper:
+class Git:
 	@classmethod
 	def GetBranch(self, source):
 		params = ['git', '-C', source, 'branch']
@@ -809,9 +833,8 @@ class GitHelper:
 
 	@classmethod
 	def OpenGitBash(self, args):
-		print 'Staring Git Bash'
 		par = 'start {}sh.exe --cd={}'.format(*args)
-		os.system(par)
+		OsOperations.System(par, 'Staring Git Bash')
 		OsOperations.Pause()
 
 class StdOutRedirect(object):
@@ -845,9 +868,116 @@ class ArrayOrganizer:
 				newArrArr.append(row)
 		return newArrArr
 
+class NumValDict(dict):
+	def Add(self, key, value):
+		if key in self:
+			self[key] = self[key] + value
+		else:
+			self[key] = value
+
+class TestNumValDict:
+	def __init__(self):
+		self.StrInt()
+
+	def StrInt(self):
+		d = NumValDict()
+		d.Add('hi', 23)
+		d.Add('hi', 5)
+		d.Add('bye', 3)
+		Test.Assert(d, {'bye': 3, 'hi': 28})
+
+class EffortLogger:
+	def __init__(self, model):
+		self.model = model
+		self.LogFileEncode = 'UTF-16'
+		self.DTFormat = self.model.DateFormat + ' %H:%M:%S'
+		self.ColWidth = 80
+		self.MinTime = timedelta(seconds=59)
+
+	def ReadEffortLog(self):
+		logFile = self.model.EffortLogFile
+		dictAppNameToTime = NumValDict()
+		lastDt = None
+		searchPattern = r'^(.*)\$(.*)\$(.*)\$.*$'
+		for line in FileOperations.ReadLine(logFile, self.LogFileEncode):
+			m = re.search(searchPattern, line, re.IGNORECASE)
+			if m:
+				dt = datetime.strptime(m.group(1), self.DTFormat)
+				ts = (dt - lastDt) if lastDt is not None else (dt-dt)
+				txt = self.FormatText(m.group(2), m.group(3))
+				dictAppNameToTime.Add(txt, ts)
+				lastDt = dt
+		data = []
+		for k,v in dictAppNameToTime.items():
+			if v > self.MinTime:
+				data.append([self.Trim(k, self.ColWidth), v])
+		data = sorted(data, key = lambda x : x[1], reverse=True)
+		menuData = [['Application', 'Time Taken'], ['-']] + data
+		table = PrettyTable().SetSingleLine().ToString(menuData)
+		print table
+		FileOperations.Write(logFile + '.txt', table)
+		OsOperations.Pause()
+
+	def FormatText(self, message1, message2):
+		if 'Google Chrome' in message2:
+			return 'Google Chrome'
+		message = message2 if len(message2) > 50 else message1 + '$' + message2
+		message = message.replace('[Administrator]', '')
+		return message.encode('ascii', 'ignore').decode('ascii')
+
+	def Trim(self, message, width):
+		if len(message) > width:
+			return message[:width / 2 - 1] + '...' + message[2 - width / 2:]
+		return message
+
+class TestEffortLogger:
+	def __init__(self):
+		self.TestTrim()
+	def TestTrim(self):
+		Test.Assert(EffortLogger().Trim('India is my country', 10), 'Indi...try')
+		Test.Assert(EffortLogger().Trim('India is my country', 15), 'India ...untry')
+
+class Test:
+	_ok = 0
+	_notOk = 0
+
+	@classmethod
+	def Assert(cls, actual, expected):
+		stack = inspect.stack()
+		className = stack[1][0].f_locals['self'].__class__.__name__
+		methodName = stack[1][0].f_code.co_name
+		message = '{}.{}'.format(className, methodName)
+		if actual == expected:
+			print 'Test OK     : ' + message
+			cls._ok += 1
+		else:
+			print 'Test Not OK : ' + message
+			print 'Expected    : ' + str(expected)
+			print 'Actual      : ' + str(actual)
+			cls._notOk += 1
+
+	@classmethod
+	def PrintResults(cls):
+		print
+		print 'Tests OK     : ' + str(cls._ok)
+		print 'Tests NOT OK : ' + str(cls._notOk)
+		print 'Total Tests  : ' + str(cls._ok + cls._notOk)
+
+class UnitTestsRunner:
+	def RunUnitTests():
+		TestNumValDict()
+		TestEffortLogger()
+
+		Test.PrintResults()
+
+	@classmethod
+	def CanRun(cls):
+		return len(sys.argv) == 2 and sys.argv[1].lower() == 'test'
+
 class Model:
 	def __init__(self):
-		self.fileName = os.path.dirname(os.path.abspath(__file__)) + '\\KlaRunner.ini'
+		self.StartPath = os.path.dirname(os.path.abspath(__file__))
+		self.fileName = self.StartPath + '\\KlaRunner.ini'
 
 		self.Source = ''
 		self.Branch = ''
@@ -869,6 +999,8 @@ class Model:
 		self.VisualStudioRun = _model['VisualStudioRun']
 		self.GitBin = _model['GitBin']
 		self.VMwareWS = _model['VMwareWS']
+		self.EffortLogFile = _model['EffortLogFile']
+		self.DateFormat = _model['DateFormat']
 		self.MMiConfigPath = _model['MMiConfigPath']
 		self.MMiSetupsPath = _model['MMiSetupsPath']
 		self.DebugVision = _model['DebugVision']
@@ -891,6 +1023,8 @@ class Model:
 		_model['VisualStudioRun'] = self.VisualStudioRun
 		_model['GitBin'] = self.GitBin
 		_model['VMwareWS'] = self.VMwareWS
+		_model['EffortLogFile'] = self.EffortLogFile
+		_model['DateFormat'] = self.DateFormat
 		_model['MMiConfigPath'] = self.MMiConfigPath
 		_model['MMiSetupsPath'] = self.MMiSetupsPath
 		_model['DebugVision'] = self.DebugVision
@@ -916,7 +1050,7 @@ class Model:
 			return
 		self.SrcIndex = index
 		self.Source, self.Config, self.Platform = self.Sources[self.SrcIndex]
-		self.Branch = GitHelper.GetBranch(self.Source)
+		self.Branch = Git.GetBranch(self.Source)
 		if writeToFile:
 			self.WriteConfigFile()
 
@@ -941,5 +1075,7 @@ class Model:
 			sources.append(self.Sources[index])
 		return sources
 
-if (__name__ == '__main__'):
+if UnitTestsRunner.CanRun():
+	UnitTestsRunner()
+elif (__name__ == '__main__'):
 	KlaRunner().Start()
