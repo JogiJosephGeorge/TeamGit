@@ -189,7 +189,7 @@ class AppRunner:
 		VMWareRunner.RunSlots(self.model.VMwareWS, self.model.slots)
 
 		mmiPath = self.testRunner.CopyMockLicense(fromSrc, False)
-		self.testRunner.CopyIllumRef(False)
+		self.testRunner.CopyIllumRef()
 
 		OsOperations.Timeout(8)
 
@@ -272,15 +272,17 @@ class TestRunner:
 		licencePath = '{}/mmi/mmi/mmi_stat/integration/code/MockLicenseDll/{}/{}/License.dll'
 		args = (self.model.Source, self.model.Platform, self.model.Config)
 		licenseFile = os.path.abspath(licencePath.format(*args))
-		OsOperations.CopyFile(licenseFile, mmiPath)
+		OsOperations.Copy(licenseFile, mmiPath)
 		OsOperations.Pause(doPause and self.model.ClearHistory)
 		return mmiPath
 
-	def CopyIllumRef(self, doPause = False):
-		destin = 'C:/icos/xPort/'
-		while not os.path.exists(destin):
-			time.sleep(3)
-		OsOperations.CopyFile(self.model.StartPath + '\\xPort_IllumReference.xml', destin)
+	def CopyIllumRef(self, doPause = False, delay = False):
+		src = self.model.StartPath + '\\xPort_IllumReference.xml'
+		des = 'C:/icos/xPort/'
+		if delay:
+			OsOperations.Copy(src, des, 8, 3)
+		else:
+			OsOperations.Copy(src, des)
 		OsOperations.Pause(doPause)
 
 	def ModifyVisionSystem(self, doPause = True):
@@ -319,7 +321,9 @@ class TestRunner:
 		my.c.mmiConfigurationsPath = self.model.MMiConfigPath
 		my.c.mmiSetupsPath = self.model.MMiSetupsPath
 
-		threading.Timer(8, self.CopyIllumRef).start()
+		self.CopyIllumRef(False, True)
+		OsOperations.Copy('D:/MyGit/TeamGit/Src/JAutomate/Profiles', 'C:/icos/Profiles', 8, 3)
+
 		my.run(self.model.TestName)
 		OsOperations.Pause(self.model.ClearHistory)
 
@@ -570,10 +574,12 @@ class BuildLoger:
 class FileOperations:
 	@classmethod
 	def ReadLine(cls, fileName, utf = 'utf-8'):
-		with open(fileName) as f:
-			fileContent = f.read().decode(utf)
-			for line in fileContent.split('\n'):
-				yield line
+		f = open(fileName, 'rb')
+		data = f.read()
+		f.close()
+		lines = data.decode(utf).splitlines()
+		for line in lines:
+			yield line
 
 	@classmethod
 	def Append(self, fileName, message):
@@ -599,12 +605,31 @@ class OsOperations:
 		os.system(params)
 
 	@classmethod
-	def CopyFile(self, Src, Des):
-		OsOperations.System('COPY /Y "' + Src + '" "' + Des + '"')
+	def Copy(cls, src, des, initWait = 0, inter = 0):
+		if initWait == 0 and inter == 0:
+			cls._Copy(src, des, inter)
+		else:
+			print 'Thread starts : initWait {} inter {}'.format(initWait, inter)
+			threading.Timer(initWait, cls._Copy, [src, des, inter]).start()
 
 	@classmethod
-	def CopyDir(self, Src, Des):
-		OsOperations.System('XCOPY /S /Y "' + Src + '" "' + Des + '"')
+	def _Copy(cls, src, des, inter = 0):
+		while not os.path.exists(des):
+			if inter > 0:
+				print 'Destination folder not existing : ' + des
+				time.sleep(inter)
+			else:
+				print 'Wrong input - Destination folder not existing : ' + des
+				return
+		if inter > 0:
+			for i in range(10):
+				print 'Copy {} to {}'.format(src, des)
+		if os.path.isfile(src):
+			OsOperations.System('COPY /Y "' + src + '" "' + des + '"')
+		elif os.path.isdir(src):
+			OsOperations.System('XCOPY /S /Y "' + src + '" "' + des + '"')
+		else:
+			print 'Wrong input - Neither file nor directory : ' + src
 
 	@classmethod
 	def Pause(self, condition = True):
@@ -892,38 +917,68 @@ class EffortLogger:
 		self.LogFileEncode = 'UTF-16'
 		self.DTFormat = self.model.DateFormat + ' %H:%M:%S'
 		self.ColWidth = 80
-		self.MinTime = timedelta(seconds=59)
+		self.MinTime = timedelta(minutes=1)
 
 	def ReadEffortLog(self):
+		yesterday = datetime.now() - timedelta(days=1)
+		self.ReadEffortLogOn(yesterday, 'Yesterday')
+		today = datetime.now()
+		self.ReadEffortLogOn(today, 'Today')
+		OsOperations.Pause()
+
+	def ReadEffortLogOn(self, date, message):
 		logFile = self.model.EffortLogFile
 		dictAppNameToTime = NumValDict()
 		lastDt = None
-		searchPattern = r'^(.*)\$(.*)\$(.*)\$.*$'
+		totalTime = timedelta()
 		for line in FileOperations.ReadLine(logFile, self.LogFileEncode):
-			m = re.search(searchPattern, line, re.IGNORECASE)
-			if m:
-				dt = datetime.strptime(m.group(1), self.DTFormat)
+			lineParts = self.FormatText(line).split('$')
+			if len(lineParts) > 2:
+				dt = datetime.strptime(lineParts[0], self.DTFormat)
+				if not self.IsSameDate(dt, date):
+					continue
 				ts = (dt - lastDt) if lastDt is not None else (dt-dt)
-				txt = self.FormatText(m.group(2), m.group(3))
+				txt = self.PrepareDescription(lineParts[1], lineParts[2])
 				dictAppNameToTime.Add(txt, ts)
 				lastDt = dt
+				totalTime += ts
+			else:
+				print 'Error: ' + line
 		data = []
+		oneMinAppsTime = timedelta()
 		for k,v in dictAppNameToTime.items():
 			if v > self.MinTime:
 				data.append([self.Trim(k, self.ColWidth), v])
+			else:
+				oneMinAppsTime += v
+		data.append(['Other Apps Less Than One Minute', oneMinAppsTime])
 		data = sorted(data, key = lambda x : x[1], reverse=True)
-		menuData = [['Application', 'Time Taken'], ['-']] + data
+		menuData = [['Applications On ' + message, 'Time Taken'], ['-']] + data
+		menuData += [['-'], ['Total Time', totalTime]]
 		table = PrettyTable().SetSingleLine().ToString(menuData)
 		print table
-		FileOperations.Write(logFile + '.txt', table)
-		OsOperations.Pause()
+		#table = datetime.now().strftime('%Y %b %d %H:%M:%S\n') + table
+		#FileOperations.Append(logFile + '.txt', table)
 
-	def FormatText(self, message1, message2):
-		if 'Google Chrome' in message2:
-			return 'Google Chrome'
+	def IsSameDate(self, a, b):
+		return a.day == b.day and a.month == b.month and a.year == b.year
+
+	def FormatText(self, message):
+		return message.encode('ascii', 'ignore').decode('ascii')
+
+	def PrepareDescription(self, message1, message2):
+		groupNames = [
+			'Google Chrome',
+			'Internet Explorer',
+			'explorer.exe',
+			'OUTLOOK',
+		]
+		for name in groupNames:
+			if name in message1 or name in message2:
+				return name
 		message = message2 if len(message2) > 50 else message1 + '$' + message2
 		message = message.replace('[Administrator]', '')
-		return message.encode('ascii', 'ignore').decode('ascii')
+		return message
 
 	def Trim(self, message, width):
 		if len(message) > width:
@@ -932,11 +987,16 @@ class EffortLogger:
 
 class TestEffortLogger:
 	def __init__(self):
+		model = Model()
+		model.DateFormat = '%d-%b-%Y'
+		self.EL = EffortLogger(model)
 		self.TestTrim()
+		self.PrepareDescription()
 	def TestTrim(self):
-		Test.Assert(EffortLogger().Trim('India is my country', 10), 'Indi...try')
-		Test.Assert(EffortLogger().Trim('India is my country', 15), 'India ...untry')
-
+		Test.Assert(self.EL.Trim('India is my country', 10), 'Indi...try')
+		Test.Assert(self.EL.Trim('India is my country', 15), 'India ...untry')
+	def PrepareDescription(self):
+		Test.Assert(self.EL.PrepareDescription('explorer.exe', 'ICOS SecsGem Interface'), 'explorer.exe')
 class Test:
 	_ok = 0
 	_notOk = 0
@@ -964,7 +1024,7 @@ class Test:
 		print 'Total Tests  : ' + str(cls._ok + cls._notOk)
 
 class UnitTestsRunner:
-	def RunUnitTests():
+	def Run(self):
 		TestNumValDict()
 		TestEffortLogger()
 
@@ -1076,6 +1136,6 @@ class Model:
 		return sources
 
 if UnitTestsRunner.CanRun():
-	UnitTestsRunner()
+	UnitTestsRunner().Run()
 elif (__name__ == '__main__'):
 	KlaRunner().Start()
