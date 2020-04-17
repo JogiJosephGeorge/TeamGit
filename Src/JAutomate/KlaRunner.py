@@ -16,10 +16,10 @@ import shutil
 class Menu:
 	def __init__(self, klaRunner, model):
 		self.klaRunner = klaRunner
-		self.testRunner = TestRunner(model)
-		self.settings = Settings(model)
+		self.testRunner = AutoTestRunner(model)
+		self.settings = Settings(model, klaRunner)
 		self.appRunner = AppRunner(model, self.testRunner)
-		self.klaSourceBuilder = KlaSourceBuilder(model)
+		self.klaSourceBuilder = KlaSourceBuilder(model, klaRunner)
 
 	def PrepareMainMenu(self):
 		model = self.klaRunner.model
@@ -29,7 +29,7 @@ class Menu:
 			['Branch', seperator, model.Branch, ' '*5, 'Platform', seperator, model.Platform],
 			['Test', seperator, model.TestName, ' '*5, 'Copy MMI to Icos', seperator, model.CopyMmi]
 		]
-		PrettyTable().SetNoBorder('').PrintTable(menuData)
+		PrettyTable(TableFormatFactory().SetNoBorder('')).PrintTable(menuData)
 
 		testRunner = self.testRunner
 		sourceBuilder = self.klaSourceBuilder
@@ -42,10 +42,10 @@ class Menu:
 			[1, ['Open Python', self.klaRunner.OpenPython]],
 			[2, ['Run test' + autoTest, testRunner.RunAutoTest, False]],
 			[3, ['Start test' + autoTest, testRunner.RunAutoTest, True]],
-			[4, ['Run Handler and MMi', self.appRunner.StartHandlerMMi]],
-			[5, ['Run Handler alone', self.appRunner.StartHandler]],
-			[6, ['Run MMi from Source', self.appRunner.StartMMi, True]],
-			[7, ['Run MMi from C:Icos', self.appRunner.StartMMi, False]],
+			[4, ['Run Handler and MMi', self.appRunner.RunHandlerMMi]],
+			[5, ['Run Handler alone', self.appRunner.RunHandler]],
+			[6, ['Run MMi from Source', self.appRunner.RunMMi, True]],
+			[7, ['Run MMi from C:Icos', self.appRunner.RunMMi, False]],
 			[8, ['Effort Log', effortLogger.ReadEffortLog]]
 		],[
 			[10, ['Open CIT100', sourceBuilder.OpenSolution, 0]],
@@ -81,7 +81,7 @@ class Menu:
 
 	def ReadUserInput(self):
 		menuData = self.PrepareMainMenu()
-		PrettyTable().SetDoubleLineBorder().PrintTable(menuData)
+		PrettyTable(TableFormatFactory().SetDoubleLineBorder()).PrintTable(menuData)
 		userIn = OsOperations.InputNumber('Type the number then press ENTER: ')
 		for row in menuData:
 			for i in range(1, len(row)):
@@ -96,7 +96,7 @@ class KlaRunner:
 		self.model.ReadConfigFile()
 		self.menu = Menu(self, self.model)
 
-	def Start(self):
+	def Run(self):
 		if not ctypes.windll.shell32.IsUserAnAdmin():
 			print 'Please run this application with Administrator privilates'
 			OsOperations.Pause()
@@ -150,6 +150,28 @@ class KlaRunner:
 		print 
 		OsOperations.Pause(self.model.ClearHistory)
 
+	def GetSourceInfo(self, activeSrcs):
+		heading = ['Source', 'Branch', 'Config', 'Platform']
+		if activeSrcs == None:
+			sources = list(self.model.Sources)
+		elif len(activeSrcs) == 0:
+			sources = [self.model.Sources[self.model.SrcIndex]]
+		else:
+			sources = [self.model.Sources[inx] for inx in activeSrcs]
+		menuData = []
+		for src in sources:
+			branch = Git.GetBranch(src[0])
+			if src[0] == self.model.Source:
+				self.model.Branch = branch
+			menuData.append([src[0], branch, src[1], src[2]])
+		return (heading, menuData)
+
+	def PrintBranches(self, activeSrcs = None):
+		heading, data = self.GetSourceInfo(activeSrcs)
+		menuData = [ heading, ['-'] ] + data
+		PrettyTable(TableFormatFactory().SetSingleLine()).PrintTable(menuData)
+		return data
+
 class AppRunner:
 	def __init__(self, model, testRunner):
 		self.model = model
@@ -161,7 +183,7 @@ class AppRunner:
 			platform = 'x86'
 		return platform
 
-	def StartHandler(self, doPause = True):
+	def RunHandler(self, doPause = True):
 		self.StopTasks(False)
 
 		config = self.model.Config
@@ -184,7 +206,7 @@ class AppRunner:
 		OsOperations.System('start {} {} {}'.format(simulatorExe, testTempDir, handlerPath))
 		OsOperations.Pause(doPause and self.model.ClearHistory)
 
-	def StartMMi(self, fromSrc, doPause = True):
+	def RunMMi(self, fromSrc, doPause = True):
 		self.StopTask('MMi.exe')
 		VMWareRunner.RunSlots(self.model.VMwareWS, self.model.slots)
 
@@ -202,9 +224,9 @@ class AppRunner:
 		OsOperations.System('start ' + mmiExe)
 		OsOperations.Pause(doPause and self.model.ClearHistory)
 
-	def StartHandlerMMi(self):
-		self.StartHandler(False)
-		self.StartMMi(True, False)
+	def RunHandlerMMi(self):
+		self.RunHandler(False)
+		self.RunMMi(True, False)
 		OsOperations.Pause(self.model.ClearHistory)
 
 	@classmethod
@@ -259,7 +281,7 @@ class VMWareRunner:
 				print 'Slot : ' + str(slot) + ' started.'
 		print 'Slots refreshed : ' + str(slots)
 
-class TestRunner:
+class AutoTestRunner:
 	def __init__(self, model):
 		self.model = model
 
@@ -272,7 +294,7 @@ class TestRunner:
 		licencePath = '{}/mmi/mmi/mmi_stat/integration/code/MockLicenseDll/{}/{}/License.dll'
 		args = (self.model.Source, self.model.Platform, self.model.Config)
 		licenseFile = os.path.abspath(licencePath.format(*args))
-		OsOperations.Copy(licenseFile, mmiPath)
+		FileOperations.Copy(licenseFile, mmiPath)
 		OsOperations.Pause(doPause and self.model.ClearHistory)
 		return mmiPath
 
@@ -280,9 +302,9 @@ class TestRunner:
 		src = self.model.StartPath + '\\xPort_IllumReference.xml'
 		des = 'C:/icos/xPort/'
 		if delay:
-			OsOperations.Copy(src, des, 8, 3)
+			FileOperations.Copy(src, des, 8, 3)
 		else:
-			OsOperations.Copy(src, des)
+			FileOperations.Copy(src, des)
 		OsOperations.Pause(doPause)
 
 	def ModifyVisionSystem(self, doPause = True):
@@ -322,7 +344,7 @@ class TestRunner:
 		my.c.mmiSetupsPath = self.model.MMiSetupsPath
 
 		self.CopyIllumRef(False, True)
-		OsOperations.Copy('D:/MyGit/TeamGit/Src/JAutomate/Profiles', 'C:/icos/Profiles', 8, 3)
+		FileOperations.Copy('D:/MyGit/TeamGit/Src/JAutomate/Profiles', 'C:/icos/Profiles', 8, 3)
 
 		my.run(self.model.TestName)
 		OsOperations.Pause(self.model.ClearHistory)
@@ -345,7 +367,7 @@ class TestRunner:
 	@classmethod
 	def UpdateLibsTestingPath(self, source):
 		libsTesting = '/libs/testing'
-		index = OsOperations.ContainsInArray(libsTesting, sys.path)
+		index = ArrayOrganizer.ContainsInArray(libsTesting, sys.path)
 		newPath = source + libsTesting
 		if index >= 0:
 			print 'Old path ({}) has been replaced with new path ({}).'.format(sys.path[index], newPath)
@@ -355,8 +377,9 @@ class TestRunner:
 			sys.path.append(newPath)
 
 class Settings:
-	def __init__(self, model):
+	def __init__(self, model, klaRunner):
 		self.model = model
+		self.klaRunner = klaRunner
 
 	def ChangeTest(self):
 		index = self.SelectOption1('Test Name', self.model.Tests, self.model.TestIndex)
@@ -365,11 +388,11 @@ class Settings:
 
 	def AddTest(self):
 		number = OsOperations.InputNumber('Type the number of test then press ENTER: ')
-		testName = TestRunner.GetTestName(self.model.Source, number)
+		testName = AutoTestRunner.GetTestName(self.model.Source, number)
 		if testName == '':
 			print 'There is no test exists for the number : ' + str(number)
 			return
-		if OsOperations.ContainsInArray(testName, self.model.Tests) >= 0:
+		if ArrayOrganizer.ContainsInArray(testName, self.model.Tests) >= 0:
 			print 'The given test ({}) already exists'.format(testName)
 			return
 		slots = raw_input('Enter slots : ')
@@ -379,7 +402,7 @@ class Settings:
 		OsOperations.Pause(self.model.ClearHistory)
 
 	def ChangeSource(self):
-		heading, data = KlaSourceBuilder(self.model).GetSourceInfo(None)
+		heading, data = self.klaRunner.GetSourceInfo(None)
 		index = self.SelectOption(heading, data, self.model.SrcIndex)
 		self.model.UpdateSource(index, True)
 		OsOperations.Pause(self.model.ClearHistory)
@@ -405,7 +428,7 @@ class Settings:
 		for i,line in enumerate(arrOfArr):
 			line[0] = ('  ', '* ')[i == currentIndex] + line[0]
 			data.append([i + 1] + line)
-		PrettyTable().SetSingleLine().PrintTable(data)
+		PrettyTable(TableFormatFactory().SetSingleLine()).PrintTable(data)
 		number = OsOperations.InputNumber('Type the number then press ENTER: ')
 		if number > 0 and number <= len(arrOfArr):
 			return number - 1
@@ -414,8 +437,9 @@ class Settings:
 		return -1
 
 class KlaSourceBuilder:
-	def __init__(self, model):
+	def __init__(self, model, klaRunner):
 		self.model = model
+		self.klaRunner = klaRunner
 		self.Solutions = [
 			'/handler/cpp/CIT100.sln',
 			'/handler/Simulator/CIT100Simulator/CIT100Simulator.sln',
@@ -425,32 +449,10 @@ class KlaSourceBuilder:
 		]
 		self.SlnNames = ['CIT100', 'Simulator', 'MMi', 'Mock', 'Converters']
 
-	def GetSourceInfo(self, activeSrcs):
-		heading = ['Source', 'Branch', 'Config', 'Platform']
-		if activeSrcs == None:
-			sources = list(self.model.Sources)
-		elif len(activeSrcs) == 0:
-			sources = [self.model.Sources[self.model.SrcIndex]]
-		else:
-			sources = [self.model.Sources[inx] for inx in activeSrcs]
-		menuData = []
-		for src in sources:
-			branch = Git.GetBranch(src[0])
-			if src[0] == self.model.Source:
-				self.model.Branch = branch
-			menuData.append([src[0], branch, src[1], src[2]])
-		return (heading, menuData)
-
-	def PrintBranches(self, activeSrcs = None):
-		heading, data = self.GetSourceInfo(activeSrcs)
-		menuData = [ heading, ['-'] ] + data
-		PrettyTable().SetSingleLine().PrintTable(menuData)
-		return data
-
 	def VerifySources(self, message):
 		isAre = (' is', 's are')[len(self.model.ActiveSrcs) > 1]
 		print 'The following source{} ready for {}.'.format(isAre, message)
-		sources = self.PrintBranches(self.model.ActiveSrcs)
+		sources = self.klaRunner.PrintBranches(self.model.ActiveSrcs)
 		question = 'Please type "Yes" to continue {} : '.format(message)
 		if raw_input(question) == 'Yes':
 			print 'Started {}...'.format(message)
@@ -471,7 +473,7 @@ class KlaSourceBuilder:
 		for srcSet in self.VerifySources('cleaning'):
 			src = srcSet[0]
 			print 'Cleaning files in ' + src
-			OsOperations.DeleteAllInTree(src, gitIgnore)
+			FileOperations.DeleteAllInTree(src, gitIgnore)
 			with open(src + '/' + gitIgnore, 'w') as f:
 				f.writelines(str.join('\n', excludeDirs))
 			Git.Clean(src, '-fd')
@@ -529,7 +531,7 @@ class BuildLoger:
 	def EndSource(self, src):
 		timeDelta = self.TimeDeltaToStr(datetime.now() - self.srcStartTime)
 		self.Log('Completed building : {} in {}'.format(src, timeDelta))
-		table = PrettyTable().SetSingleLine().ToString(self.logDataTable)
+		table = PrettyTable(TableFormatFactory().SetSingleLine()).ToString(self.logDataTable)
 		print table
 		FileOperations.Append(self.fileName, table)
 
@@ -591,18 +593,11 @@ class FileOperations:
 		with open(fileName, 'w') as f:
 			 f.write((message + '\n').encode('utf8'))
 
-class OsOperations:
 	@classmethod
-	def Cls(self):
-		os.system('cls')
-
-	@classmethod
-	def System(self, params, message = None):
-		if message is None:
-			print 'params : ' + params
-		else:
-			print message
-		os.system(params)
+	def DeleteAllInTree(self, dirName, fileName):
+		for root, dirs, files in os.walk(dirName):
+			if fileName in files:
+				os.remove('{}/{}'.format(root, fileName))
 
 	@classmethod
 	def Copy(cls, src, des, initWait = 0, inter = 0):
@@ -631,10 +626,24 @@ class OsOperations:
 		else:
 			print 'Wrong input - Neither file nor directory : ' + src
 
+class OsOperations:
+	@classmethod
+	def Cls(self):
+		os.system('cls')
+
+	@classmethod
+	def System(self, params, message = None):
+		if message is None:
+			print 'params : ' + params
+		else:
+			print message
+		os.system(params)
+
 	@classmethod
 	def Pause(self, condition = True):
 		if condition:
-			raw_input('Press ENTER key to continue . . .')
+			#raw_input('Press ENTER key to continue . . .')
+			os.system('PAUSE')
 
 	@classmethod
 	def GetExeInstanceCount(self, exeName):
@@ -651,8 +660,7 @@ class OsOperations:
 
 	@classmethod
 	def Timeout(self, seconds):
-		par = 'timeout ' + str(seconds)
-		os.system(par)
+		os.system('timeout ' + str(seconds))
 
 	@classmethod
 	def InputNumber(self, message):
@@ -683,83 +691,55 @@ class OsOperations:
 		print params
 		subprocess.call(params)
 
-	@classmethod
-	def ContainsInArray(self, str, strArray):
-		for inx, item in enumerate(strArray):
-			if str in item:
-				return inx
-		return -1
+class TableLineRow:
+	def __init__(self, left, mid, fill, right):
+		self.chLef = left
+		self.chMid = mid
+		self.chRig = right
+		self.chFil = fill
 
-	@classmethod
-	def DeleteAllInTree(self, dirName, fileName):
-		for root, dirs, files in os.walk(dirName):
-			if fileName in files:
-				os.remove('{}/{}'.format(root, fileName))
+	def __iter__(self):
+		yield self.chLef
+		yield self.chMid
+		yield self.chRig
+		yield self.chFil
 
-class PrettyTable:
+class TableFormatFactory:
 	def SetSingleLine(self):
-		self.chTopLef = u'┌'
-		self.chTopMid = u'┬'
-		self.chTopRig = u'┐'
-		self.chMidLef = u'├'
-		self.chMidMid = u'┼'
-		self.chMidRig = u'┤'
-		self.chBotLef = u'└'
-		self.chBotMid = u'┴'
-		self.chBotRig = u'┘'
-		self.chVerLef = self.chVerMid = self.chVerRig = u'│'
-		self.chHorLef = self.chHorMid = self.chHorRig = u'─'
+		self.Top = TableLineRow(u'┌', u'┬', u'─', u'┐')
+		self.Mid = TableLineRow(u'├', u'┼', u'─', u'┤')
+		self.Emt = TableLineRow(u'│', u'│', u' ', u'│')
+		self.Ver = TableLineRow(u'│', u'│', u' ', u'│')
+		self.Bot = TableLineRow(u'└', u'┴', u'─', u'┘')
 		return self
 
 	def SetDoubleLineBorder(self):
-		self.chTopLef = u'╔'
-		self.chTopMid = u'╤'
-		self.chTopRig = u'╗'
-		self.chMidLef = u'╟'
-		self.chMidMid = u'┼'
-		self.chMidRig = u'╢'
-		self.chBotLef = u'╚'
-		self.chBotMid = u'╧'
-		self.chBotRig = u'╝'
-		self.chVerLef = u'║'
-		self.chVerMid = u'│'
-		self.chVerRig = u'║'
-		self.chHorLef = u'═'
-		self.chHorMid = u'─'
-		self.chHorRig = u'═'
+		self.Top = TableLineRow(u'╔', u'╤', u'═', u'╗')
+		self.Mid = TableLineRow(u'╟', u'┼', u'─', u'╢')
+		self.Emt = TableLineRow(u'║', u'│', u' ', u'║')
+		self.Ver = TableLineRow(u'║', u'│', u' ', u'║')
+		self.Bot = TableLineRow(u'╚', u'╧', u'═', u'╝')
 		return self
 
 	def SetDoubleLine(self):
-		self.chTopLef = u'╔'
-		self.chTopMid = u'╦'
-		self.chTopRig = u'╗'
-		self.chMidLef = u'╠'
-		self.chMidMid = u'╬'
-		self.chMidRig = u'╣'
-		self.chBotLef = u'╚'
-		self.chBotMid = u'╩'
-		self.chBotRig = u'╝'
-		self.chVerLef = self.chVerMid = self.chVerRig = u'║'
-		self.chHorLef = self.chHorMid = self.chHorRig = u'═'
+		self.Top = TableLineRow(u'╔', u'╦', u'═', u'╗')
+		self.Mid = TableLineRow(u'╠', u'╬', u'═', u'╣')
+		self.Emt = TableLineRow(u'║', u'║', u' ', u'║')
+		self.Ver = TableLineRow(u'║', u'║', u' ', u'║')
+		self.Bot = TableLineRow(u'╚', u'╩', u'═', u'╝')
 		return self
 
-	def SetNoBorder(self, seperator):
-		self.chTopLef = ''
-		self.chTopMid = ''
-		self.chTopRig = ''
-		self.chMidLef = ''
-		self.chMidMid = ''
-		self.chMidRig = ''
-		self.chBotLef = ''
-		self.chBotMid = ''
-		self.chBotRig = ''
-		self.chVerLef = ''
-		self.chVerMid = seperator
-		self.chVerRig = ''
-		self.chHorLef = ''
-		self.chHorMid = ''
-		self.chHorRig = ''
+	def SetNoBorder(self, sep):
+		self.Top = TableLineRow(u'', u'', u'', u'')
+		self.Mid = TableLineRow(u'', u'', u'', u'')
+		self.Emt = TableLineRow(u'', u'', u'', u'')
+		self.Ver = TableLineRow(u'', sep, u'', u'')
+		self.Bot = TableLineRow(u'', u'', u'', u'')
 		return self
+
+class PrettyTable:
+	def __init__(self, format):
+		self.Format = format
 
 	def PrintTable(self, data):
 		print self.ToString(data),
@@ -784,29 +764,31 @@ class PrettyTable:
 
 	def ToString(self, data):
 		colCnt, colWidths = self.CalculateColWidths(data)
-		outMessage = self.PrintLine(colWidths, self.chTopLef, self.chTopMid, self.chTopRig, self.chHorLef)
+		outMessage = self.PrintLine(colWidths, self.Format.Top)
+		[left, mid, right, fill] = list(self.Format.Ver)
 		for line in data:
 			if len(line) == 0:
-				outMessage += self.PrintLine(colWidths, self.chVerLef, self.chVerMid, self.chVerRig, ' ')
+				outMessage += self.PrintLine(colWidths, self.Format.Emt)
 			elif len(line) == 1 and line[0] == '-':
-				outMessage += self.PrintLine(colWidths, self.chMidLef, self.chMidMid, self.chMidRig, self.chHorMid)
+				outMessage += self.PrintLine(colWidths, self.Format.Mid)
 			else:
-				outMessage += self.chVerLef
+				outMessage += left
 				for inx,colWidth in enumerate(colWidths):
 					cell = line[inx] if len(line) > inx else ''
 					alignMode = ('<', '^')[isinstance(cell, int) and not isinstance(cell, bool)]
 					if isinstance(cell, list) and len(cell) > 0:
 						cell = cell[0]
 					outMessage += self.GetAligned(str(cell), colWidths[inx], alignMode)
-					outMessage += (self.chVerMid, self.chVerRig)[inx == colCnt - 1]
+					outMessage += (mid, right)[inx == colCnt - 1]
 				outMessage += '\n'
-		outMessage += self.PrintLine(colWidths, self.chBotLef, self.chBotMid, self.chBotRig, self.chHorRig)
+		outMessage += self.PrintLine(colWidths, self.Format.Bot)
 		return outMessage
 
 	def GetAligned(self, message, width, mode):
 		return '{{:{}{}}}'.format(mode, width).format(message)
 
-	def PrintLine(self, colWidths, left, mid, right, fill):
+	def PrintLine(self, colWidths, formatRow):
+		[left, mid, right, fill] = list(formatRow)
 		colCnt = len(colWidths)
 		getCell = lambda : fill * colWidth + (mid, right)[colCnt - 1 == inx]
 		line = left + ''.join([getCell() for inx,colWidth in enumerate(colWidths)])
@@ -822,6 +804,71 @@ class PrettyTable:
 			if inx % colCnt == 0:
 				print
 			print item,
+
+class TestPrettyTable:
+	def __init__(self):
+		self.TableLineRowToSet()
+		self.SingleLine()
+		self.DoubleLineBorder()
+		self.DoubleLine()
+		self.NoBorder()
+
+	def TableLineRowToSet(self):
+		pass
+
+	def SingleLine(self):
+		data = [['ColA', 'Col B', 'Col C'], ['-'], ['KLA', 2, True], [], ['ICOS', 12345, False]]
+		expected = u'''
+┌────┬─────┬─────┐
+│ColA│Col B│Col C│
+├────┼─────┼─────┤
+│KLA │  2  │True │
+│    │     │     │
+│ICOS│12345│False│
+└────┴─────┴─────┘
+'''[1:]
+		actual = PrettyTable(TableFormatFactory().SetSingleLine()).ToString(data)
+		#print actual
+		Test.AssertMultiLines(actual, expected)
+
+	def DoubleLineBorder(self):
+		data = [['ColA', 'Col B', 'Col C'], ['-'], ['KLA', 2, True], ['ICOS', 12345, False]]
+		expected = u'''
+╔════╤═════╤═════╗
+║ColA│Col B│Col C║
+╟────┼─────┼─────╢
+║KLA │  2  │True ║
+║ICOS│12345│False║
+╚════╧═════╧═════╝
+'''[1:]
+		actual = PrettyTable(TableFormatFactory().SetDoubleLineBorder()).ToString(data)
+		#print actual
+		Test.AssertMultiLines(actual, expected)
+
+	def DoubleLine(self):
+		data = [['ColA', 'Col B', 'Col C'], ['-'], ['KLA', 2, True], ['ICOS', 12345, False]]
+		expected = u'''
+╔════╦═════╦═════╗
+║ColA║Col B║Col C║
+╠════╬═════╬═════╣
+║KLA ║  2  ║True ║
+║ICOS║12345║False║
+╚════╩═════╩═════╝
+'''[1:]
+		actual = PrettyTable(TableFormatFactory().SetDoubleLine()).ToString(data)
+		#print actual
+		Test.AssertMultiLines(actual, expected)
+
+	def NoBorder(self):
+		data = [['ColA', 'Col B', 'Col C'], ['-'], ['KLA', 2, True], ['ICOS', 12345, False]]
+		expected = u'''
+ColA,Col B,Col C
+KLA ,  2  ,True 
+ICOS,12345,False
+'''[1:]
+		actual = PrettyTable(TableFormatFactory().SetNoBorder(',')).ToString(data)
+		#print actual
+		Test.AssertMultiLines(actual, expected)
 
 class Git:
 	@classmethod
@@ -893,6 +940,13 @@ class ArrayOrganizer:
 				newArrArr.append(row)
 		return newArrArr
 
+	@classmethod
+	def ContainsInArray(self, str, strArray):
+		for inx, item in enumerate(strArray):
+			if str in item:
+				return inx
+		return -1
+
 class NumValDict(dict):
 	def Add(self, key, value):
 		if key in self:
@@ -955,7 +1009,7 @@ class EffortLogger:
 		data = sorted(data, key = lambda x : x[1], reverse=True)
 		menuData = [['Applications On ' + message, 'Time Taken'], ['-']] + data
 		menuData += [['-'], ['Total Time', totalTime]]
-		table = PrettyTable().SetSingleLine().ToString(menuData)
+		table = PrettyTable(TableFormatFactory().SetSingleLine()).ToString(menuData)
 		print table
 		#table = datetime.now().strftime('%Y %b %d %H:%M:%S\n') + table
 		#FileOperations.Append(logFile + '.txt', table)
@@ -997,16 +1051,31 @@ class TestEffortLogger:
 		Test.Assert(self.EL.Trim('India is my country', 15), 'India ...untry')
 	def PrepareDescription(self):
 		Test.Assert(self.EL.PrepareDescription('explorer.exe', 'ICOS SecsGem Interface'), 'explorer.exe')
+
 class Test:
 	_ok = 0
 	_notOk = 0
 
 	@classmethod
-	def Assert(cls, actual, expected):
-		stack = inspect.stack()
-		className = stack[1][0].f_locals['self'].__class__.__name__
-		methodName = stack[1][0].f_code.co_name
-		message = '{}.{}'.format(className, methodName)
+	def AssertMultiLines(cls, actual, expected):
+		isEqual = True
+		clsName, funName = cls._GetClassMethod()
+		for lineNum,(act,exp) in enumerate(itertools.izip(actual.splitlines(), expected.splitlines()), 1):
+			if act != exp:
+				message = '{}.{} Line # {}'.format(clsName, funName, lineNum)
+				cls._Print(act, exp, message)
+				return
+		message = '{}.{}'.format(clsName, funName)
+		cls._Print(True, True, message)
+
+	@classmethod
+	def Assert(cls, actual, expected, message = ''):
+		clsName, funName = cls._GetClassMethod()
+		message = '{}.{} {}'.format(clsName, funName, message)
+		cls._Print(actual, expected, message)
+
+	@classmethod
+	def _Print(cls, actual, expected, message):
 		if actual == expected:
 			print 'Test OK     : ' + message
 			cls._ok += 1
@@ -1015,6 +1084,13 @@ class Test:
 			print 'Expected    : ' + str(expected)
 			print 'Actual      : ' + str(actual)
 			cls._notOk += 1
+
+	@classmethod
+	def _GetClassMethod(cls):
+		stack = inspect.stack()
+		clsName = stack[2][0].f_locals['self'].__class__.__name__
+		funName = stack[2][0].f_code.co_name
+		return (clsName, funName)
 
 	@classmethod
 	def PrintResults(cls):
@@ -1027,12 +1103,25 @@ class UnitTestsRunner:
 	def Run(self):
 		TestNumValDict()
 		TestEffortLogger()
+		TestPrettyTable()
 
 		Test.PrintResults()
 
 	@classmethod
 	def CanRun(cls):
 		return len(sys.argv) == 2 and sys.argv[1].lower() == 'test'
+
+class ConfigEncoder:
+	@classmethod
+	def DecodeSource(cls, srcArr):
+		source = srcArr[0]
+		config = ('Debug', 'Release')[srcArr[1][0] == 'R']
+		platform = ('Win32', 'x64')[srcArr[1][1:] == '64']
+		return (source, config, platform)
+
+	@classmethod
+	def EncodeSource(cls, srcSet):
+		return [srcSet[0], srcSet[1][0] + srcSet[2][-2:]]
 
 class Model:
 	def __init__(self):
@@ -1050,7 +1139,7 @@ class Model:
 		with open(self.fileName) as f:
 			_model = json.load(f)
 
-		self.Sources = [self.DecodeSource(item) for item in _model['Sources']]
+		self.Sources = [ConfigEncoder.DecodeSource(item) for item in _model['Sources']]
 		self.SrcIndex = _model['SrcIndex']
 		self.ActiveSrcs = _model['ActiveSrcs']
 		self.Tests = _model['Tests']
@@ -1074,7 +1163,7 @@ class Model:
 
 	def WriteConfigFile(self):
 		_model = OrderedDict()
-		_model['Sources'] = [self.EncodeSource(item) for item in self.Sources]
+		_model['Sources'] = [ConfigEncoder.EncodeSource(item) for item in self.Sources]
 		_model['SrcIndex'] = self.SrcIndex
 		_model['ActiveSrcs'] = self.ActiveSrcs
 		_model['Tests'] = self.Tests
@@ -1095,15 +1184,6 @@ class Model:
 
 		with open(self.fileName, 'w') as f:
 			json.dump(_model, f, indent=3)
-
-	def DecodeSource(self, srcArr):
-		source = srcArr[0]
-		config = ('Debug', 'Release')[srcArr[1][0] == 'R']
-		platform = ('Win32', 'x64')[srcArr[1][1:] == '64']
-		return (source, config, platform)
-
-	def EncodeSource(self, srcSet):
-		return [srcSet[0], srcSet[1][0] + srcSet[2][-2:]]
 
 	def UpdateSource(self, index, writeToFile):
 		if index < 0 or index >= len(self.Sources):
@@ -1135,7 +1215,10 @@ class Model:
 			sources.append(self.Sources[index])
 		return sources
 
-if UnitTestsRunner.CanRun():
-	UnitTestsRunner().Run()
-elif (__name__ == '__main__'):
-	KlaRunner().Start()
+def main():
+	if UnitTestsRunner.CanRun():
+		UnitTestsRunner().Run()
+	elif (__name__ == '__main__'):
+		KlaRunner().Run()
+
+main()
