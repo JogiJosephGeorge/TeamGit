@@ -2,6 +2,7 @@
 from collections import OrderedDict
 import ctypes
 from datetime import datetime, timedelta
+from functools import partial
 import time
 import inspect
 import itertools
@@ -12,6 +13,297 @@ import re
 import subprocess
 import sys
 import shutil
+import threading
+import Tkinter as tk
+import ttk
+
+class UIFactory:
+	@classmethod
+	def AddButton(cls, parent, text, r, c, cmd, arg, width = 0):
+		if arg is None:
+			action = cmd
+		else:
+			action = lambda: cmd(arg)
+		but = tk.Button(parent, text = text, command=action)
+		if width > 0:
+			but['width'] = width
+		but.grid(row=r, column=c, padx=5, pady=5)
+		but.config(activebackground='red')
+		return but
+
+	@classmethod
+	def AddLabel(cls, parent, text, r, c):
+		labelVar = tk.StringVar()
+		labelVar.set(text)
+		label = tk.Label(parent, textvariable=labelVar)
+		label.grid(row=r, column=c, sticky='w')
+		return (label, labelVar)
+
+	@classmethod
+	def AddCombo(cls, parent, values, inx, r, c, cmd, width = 0):
+		var = tk.StringVar()
+		combo = ttk.Combobox(parent, textvariable=var)
+		#combo = ttk.Combobox(parent)
+		combo['state'] = 'readonly'
+		combo['values'] = values
+		if width > 0:
+			combo['width'] = width
+		combo.current(inx)
+		combo.grid(row=r, column=c)
+		combo.bind("<<ComboboxSelected>>", cmd)
+		return (combo,var)
+		#return combo
+
+	@classmethod
+	def AddCheckBox(cls, parent, defVal, r, c, cmd, arg = None):
+		chkValue = tk.BooleanVar()
+		chkValue.set(defVal)
+		if arg is None:
+			action = cmd
+		else:
+			action = lambda: cmd(arg)
+		chkBox = tk.Checkbutton(parent, var=chkValue, command=action)
+		chkBox.grid(row=r, column=c, sticky='w')
+		return chkValue
+
+	@classmethod
+	def AddFrame(cls, parent, r, c, px = 0, py = 0):
+		frame = ttk.Frame(parent)
+		frame.grid(row=r, column=c, sticky='w', padx=px, pady=py)
+		return frame
+
+class UI:
+	def __init__(self):
+		self.model = Model()
+		self.model.ReadConfigFile()
+		OsOperations.RunFromUI = True
+
+	def Run(self):
+		self.window = tk.Tk()
+		self.window.title('KLA Application Runner')
+		iconPath = self.model.StartPath + r'\Plus.ico'
+		if os.path.exists(iconPath):
+			self.window.iconbitmap(iconPath)
+		#self.window.geometry('750x350')
+		self.window.protocol("WM_DELETE_WINDOW", self.OnCloseWindow)
+		UIHeader(self.window, 0, 0, self.model)
+		UIMainMenu(self.window, 1, 0, self.model)
+		self.window.mainloop()
+
+	def OnCloseWindow(self):
+		self.model.WriteConfigFile()
+		self.window.destroy()
+
+class UIHeader:
+	def __init__(self, parent, r, c, model):
+		self.model = model
+		frame = UIFactory.AddFrame(parent, r, c, 20, 20)
+		self.CreateUI(frame)
+
+	def CreateUI(self, parent):
+		self.AddSource(parent, 0, 0)
+		self.AddConfig(parent, 0, 2)
+		self.AddAttachMmi(parent, 0, 4)
+
+		self.AddBranch(parent, 1, 0)
+		self.AddPlatform(parent, 1, 2)
+		self.AddCopyMmi(parent, 1, 4)
+
+		self.AddTest(parent, 2, 0)
+
+		self.AddSlots(parent, 3, 0)
+
+	def AddSource(self, parent, r, c):
+		UIFactory.AddLabel(parent, 'Source', r, c)
+		srcs = [src[0] for src in self.model.Sources]
+		self.cmbSource = UIFactory.AddCombo(parent, srcs, self.model.SrcIndex, r, c+1, self.OnSrcChanged, 70)
+
+	def OnSrcChanged(self, event):
+		self.model.UpdateSource(self.cmbSource[0].current(), False)
+		self.lblBranch[1].set(self.model.Branch)
+		self.cmbConfig[1].set(self.model.Config)
+		self.cmbPltfm[1].set(self.model.Platform)
+		print 'Source Changed to : ' + self.model.Source
+
+	def AddConfig(self, parent, r, c):
+		configInx = ConfigEncoder.Configs.index(self.model.Config)
+		UIFactory.AddLabel(parent, 'Config', r, c)
+		self.cmbConfig = UIFactory.AddCombo(parent, ConfigEncoder.Configs, configInx, r, c+1, self.OnConfigChanged, 10)
+
+	def OnConfigChanged(self, event):
+		self.model.UpdateConfig(self.cmbConfig[0].current())
+		print 'Config Changed to : ' + self.model.Config
+
+	def AddBranch(self, parent, r, c):
+		UIFactory.AddLabel(parent, 'Branch', r, c)
+		self.lblBranch = UIFactory.AddLabel(parent, self.model.Branch, r, c+1)
+
+	def AddPlatform(self, parent, r, c):
+		platformInx = ConfigEncoder.Platforms.index(self.model.Platform)
+		UIFactory.AddLabel(parent, 'Platform', r, c)
+		self.cmbPltfm = UIFactory.AddCombo(parent, ConfigEncoder.Platforms, platformInx, r, c+1, self.OnPlatformChanged, 10)
+
+	def OnPlatformChanged(self, event):
+		self.model.UpdatePlatform(self.cmbPltfm[0].current())
+		print 'Platform Changed to : ' + self.model.Platform
+
+	def AddTest(self, parent, r, c):
+		UIFactory.AddLabel(parent, 'Test', r, c)
+		testNames = [TestNameEncoer.Encode(item)[0] for item in self.model.Tests]
+		self.cmbTest = UIFactory.AddCombo(parent, testNames, self.model.TestIndex, r, c+1, self.OnTestChanged, 70)
+
+	def OnTestChanged(self, event):
+		self.model.UpdateTest(self.cmbTest[0].current(), False)
+		print 'Test Changed to : ' + self.model.TestName
+		for i in range(self.model.MaxSlots):
+			self.chkSlotChn[i].set((i+1) in self.model.slots)
+
+	def AddAttachMmi(self, parent, r, c):
+		UIFactory.AddLabel(parent, 'Attach MMi', r, c)
+		self.chkAttachMmi = UIFactory.AddCheckBox(parent, self.model.DebugVision, r, c+1, self.OnAttach)
+
+	def OnAttach(self):
+		self.model.DebugVision = self.chkAttachMmi.get()
+		print 'Attach to MMi : ' + ('Yes' if self.model.DebugVision else 'No')
+
+	def AddCopyMmi(self, parent, r, c):
+		UIFactory.AddLabel(parent, 'Copy MMI to Icos', r, c)
+		self.chkCopyMmi = UIFactory.AddCheckBox(parent, self.model.CopyMmi, r, c+1, self.OnCopyMmi)
+
+	def OnCopyMmi(self):
+		self.model.CopyMmi = self.chkCopyMmi.get()
+		print 'Copy MMI to ICOS : ' + str(self.chkCopyMmi.get())
+
+	def AddSlots(self, parent, r, c):
+		UIFactory.AddLabel(parent, 'Slots', r, c)
+		lowerFrame = UIFactory.AddFrame(parent, r, c+1)
+		self.chkSlotChn = []
+		for i in range(self.model.MaxSlots):
+			isSelected = (i+1) in self.model.slots
+			UIFactory.AddLabel(lowerFrame, str(i+1), 0, i * 2)
+			self.chkSlotChn.append(UIFactory.AddCheckBox(lowerFrame, isSelected, 0, i * 2 + 1, self.OnSlotChn, i))
+
+	def OnSlotChn(self, index):
+		self.model.UpdateSlots(index, self.chkSlotChn[index].get())
+		print 'Selected slots for the current test : ' + str(self.model.slots)
+
+class UIMainMenu:
+	def __init__(self, parent, r, c, model):
+		self.model = model
+		self.frame = ttk.Frame(parent)
+		self.frame.grid(row=r, column=c)
+		self.klaRunner = KlaRunner()
+		self.testRunner = AutoTestRunner(self.model)
+		self.settings = Settings(self.model, self.klaRunner)
+		self.appRunner = AppRunner(self.model, self.testRunner)
+		self.klaSourceBuilder = KlaSourceBuilder(self.model, self.klaRunner)
+		self.CreateUI(self.frame)
+
+	def CreateUI(self, parent):
+		self.AddColumn1(parent, 0)
+		self.AddColumn2(parent, 1)
+		self.AddColumn3(parent, 2)
+		self.AddColumn4(parent, 3)
+
+	def AddColumn1(self, parent, c):
+		effortLogger = EffortLogger(self.model)
+		actionData = [
+			['Open Python', self.klaRunner.OpenPython],
+			['Run test', self.RunAutoTest, False],
+			['Start test', self.RunAutoTest, True],
+			['Run Handler and MMi', self.appRunner.RunHandlerMMi],
+			['Run Handler alone', self.appRunner.RunHandler],
+			['Run MMi from Source', self.appRunner.RunMMi, True],
+			['Run MMi from C:Icos', self.appRunner.RunMMi, False],
+			['Run ToolLink Host', self.appRunner.RunToollinkHost],
+			['Effort Log', effortLogger.ReadEffortLog],
+		]
+		self.Col1 = UIActionGroup(parent, 0, c, actionData)
+
+	def RunAutoTest(self, startOnly):
+		index = 2 if startOnly else 1
+		self.thread1 = self.testRunner.RunAutoTestAsync(startOnly)
+		self.SetActiveButton(self.Col1.Buttons[index])
+
+	def SetActiveButton(self, but):
+		but.config(background='red')
+		#self.ActiveButton = but
+		#but.config(background='green')
+		#threading.Thread(target=self.WaitForThread).start()
+
+	#def WaitForThread(self):
+	#	self.thread1.join()
+	#	self.ActiveButton.config(background='SystemButtonFace')
+
+	def AddColumn2(self, parent, c):
+		sourceBuilder = self.klaSourceBuilder
+		actionData = [
+			['Open CIT100', sourceBuilder.OpenSolution, 0],
+			['Open Simulator', sourceBuilder.OpenSolution, 1],
+			['Open Mmi', sourceBuilder.OpenSolution, 2],
+			['Open MockLicense', sourceBuilder.OpenSolution, 3],
+			['Open Converters', sourceBuilder.OpenSolution, 4],
+		]
+		UIActionGroup(parent, 0, c, actionData)
+
+	def AddColumn3(self, parent, c):
+		actionData = [
+			['Open Test Folder', self.klaRunner.OpenTestFolder],
+			['Open Local Diff', self.OpenLocalDif],
+			['Open Git GUI', self.OpenGitGui],
+			['Open Git Bash', self.OpenGitBash],
+			['Comment VisionSystem', self.testRunner.ModifyVisionSystem],
+			['Copy Mock License', self.testRunner.CopyMockLicense],
+			['Copy xPort xml', self.testRunner.CopyIllumRef],
+			['Print mmi.h IDs', self.klaRunner.PrintMissingIds],
+		]
+		UIActionGroup(parent, 0, c, actionData)
+
+	def AddColumn4(self, parent, c):
+		sourceBuilder = self.klaSourceBuilder
+		settings = self.settings
+		actionData = [
+			['Build Source', self.BuildSource],
+			['Clean Source', self.CleanSource],
+			['Add Test', self.AddTest],
+			['Stop All KLA Apps', self.StopTasks],
+		]
+		UIActionGroup(parent, 0, c, actionData)
+
+	def OpenLocalDif(self):
+		AppRunner.OpenLocalDif(self.model.Source)
+
+	def OpenGitGui(self):
+		Git.OpenGitGui(self.model.Source)
+
+	def OpenGitBash(self):
+		Git.OpenGitBash((self.model.GitBin, self.model.Source))
+
+	def StopTasks(self):
+		AppRunner.StopTasks(True)
+		#self.thread1._Thread__stop()
+
+	def BuildSource(self):
+		print 'Not implemented in UI. Its available in console.'
+
+	def CleanSource(self):
+		print 'Not implemented in UI. Its available in console.'
+
+	def AddTest(self):
+		print 'Not implemented in UI. Its available in console.'
+
+class UIActionGroup:
+	def __init__(self, parent, r, c, actionData):
+		self.Buttons = []
+		self.actionData = actionData
+		self.frame = ttk.Frame(parent)
+		self.frame.grid(row=r, column=c, sticky='n')
+		self.CreateUI(self.frame)
+
+	def CreateUI(self, parent):
+		for inx,item in enumerate(self.actionData):
+			arg = item[2] if len(item) > 2 else None
+			self.Buttons.append(UIFactory.AddButton(parent, item[0], inx, 0, item[1], arg, 20))
 
 class Menu:
 	def __init__(self, klaRunner, model):
@@ -40,13 +332,14 @@ class Menu:
 		group = [
 		[
 			[1, ['Open Python', self.klaRunner.OpenPython]],
-			[2, ['Run test' + autoTest, testRunner.RunAutoTest, False]],
-			[3, ['Start test' + autoTest, testRunner.RunAutoTest, True]],
+			[2, ['Run test' + autoTest, testRunner.RunAutoTestAsync, False]],
+			[3, ['Start test' + autoTest, testRunner.RunAutoTestAsync, True]],
 			[4, ['Run Handler and MMi', self.appRunner.RunHandlerMMi]],
 			[5, ['Run Handler alone', self.appRunner.RunHandler]],
 			[6, ['Run MMi from Source', self.appRunner.RunMMi, True]],
 			[7, ['Run MMi from C:Icos', self.appRunner.RunMMi, False]],
-			[8, ['Effort Log', effortLogger.ReadEffortLog]]
+			[9, ['Run ToolLink Host', self.appRunner.RunToollinkHost]],
+			[8, ['Effort Log', effortLogger.ReadEffortLog]],
 		],[
 			[10, ['Open CIT100', sourceBuilder.OpenSolution, 0]],
 			[11, ['Open Simulator', sourceBuilder.OpenSolution, 1]],
@@ -95,6 +388,7 @@ class KlaRunner:
 		self.model = Model()
 		self.model.ReadConfigFile()
 		self.menu = Menu(self, self.model)
+		#self.SetWorkingDir()
 
 	def Run(self):
 		if not ctypes.windll.shell32.IsUserAnAdmin():
@@ -172,6 +466,12 @@ class KlaRunner:
 		PrettyTable(TableFormatFactory().SetSingleLine()).PrintTable(menuData)
 		return data
 
+	def SetWorkingDir(self):
+		wd = os.path.join(self.model.StartPath, self.model.TempDir)
+		if not os.path.isdir(wd):
+			os.mkdir(wd)
+		os.chdir(wd)
+
 class AppRunner:
 	def __init__(self, model, testRunner):
 		self.model = model
@@ -228,6 +528,31 @@ class AppRunner:
 		self.RunHandler(False)
 		self.RunMMi(True, False)
 		OsOperations.Pause(self.model.ClearHistory)
+
+	def RunToollinkHost(self):
+		sys.path.append('C:\Handler\\testing')
+		import handlerprocesses
+		import secshost
+		from generated.handlerSystem import ActionIds
+
+		fabLinkPath = self.model.Source + '\handler\FabLink'
+		processes = handlerprocesses.HandlerProcesses('', '', '', fabLinkPath)
+		processes.secshost.start()
+		OsOperations.Timeout(10)
+
+		#visionApplications = ['BBI/Surface1: OFF', 'TopPVI/Mark: ON', 'TopPVI/Surface1: ON', 'TopPVI/Surface2: OFF']
+		#visionApplications = ['Top Spectrum Plus/Mark: OFF', 'Top Spectrum Plus/Data Matrix: ON','Top Spectrum Plus/Alignment based Combined Surf:ON','Top Spectrum Plus/Alignment based Surface*:OFF','Bottom Spectrum Plus/Mark:OFF','Top Spectrum Plus/Pin 1:OFF','Top Spectrum Plus/Empty Pocket:OFF']
+		#visionApplications = ['BGA: ON']
+		visionApplications = ["LeadLess/*: ON"]
+		#visionApplications= ['SMI/Pin*: ON']
+		#ppidList=['/component/test', '/handler/test']
+		ppSelectParams = {
+			'PPID' : 'test',
+			#'PASS-DESTINATION': 'TAPE',
+			'VISION-APPLICATIONS' : visionApplications,
+			#'PPID-LIST' : ppidList,
+		}
+		processes.secshost.proxy.runHostCommandSend(remoteCommand=ActionIds.PP_SELECT, commandParameters=ppSelectParams, waitForAnswer=True, enhanced=True)
 
 	@classmethod
 	def StopTasks(self, doPause):
@@ -316,7 +641,7 @@ class AutoTestRunner:
 			newText = f.read().replace(oldLine, newLine)
 		with open(fileName, "w") as f:
 			f.write(newText)
-		print 'The line for copying of slots in VisionSystem.py has been commented.'
+		print 'VisionSystem.py has been modified.'
 		OsOperations.Pause(doPause and self.model.ClearHistory)
 
 	def GetBuildConfig(self):
@@ -325,14 +650,22 @@ class AutoTestRunner:
 		configSet = (debugConfigSet, releaseConfigSet)[self.model.Config == 'Release']
 		return configSet[self.model.Platform == 'Win32']
 
+	def RunAutoTestAsync(self, start):
+		t1 = threading.Thread(target=self.RunAutoTest, args=(start,))
+		t1.start()
+		return t1
+
 	def RunAutoTest(self, startUp):
 		AppRunner.StopTasks(False)
 		VMWareRunner.RunSlots(self.model.VMwareWS, self.model.slots)
 		self.ModifyVisionSystem(False)
+		self.CopyIllumRef(False, True)
+		#FileOperations.Copy(self.model.StartPath + '/Profiles', 'C:/icos/Profiles', 8, 3)
 
-		cwd = os.getcwd()
-		os.chdir(os.path.abspath(self.model.Source + '\\libs\\testing'))
-		sys.path.append(os.getcwd());
+		tests = self.SearchInTests(self.model.Source, self.model.TestName)
+		if len(tests) == 0:
+			return
+
 		import my
 		my.c.startup = startUp
 		my.c.debugvision = self.model.DebugVision
@@ -342,39 +675,50 @@ class AutoTestRunner:
 		my.c.platform = self.model.Platform
 		my.c.mmiConfigurationsPath = self.model.MMiConfigPath
 		my.c.mmiSetupsPath = self.model.MMiSetupsPath
-
-		self.CopyIllumRef(False, True)
-		FileOperations.Copy('D:/MyGit/TeamGit/Src/JAutomate/Profiles', 'C:/icos/Profiles', 8, 3)
-
-		my.run(self.model.TestName)
+		my.run(tests[0][0])
 		OsOperations.Pause(self.model.ClearHistory)
 
 	@classmethod
-	def GetTestName(self, source, number):
+	def SearchInTests(cls, source, text):
 		print sys.path
-		self.UpdateLibsTestingPath(source)
+		cls.UpdateLibsTestingPath(source)
 		print sys.path
 		sys.stdout = stdOutRedirect = StdOutRedirect()
-		from my import TestRunnerHelper
-		TestRunnerHelper().l(number)
-		msgs = stdOutRedirect.ResetOriginal()
-		for msg in msgs.split('\n'):
+		import my
+		print 'KLARunnerStop'
+		my.h.l(text)
+		msgs = stdOutRedirect.ResetOriginal().splitlines()
+		inx = msgs.index('KLARunnerStop')
+		tests = []
+		for msg in msgs[inx+1:]:
 			arr = msg.split(':')
-			if len(arr) == 2 and arr[0].strip() == str(number):
-				return arr[1].strip()
+			if len(arr) == 2:
+				tests.append([int(arr[0].strip()), arr[1].strip()])
+		return tests
+
+	@classmethod
+	def GetTestName(cls, source, number):
+		tests = cls.SearchInTests(source, number)
+		if len(tests) > 0:
+			return tests[0][1]
 		return ''
 
 	@classmethod
-	def UpdateLibsTestingPath(self, source):
+	def UpdateLibsTestingPath(cls, source):
+		paths = [p.replace('\\', '/') for p in sys.path]
 		libsTesting = '/libs/testing'
-		index = ArrayOrganizer.ContainsInArray(libsTesting, sys.path)
-		newPath = source + libsTesting
+		newPath = os.path.abspath(source + libsTesting)
+		index = ArrayOrganizer.ContainsInArray(newPath, paths)
 		if index >= 0:
-			print 'Old path ({}) has been replaced with new path ({}).'.format(sys.path[index], newPath)
+			return newPath
+		index = ArrayOrganizer.ContainsInArray(libsTesting, paths)
+		if index >= 0:
+			print 'Old path ({}) has been replaced with new path ({}) in sys.path.'.format(sys.path[index], newPath)
 			sys.path[index] = newPath
 		else:
-			print 'New path ({}) has been added.'.format(newPath)
+			print 'New path ({}) has been added in sys.path.'.format(newPath)
 			sys.path.append(newPath)
+		return newPath
 
 class Settings:
 	def __init__(self, model, klaRunner):
@@ -604,21 +948,18 @@ class FileOperations:
 		if initWait == 0 and inter == 0:
 			cls._Copy(src, des, inter)
 		else:
-			print 'Thread starts : initWait {} inter {}'.format(initWait, inter)
+			print 'Try to Copy({},{}) after {} seconds.'.format(src, des, initWait)
 			threading.Timer(initWait, cls._Copy, [src, des, inter]).start()
 
 	@classmethod
 	def _Copy(cls, src, des, inter = 0):
 		while not os.path.exists(des):
 			if inter > 0:
-				print 'Destination folder not existing : ' + des
+				print '({}) not existing. Try to Copy({}) after {} seconds.'.format(des, src, inter)
 				time.sleep(inter)
 			else:
 				print 'Wrong input - Destination folder not existing : ' + des
 				return
-		if inter > 0:
-			for i in range(10):
-				print 'Copy {} to {}'.format(src, des)
 		if os.path.isfile(src):
 			OsOperations.System('COPY /Y "' + src + '" "' + des + '"')
 		elif os.path.isdir(src):
@@ -627,12 +968,14 @@ class FileOperations:
 			print 'Wrong input - Neither file nor directory : ' + src
 
 class OsOperations:
+	RunFromUI = False
+
 	@classmethod
-	def Cls(self):
+	def Cls(cls):
 		os.system('cls')
 
 	@classmethod
-	def System(self, params, message = None):
+	def System(cls, params, message = None):
 		if message is None:
 			print 'params : ' + params
 		else:
@@ -640,13 +983,13 @@ class OsOperations:
 		os.system(params)
 
 	@classmethod
-	def Pause(self, condition = True):
-		if condition:
+	def Pause(cls, condition = True):
+		if condition and not cls.RunFromUI:
 			#raw_input('Press ENTER key to continue . . .')
 			os.system('PAUSE')
 
 	@classmethod
-	def GetExeInstanceCount(self, exeName):
+	def GetExeInstanceCount(cls, exeName):
 		exeName = exeName.lower()
 		params = [ 'TASKLIST', '/FI' ]
 		params.append('IMAGENAME eq {}'.format(exeName))
@@ -659,11 +1002,11 @@ class OsOperations:
 		return count
 
 	@classmethod
-	def Timeout(self, seconds):
+	def Timeout(cls, seconds):
 		os.system('timeout ' + str(seconds))
 
 	@classmethod
-	def InputNumber(self, message):
+	def InputNumber(cls, message):
 		userIn = raw_input(message)
 		while True:
 			if userIn != '':
@@ -671,7 +1014,7 @@ class OsOperations:
 			userIn = raw_input()
 
 	@classmethod
-	def Popen(self, params, callPrint = None):
+	def Popen(cls, params, callPrint = None):
 		if not callPrint:
 			print params
 			subprocess.Popen(params)
@@ -687,7 +1030,7 @@ class OsOperations:
 		process.poll()
 
 	@classmethod
-	def Call(self, params):
+	def Call(cls, params):
 		print params
 		subprocess.call(params)
 
@@ -1107,21 +1450,30 @@ class UnitTestsRunner:
 
 		Test.PrintResults()
 
-	@classmethod
-	def CanRun(cls):
-		return len(sys.argv) == 2 and sys.argv[1].lower() == 'test'
-
 class ConfigEncoder:
+	Configs = ['Debug', 'Release']
+	Platforms = ['Win32', 'x64']
 	@classmethod
 	def DecodeSource(cls, srcArr):
 		source = srcArr[0]
-		config = ('Debug', 'Release')[srcArr[1][0] == 'R']
-		platform = ('Win32', 'x64')[srcArr[1][1:] == '64']
+		config = cls.Configs[srcArr[1][0] == 'R']
+		platform = cls.Platforms[srcArr[1][1:] == '64']
 		return (source, config, platform)
 
 	@classmethod
 	def EncodeSource(cls, srcSet):
 		return [srcSet[0], srcSet[1][0] + srcSet[2][-2:]]
+
+class TestNameEncoer:
+	@classmethod
+	def Encode(cls, testNameSlots):
+		parts = testNameSlots.split()
+		return (parts[0], map(int, parts[1].split('_')))
+
+	@classmethod
+	def Decode(cls, testName, slots):
+		slotStrs = [str(slot) for slot in slots]
+		return '{} {}'.format(testName, '_'.join(slotStrs))
 
 class Model:
 	def __init__(self):
@@ -1154,8 +1506,10 @@ class Model:
 		self.MMiSetupsPath = _model['MMiSetupsPath']
 		self.DebugVision = _model['DebugVision']
 		self.CopyMmi = _model['CopyMmi']
+		self.TempDir = _model['TempDir']
 		self.LogFileName = _model['LogFileName']
 		self.MenuColCnt = _model['MenuColCnt']
+		self.MaxSlots = _model['MaxSlots']
 		self.ClearHistory = _model['ClearHistory']
 
 		self.UpdateSource(self.SrcIndex, False)
@@ -1178,8 +1532,10 @@ class Model:
 		_model['MMiSetupsPath'] = self.MMiSetupsPath
 		_model['DebugVision'] = self.DebugVision
 		_model['CopyMmi'] = self.CopyMmi
+		_model['TempDir'] = self.TempDir
 		_model['LogFileName'] = self.LogFileName
 		_model['MenuColCnt'] = self.MenuColCnt
+		_model['MaxSlots'] = self.MaxSlots
 		_model['ClearHistory'] = self.ClearHistory
 
 		with open(self.fileName, 'w') as f:
@@ -1198,11 +1554,29 @@ class Model:
 		if index < 0 or index >= len(self.Tests):
 			return
 		self.TestIndex = index
-		testAndSlots = self.Tests[self.TestIndex].split()
-		self.TestName = testAndSlots[0]
-		self.slots = map(int, testAndSlots[1].split('_'))
+		self.TestName, self.slots = TestNameEncoer.Encode(self.Tests[self.TestIndex])
 		if writeToFile:
 			self.WriteConfigFile()
+
+	def UpdateConfig(self, index):
+		if index < 0 or index >= len(ConfigEncoder.Configs):
+			return
+		self.Config = ConfigEncoder.Configs[index]
+		self.Sources[self.SrcIndex] = self.Source, self.Config, self.Platform
+
+	def UpdatePlatform(self, index):
+		if index < 0 or index >= len(ConfigEncoder.Platforms):
+			return
+		self.Platform = ConfigEncoder.Platforms[index]
+		self.Sources[self.SrcIndex] = self.Source, self.Config, self.Platform
+
+	def UpdateSlots(self, index, isSelected):
+		slotNum = index + 1
+		if isSelected:
+			self.slots.append(slotNum)
+		else:
+			self.slots.remove(slotNum)
+		self.Tests[self.TestIndex] = TestNameEncoer.Decode(self.TestName, self.slots)
 
 	def GetSources(self, srcIndices = None):
 		if None == srcIndices:
@@ -1216,9 +1590,15 @@ class Model:
 		return sources
 
 def main():
-	if UnitTestsRunner.CanRun():
-		UnitTestsRunner().Run()
-	elif (__name__ == '__main__'):
+	if (len(sys.argv) == 2):
+		param1 = sys.argv[1].lower()
+		if param1 == 'test':
+			UnitTestsRunner().Run()
+			return
+		elif param1 == 'ui':
+			UI().Run()
+			return
+	if (__name__ == '__main__'):
 		KlaRunner().Run()
 
 main()
