@@ -1,0 +1,15 @@
+MMI/autommi/mci-23903_teach_on_next_reject_cr_lead2d 1
+MMI/autommi/mci-29814_FullAutoTeach_OCRSuppress 1
+MMI/autommi/frm17046_package_mfov_teach_panes 1
+MMI/autommi/frm17046_mfovcombobox_surface 1
+MMI/autommi/frm17046_mfovstitching_surface 1
+CDA/Mmi/Intel/CDA-163_Bga3D_with_reflow 1_2
+
+MMI/autommi/mci_26762_Multiple_DM_Test 1
+CDA/Mmi/SurfaceReportItemResults 1
+CDA/Mmi/SkHynixInputTrayReport 1
+MMI/autommi/frm17046_multiple_datamatrix_teach 1
+t100/FileSyncTool 1
+CDA/Mmi/WithDatamatrixInspection 1
+MMI/autommi/SurfaceNewUI 1_2
+CDA/Mmi/WithLeadless 1
