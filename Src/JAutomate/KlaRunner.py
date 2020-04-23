@@ -79,6 +79,10 @@ class UI:
 		OsOperations.RunFromUI = True
 
 	def Run(self):
+		if not ctypes.windll.shell32.IsUserAnAdmin():
+			print 'Please run this application with Administrator privilates'
+			os.system('PAUSE')
+			return
 		self.window = tk.Tk()
 		self.window.title('KLA Application Runner')
 		iconPath = self.model.StartPath + r'\Plus.ico'
@@ -222,14 +226,15 @@ class UIMainMenu:
 
 	def RunAutoTest(self, startOnly):
 		index = 2 if startOnly else 1
-		self.thread1 = self.testRunner.RunAutoTestAsync(startOnly)
-		self.SetActiveButton(self.Col1.Buttons[index])
+		#self.thread1 = self.testRunner.RunAutoTestAsync(startOnly)
+		self.testRunner.RunAutoTestAsync(startOnly)
+		#self.SetActiveButton(self.Col1.Buttons[index])
 
-	def SetActiveButton(self, but):
-		but.config(background='red')
-		#self.ActiveButton = but
-		#but.config(background='green')
-		#threading.Thread(target=self.WaitForThread).start()
+	#def SetActiveButton(self, but):
+	#	but.config(background='red')
+	#	#self.ActiveButton = but
+	#	#but.config(background='green')
+	#	#threading.Thread(target=self.WaitForThread).start()
 
 	#def WaitForThread(self):
 	#	self.thread1.join()
@@ -388,7 +393,6 @@ class KlaRunner:
 		self.model = Model()
 		self.model.ReadConfigFile()
 		self.menu = Menu(self, self.model)
-		#self.SetWorkingDir()
 
 	def Run(self):
 		if not ctypes.windll.shell32.IsUserAnAdmin():
@@ -650,23 +654,24 @@ class AutoTestRunner:
 		configSet = (debugConfigSet, releaseConfigSet)[self.model.Config == 'Release']
 		return configSet[self.model.Platform == 'Win32']
 
-	def RunAutoTestAsync(self, start):
-		t1 = threading.Thread(target=self.RunAutoTest, args=(start,))
-		t1.start()
-		return t1
+	def RunAutoTestAsync(self, startUp):
+		self.RunAutoTest(startUp)
+		#t1 = threading.Thread(target=self.RunAutoTest, args=(startUp,))
+		#t1.start()
+		#return t1
 
 	def RunAutoTest(self, startUp):
+		tests = self.SearchInTests(self.model.Source, self.model.TestName)
+		if len(tests) == 0:
+			return
 		AppRunner.StopTasks(False)
 		VMWareRunner.RunSlots(self.model.VMwareWS, self.model.slots)
 		self.ModifyVisionSystem(False)
 		self.CopyIllumRef(False, True)
 		#FileOperations.Copy(self.model.StartPath + '/Profiles', 'C:/icos/Profiles', 8, 3)
 
-		tests = self.SearchInTests(self.model.Source, self.model.TestName)
-		if len(tests) == 0:
-			return
-
 		import my
+		print 'Module location of my : ' + my.__file__
 		my.c.startup = startUp
 		my.c.debugvision = self.model.DebugVision
 		my.c.copymmi = self.model.CopyMmi
@@ -676,13 +681,18 @@ class AutoTestRunner:
 		my.c.mmiConfigurationsPath = self.model.MMiConfigPath
 		my.c.mmiSetupsPath = self.model.MMiSetupsPath
 		my.run(tests[0][0])
+		print 'Completed Auto Test : ' + tests[0][1]
 		OsOperations.Pause(self.model.ClearHistory)
 
 	@classmethod
 	def SearchInTests(cls, source, text):
-		print sys.path
-		cls.UpdateLibsTestingPath(source)
-		print sys.path
+		# Remove the already loaded my module if source changed
+		libsPath = cls.UpdateLibsTestingPath(source)
+		if 'my' in sys.modules:
+			expectedPath = libsPath + '\\my.py'
+			if expectedPath != sys.modules['my'].__file__:
+				del sys.modules['my']
+
 		sys.stdout = stdOutRedirect = StdOutRedirect()
 		import my
 		print 'KLARunnerStop'
@@ -705,13 +715,18 @@ class AutoTestRunner:
 
 	@classmethod
 	def UpdateLibsTestingPath(cls, source):
-		paths = [p.replace('\\', '/') for p in sys.path]
 		libsTesting = '/libs/testing'
 		newPath = os.path.abspath(source + libsTesting)
-		index = ArrayOrganizer.ContainsInArray(newPath, paths)
+		#print 'sys.path : {}'.format(sys.path)
+		#print 'newPath : {}'.format(newPath)
+		index = ArrayOrganizer.ContainsInArray(newPath, sys.path)
+		#print 'index : {}'.format(index)
 		if index >= 0:
 			return newPath
+		#print 'libsTesting : {}'.format(libsTesting)
+		paths = [p.replace('\\', '/') for p in sys.path]
 		index = ArrayOrganizer.ContainsInArray(libsTesting, paths)
+		print 'index : {}'.format(index)
 		if index >= 0:
 			print 'Old path ({}) has been replaced with new path ({}) in sys.path.'.format(sys.path[index], newPath)
 			sys.path[index] = newPath
