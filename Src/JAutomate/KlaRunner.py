@@ -202,6 +202,7 @@ class UIMainMenu:
 		self.appRunner = AppRunner(self.model, self.testRunner)
 		self.klaSourceBuilder = KlaSourceBuilder(self.model, self.klaRunner)
 		self.CreateUI(self.frame)
+		self.thread1 = None
 
 	def CreateUI(self, parent):
 		self.AddColumn1(parent, 0)
@@ -226,19 +227,20 @@ class UIMainMenu:
 
 	def RunAutoTest(self, startOnly):
 		index = 2 if startOnly else 1
-		#self.thread1 = self.testRunner.RunAutoTestAsync(startOnly)
-		self.testRunner.RunAutoTestAsync(startOnly)
-		#self.SetActiveButton(self.Col1.Buttons[index])
+		self.thread1 = self.testRunner.RunAutoTestAsync(startOnly)
+		if not startOnly:
+			self.SetActiveButton(self.Col1.Buttons[index])
 
-	#def SetActiveButton(self, but):
-	#	but.config(background='red')
-	#	#self.ActiveButton = but
-	#	#but.config(background='green')
-	#	#threading.Thread(target=self.WaitForThread).start()
+	def SetActiveButton(self, but):
+		but.config(background='red')
+		self.ActiveButton = but
+		threading.Thread(target=self.WaitForThread).start()
 
-	#def WaitForThread(self):
-	#	self.thread1.join()
-	#	self.ActiveButton.config(background='SystemButtonFace')
+	def WaitForThread(self):
+		if self.thread1:
+			self.thread1.join()
+		if self.ActiveButton:
+			self.ActiveButton.config(background='SystemButtonFace')
 
 	def AddColumn2(self, parent, c):
 		sourceBuilder = self.klaSourceBuilder
@@ -286,7 +288,8 @@ class UIMainMenu:
 
 	def StopTasks(self):
 		AppRunner.StopTasks(True)
-		#self.thread1._Thread__stop()
+		if self.thread1 is not None:
+			self.thread1._Thread__stop()
 
 	def BuildSource(self):
 		print 'Not implemented in UI. Its available in console.'
@@ -393,6 +396,7 @@ class KlaRunner:
 		self.model = Model()
 		self.model.ReadConfigFile()
 		self.menu = Menu(self, self.model)
+		self.SetWorkingDir()
 
 	def Run(self):
 		if not ctypes.windll.shell32.IsUserAnAdmin():
@@ -601,14 +605,13 @@ class VMWareRunner:
 		for slot in slots:
 			vmxPath = vmxGenericPath.format(slot)
 			if slot in runningSlots:
-				print 'Slot : ' + str(slot) + ' restarted.'
+				print 'VMware Slot ' + str(slot) + ' : Restarted.'
 				subprocess.Popen([vmRunExe, '-vp', '1', 'reset', vmxPath])
 			else:
 				subprocess.Popen([vmWareExe, vmxPath])
-				print 'Start Slot : ' + str(slot)
+				print 'Start VMware Slot ' + str(slot)
 				OsOperations.Pause()
-				print 'Slot : ' + str(slot) + ' started.'
-		print 'Slots refreshed : ' + str(slots)
+				print 'VMware Slot ' + str(slot) + ' : Started.'
 
 class AutoTestRunner:
 	def __init__(self, model):
@@ -642,63 +645,59 @@ class AutoTestRunner:
 		newLine = ' #' + line
 		fileName = os.path.abspath(self.model.Source + '/libs/testing/visionsystem.py')
 		with open(fileName) as f:
-			newText = f.read().replace(oldLine, newLine)
-		with open(fileName, "w") as f:
-			f.write(newText)
-		print 'VisionSystem.py has been modified.'
+			oldText = f.read()
+		if oldLine in oldText:
+			newText = oldText.replace(oldLine, newLine)
+			with open(fileName, "w") as f:
+				f.write(newText)
+			print 'VisionSystem.py has been modified.'
+		else:
+			print 'VisionSystem.py had already been modified.'
 		OsOperations.Pause(doPause and self.model.ClearHistory)
 
-	def GetBuildConfig(self):
-		debugConfigSet = ('debugx64', 'debug')
-		releaseConfigSet = ('releasex64', 'release')
-		configSet = (debugConfigSet, releaseConfigSet)[self.model.Config == 'Release']
-		return configSet[self.model.Platform == 'Win32']
-
 	def RunAutoTestAsync(self, startUp):
-		self.RunAutoTest(startUp)
-		#t1 = threading.Thread(target=self.RunAutoTest, args=(startUp,))
-		#t1.start()
-		#return t1
-
-	def RunAutoTest(self, startUp):
-		tests = self.SearchInTests(self.model.Source, self.model.TestName)
-		if len(tests) == 0:
-			return
 		AppRunner.StopTasks(False)
 		VMWareRunner.RunSlots(self.model.VMwareWS, self.model.slots)
 		self.ModifyVisionSystem(False)
 		self.CopyIllumRef(False, True)
 		#FileOperations.Copy(self.model.StartPath + '/Profiles', 'C:/icos/Profiles', 8, 3)
+		os.chdir(self.model.StartPath)
+		t1 = threading.Thread(target=self.Run, args=(startUp,))
+		t1.start()
+		return t1
 
+	def Run(self, startUp):
+		libsPath = AutoTestRunner.UpdateLibsTestingPath(self.model.Source)
+		tests = AutoTestRunner.SearchInTests(libsPath, self.model.TestName)
+		if len(tests) == 0:
+			return
 		import my
 		print 'Module location of my : ' + my.__file__
 		my.c.startup = startUp
 		my.c.debugvision = self.model.DebugVision
 		my.c.copymmi = self.model.CopyMmi
-		my.c.mmiBuildConfiguration = self.GetBuildConfig()
+		my.c.mmiBuildConfiguration = self.model.GetBuildConfig()
 		my.c.console_config = my.c.simulator_config = my.c.mmiBuildConfiguration[0]
 		my.c.platform = self.model.Platform
 		my.c.mmiConfigurationsPath = self.model.MMiConfigPath
 		my.c.mmiSetupsPath = self.model.MMiSetupsPath
 		my.run(tests[0][0])
 		print 'Completed Auto Test : ' + tests[0][1]
-		OsOperations.Pause(self.model.ClearHistory)
 
 	@classmethod
-	def SearchInTests(cls, source, text):
+	def SearchInTests(cls, libsPath, text):
 		# Remove the already loaded my module if source changed
-		libsPath = cls.UpdateLibsTestingPath(source)
 		if 'my' in sys.modules:
 			expectedPath = libsPath + '\\my.py'
 			if expectedPath != sys.modules['my'].__file__:
 				del sys.modules['my']
-
 		sys.stdout = stdOutRedirect = StdOutRedirect()
 		import my
-		print 'KLARunnerStop'
+		lineBreak = 'KLARunnerLineBreak'
+		print lineBreak
 		my.h.l(text)
-		msgs = stdOutRedirect.ResetOriginal().splitlines()
-		inx = msgs.index('KLARunnerStop')
+		msgs = stdOutRedirect.ResetOriginal()
+		inx = msgs.index(lineBreak)
 		tests = []
 		for msg in msgs[inx+1:]:
 			arr = msg.split(':')
@@ -708,7 +707,8 @@ class AutoTestRunner:
 
 	@classmethod
 	def GetTestName(cls, source, number):
-		tests = cls.SearchInTests(source, number)
+		libsPath = cls.UpdateLibsTestingPath(source)
+		tests = cls.SearchInTests(libsPath, number)
 		if len(tests) > 0:
 			return tests[0][1]
 		return ''
@@ -717,16 +717,11 @@ class AutoTestRunner:
 	def UpdateLibsTestingPath(cls, source):
 		libsTesting = '/libs/testing'
 		newPath = os.path.abspath(source + libsTesting)
-		#print 'sys.path : {}'.format(sys.path)
-		#print 'newPath : {}'.format(newPath)
 		index = ArrayOrganizer.ContainsInArray(newPath, sys.path)
-		#print 'index : {}'.format(index)
 		if index >= 0:
 			return newPath
-		#print 'libsTesting : {}'.format(libsTesting)
 		paths = [p.replace('\\', '/') for p in sys.path]
 		index = ArrayOrganizer.ContainsInArray(libsTesting, paths)
-		print 'index : {}'.format(index)
 		if index >= 0:
 			print 'Old path ({}) has been replaced with new path ({}) in sys.path.'.format(sys.path[index], newPath)
 			sys.path[index] = newPath
@@ -734,6 +729,7 @@ class AutoTestRunner:
 			print 'New path ({}) has been added in sys.path.'.format(newPath)
 			sys.path.append(newPath)
 		return newPath
+		OsOperations.Pause(self.model.ClearHistory)
 
 class Settings:
 	def __init__(self, model, klaRunner):
@@ -1271,13 +1267,18 @@ class StdOutRedirect(object):
 	def __init__(self):
 		self.messages = ''
 		self.orig_stdout = sys.stdout
+		self.IsReset = False
 
 	def write(self, message):
-		self.messages += message
+		if self.IsReset:
+			print message, # This is needed only for printing summary
+		else:
+			self.messages += message
 
 	def ResetOriginal(self):
 		sys.stdout = self.orig_stdout
-		return self.messages
+		self.IsReset = True
+		return self.messages.splitlines()
 
 class ArrayOrganizer:
 	def __init__(self):
@@ -1603,6 +1604,15 @@ class Model:
 				return []
 			sources.append(self.Sources[index])
 		return sources
+
+	def GetLibsTestPath(self):
+		return self.Source + '/libs/testing'
+
+	def GetBuildConfig(self):
+		debugConfigSet = ('debugx64', 'debug')
+		releaseConfigSet = ('releasex64', 'release')
+		configSet = (debugConfigSet, releaseConfigSet)[self.Config == 'Release']
+		return configSet[self.Platform == 'Win32']
 
 def main():
 	if (len(sys.argv) == 2):
