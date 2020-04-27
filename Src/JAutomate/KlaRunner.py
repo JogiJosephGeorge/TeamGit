@@ -43,7 +43,6 @@ class UIFactory:
 	def AddCombo(cls, parent, values, inx, r, c, cmd, width = 0):
 		var = tk.StringVar()
 		combo = ttk.Combobox(parent, textvariable=var)
-		#combo = ttk.Combobox(parent)
 		combo['state'] = 'readonly'
 		combo['values'] = values
 		if width > 0:
@@ -52,7 +51,6 @@ class UIFactory:
 		combo.grid(row=r, column=c)
 		combo.bind("<<ComboboxSelected>>", cmd)
 		return (combo,var)
-		#return combo
 
 	@classmethod
 	def AddCheckBox(cls, parent, defVal, r, c, cmd, arg = None):
@@ -67,9 +65,9 @@ class UIFactory:
 		return chkValue
 
 	@classmethod
-	def AddFrame(cls, parent, r, c, px = 0, py = 0):
+	def AddFrame(cls, parent, r, c, px = 0, py = 0, columnspan=1):
 		frame = ttk.Frame(parent)
-		frame.grid(row=r, column=c, sticky='w', padx=px, pady=py)
+		frame.grid(row=r, column=c, sticky='w', padx=px, pady=py, columnspan=columnspan)
 		return frame
 
 class UI:
@@ -114,6 +112,7 @@ class UIHeader:
 		self.AddCopyMmi(parent, 1, 4)
 
 		self.AddTest(parent, 2, 0)
+		self.AddActiveSrcs(parent, 2, 2)
 
 		self.AddSlots(parent, 3, 0)
 
@@ -160,7 +159,7 @@ class UIHeader:
 		self.model.UpdateTest(self.cmbTest[0].current(), False)
 		print 'Test Changed to : ' + self.model.TestName
 		for i in range(self.model.MaxSlots):
-			self.chkSlotChn[i].set((i+1) in self.model.slots)
+			self.chkSlots[i].set((i+1) in self.model.slots)
 
 	def AddAttachMmi(self, parent, r, c):
 		UIFactory.AddLabel(parent, 'Attach MMi', r, c)
@@ -180,22 +179,40 @@ class UIHeader:
 
 	def AddSlots(self, parent, r, c):
 		UIFactory.AddLabel(parent, 'Slots', r, c)
-		lowerFrame = UIFactory.AddFrame(parent, r, c+1)
-		self.chkSlotChn = []
+		frame = UIFactory.AddFrame(parent, r, c+1, columnspan=5)
+		self.chkSlots = []
 		for i in range(self.model.MaxSlots):
 			isSelected = (i+1) in self.model.slots
-			UIFactory.AddLabel(lowerFrame, str(i+1), 0, i * 2)
-			self.chkSlotChn.append(UIFactory.AddCheckBox(lowerFrame, isSelected, 0, i * 2 + 1, self.OnSlotChn, i))
+			UIFactory.AddLabel(frame, str(i+1), 0, i * 2)
+			self.chkSlots.append(UIFactory.AddCheckBox(frame, isSelected, 0, i * 2 + 1, self.OnSlotChn, i))
 
 	def OnSlotChn(self, index):
-		self.model.UpdateSlots(index, self.chkSlotChn[index].get())
+		self.model.UpdateSlots(index, self.chkSlots[index].get())
 		print 'Selected slots for the current test : ' + str(self.model.slots)
+
+	def AddActiveSrcs(self, parent, r, c):
+		UIFactory.AddLabel(parent, 'Sources', r, c)
+		frame = UIFactory.AddFrame(parent, r, c+1, columnspan=3)
+		self.chkActiveSrcs = []
+		srcs = self.model.ActiveSrcs
+		for i in range(len(self.model.Sources)):
+			isSelected = True if i in srcs else False
+			UIFactory.AddLabel(frame, str(i+1), 0, i * 2)
+			self.chkActiveSrcs.append(UIFactory.AddCheckBox(frame, isSelected, 0, i * 2 + 1, self.OnActiveSrcsChn, i))
+
+	def OnActiveSrcsChn(self, index):
+		if self.chkActiveSrcs[index].get():
+			self.model.ActiveSrcs.append(index)
+			self.model.ActiveSrcs = list(set(self.model.ActiveSrcs))
+			print 'Enabled the source : ' + str(self.model.Sources[index][0])
+		else:
+			self.model.ActiveSrcs.remove(index)
+			print 'Disabled the source : ' + str(self.model.Sources[index][0])
 
 class UIMainMenu:
 	def __init__(self, parent, r, c, model):
 		self.model = model
-		self.frame = ttk.Frame(parent)
-		self.frame.grid(row=r, column=c)
+		self.frame = UIFactory.AddFrame(parent, r, c, 20, 20)
 		self.klaRunner = KlaRunner()
 		self.testRunner = AutoTestRunner(self.model)
 		self.settings = Settings(self.model, self.klaRunner)
@@ -211,7 +228,6 @@ class UIMainMenu:
 		self.AddColumn4(parent, 3)
 
 	def AddColumn1(self, parent, c):
-		effortLogger = EffortLogger(self.model)
 		actionData = [
 			['Open Python', self.klaRunner.OpenPython],
 			['Run test', self.RunAutoTest, False],
@@ -221,7 +237,6 @@ class UIMainMenu:
 			['Run MMi from Source', self.appRunner.RunMMi, True],
 			['Run MMi from C:Icos', self.appRunner.RunMMi, False],
 			['Run ToolLink Host', self.appRunner.RunToollinkHost],
-			['Effort Log', effortLogger.ReadEffortLog],
 		]
 		self.Col1 = UIActionGroup(parent, 0, c, actionData)
 
@@ -269,10 +284,13 @@ class UIMainMenu:
 	def AddColumn4(self, parent, c):
 		sourceBuilder = self.klaSourceBuilder
 		settings = self.settings
+		effortLogger = EffortLogger(self.model)
 		actionData = [
 			['Build Source', self.BuildSource],
 			['Clean Source', self.CleanSource],
-			['Add Test', self.AddTest],
+			#['Add Test', self.AddTest],
+			['Cls', self.ClearScreen],
+			['Effort Log', effortLogger.ReadEffortLog],
 			['Stop All KLA Apps', self.StopTasks],
 		]
 		UIActionGroup(parent, 0, c, actionData)
@@ -286,19 +304,22 @@ class UIMainMenu:
 	def OpenGitBash(self):
 		Git.OpenGitBash((self.model.GitBin, self.model.Source))
 
+	def ClearScreen(self):
+		OsOperations.Cls()
+
 	def StopTasks(self):
 		AppRunner.StopTasks(True)
 		if self.thread1 is not None:
 			self.thread1._Thread__stop()
 
 	def BuildSource(self):
-		print 'Not implemented in UI. Its available in console.'
+		self.klaSourceBuilder.BuildSource()
 
 	def CleanSource(self):
-		print 'Not implemented in UI. Its available in console.'
+		self.klaSourceBuilder.CleanSource()
 
 	def AddTest(self):
-		print 'Not implemented in UI. Its available in console.'
+		print 'Not implemented in UI. Its available only in console.'
 
 class UIActionGroup:
 	def __init__(self, parent, r, c, actionData):
@@ -569,16 +590,25 @@ class AppRunner:
 			'console.exe',
 			'CIT100Simulator.exe',
 			'HostCamServer.exe',
-			'Ves.exe'
+			'Ves.exe',
 		]:
 			AppRunner.StopTask(exeName)
+		AppRunner.StopTask('python.exe', os.getpid())
 		OsOperations.Pause(doPause)
 
 	@classmethod
-	def StopTask(self, exeName):
-		if OsOperations.GetExeInstanceCount(exeName) > 0:
+	def StopTask(self, exeName, exceptProcId = -1):
+		processIds = OsOperations.GetProcessIds(exeName)
+		if len(processIds) == 0:
+			return
+		if exceptProcId < 0:
 			print exeName
 			OsOperations.Popen([ 'TASKKILL', '/IM', exeName, '/T', '/F' ])
+		else:
+			processIds.remove(exceptProcId)
+			for proId in processIds:
+				print '{} {}'.format(exeName, proId)
+				OsOperations.Popen([ 'TASKKILL', '/PID', str(proId), '/T', '/F' ])
 
 	@classmethod
 	def OpenLocalDif(self, source):
@@ -840,7 +870,8 @@ class KlaSourceBuilder:
 		OsOperations.Pause(self.model.ClearHistory)
 
 	def BuildSource(self):
-		buildLoger = BuildLoger(self.model.LogFileName)
+		logFileName = self.model.StartPath + '/' + self.model.LogFileName
+		buildLoger = BuildLoger(logFileName)
 		for source, branch, config, srcPlatform in self.VerifySources('building'):
 			buildLoger.StartSource(source, branch)
 			for inx,sln in enumerate(self.Solutions):
@@ -1000,17 +1031,17 @@ class OsOperations:
 			os.system('PAUSE')
 
 	@classmethod
-	def GetExeInstanceCount(cls, exeName):
+	def GetProcessIds(cls, exeName):
 		exeName = exeName.lower()
 		params = [ 'TASKLIST', '/FI' ]
 		params.append('IMAGENAME eq {}'.format(exeName))
 		output = subprocess.Popen(params, stdout=subprocess.PIPE).communicate()[0]
-		count = 0
+		processIds = []
 		for line in output.splitlines():
-			line = line.lower()
-			if line[:len(exeName)] == exeName:
-				count += 1
-		return count
+			parts = line.lower().split()
+			if len(parts) > 2 and parts[0] == exeName:
+				processIds.append(int(parts[1]))
+		return processIds
 
 	@classmethod
 	def Timeout(cls, seconds):
@@ -1330,7 +1361,8 @@ class EffortLogger:
 		self.LogFileEncode = 'UTF-16'
 		self.DTFormat = self.model.DateFormat + ' %H:%M:%S'
 		self.ColWidth = 80
-		self.MinTime = timedelta(minutes=1)
+		self.MinMinutes = 3
+		self.MinTime = timedelta(minutes=self.MinMinutes)
 
 	def ReadEffortLog(self):
 		yesterday = datetime.now() - timedelta(days=1)
@@ -1364,7 +1396,8 @@ class EffortLogger:
 				data.append([self.Trim(k, self.ColWidth), v])
 			else:
 				oneMinAppsTime += v
-		data.append(['Other Apps Less Than One Minute', oneMinAppsTime])
+		minAppDesc = 'Other Apps Less Than {} Minute(s)'.format(self.MinMinutes)
+		data.append([minAppDesc, oneMinAppsTime])
 		data = sorted(data, key = lambda x : x[1], reverse=True)
 		menuData = [['Applications On ' + message, 'Time Taken'], ['-']] + data
 		menuData += [['-'], ['Total Time', totalTime]]
