@@ -72,8 +72,8 @@ class UIFactory:
 
 class UI:
 	def __init__(self):
-		self.model = Model()
-		self.model.ReadConfigFile()
+		self.klaRunner = KlaRunner()
+		self.model = self.klaRunner.model
 		OsOperations.RunFromUI = True
 
 	def Run(self):
@@ -87,9 +87,11 @@ class UI:
 		if os.path.exists(iconPath):
 			self.window.iconbitmap(iconPath)
 		#self.window.geometry('750x350')
+		#self.window.resizable(0, 0) # To Disable Max button, Then half screen won't work
+		#self.window.overrideredirect(1) # Remove Window border
 		self.window.protocol("WM_DELETE_WINDOW", self.OnCloseWindow)
 		UIHeader(self.window, 0, 0, self.model)
-		UIMainMenu(self.window, 1, 0, self.model)
+		UIMainMenu(self.window, 1, 0, self.klaRunner)
 		self.window.mainloop()
 
 	def OnCloseWindow(self):
@@ -99,22 +101,28 @@ class UI:
 class UIHeader:
 	def __init__(self, parent, r, c, model):
 		self.model = model
-		frame = UIFactory.AddFrame(parent, r, c, 20, 20)
+		frame = UIFactory.AddFrame(parent, r, c, 20, 0)
 		self.CreateUI(frame)
 
 	def CreateUI(self, parent):
-		self.AddSource(parent, 0, 0)
-		self.AddConfig(parent, 0, 2)
-		self.AddAttachMmi(parent, 0, 4)
+		UIFactory.AddLabel(parent, ' ', 0, 2)
+		UIFactory.AddLabel(parent, ' ', 0, 5)
 
-		self.AddBranch(parent, 1, 0)
-		self.AddPlatform(parent, 1, 2)
-		self.AddCopyMmi(parent, 1, 4)
+		r = 1
+		self.AddSource(parent, r, 0)
+		self.AddConfig(parent, r, 3)
+		self.AddAttachMmi(parent, r, 6)
 
-		self.AddTest(parent, 2, 0)
-		self.AddActiveSrcs(parent, 2, 2)
+		r = 2
+		self.AddBranch(parent, r, 0)
+		self.AddPlatform(parent, r, 3)
+		self.AddCopyMmi(parent, r, 6)
 
-		self.AddSlots(parent, 3, 0)
+		r = 3
+		self.AddTest(parent, r, 0)
+		self.AddActiveSrcs(parent, r, 3)
+
+		self.AddSlots(parent, 4, 0)
 
 	def AddSource(self, parent, r, c):
 		UIFactory.AddLabel(parent, 'Source', r, c)
@@ -122,11 +130,11 @@ class UIHeader:
 		self.cmbSource = UIFactory.AddCombo(parent, srcs, self.model.SrcIndex, r, c+1, self.OnSrcChanged, 70)
 
 	def OnSrcChanged(self, event):
-		self.model.UpdateSource(self.cmbSource[0].current(), False)
-		self.lblBranch[1].set(self.model.Branch)
-		self.cmbConfig[1].set(self.model.Config)
-		self.cmbPltfm[1].set(self.model.Platform)
-		print 'Source Changed to : ' + self.model.Source
+		if self.model.UpdateSource(self.cmbSource[0].current(), False):
+			self.lblBranch[1].set(self.model.Branch)
+			self.cmbConfig[1].set(self.model.Config)
+			self.cmbPltfm[1].set(self.model.Platform)
+			print 'Source Changed to : ' + self.model.Source
 
 	def AddConfig(self, parent, r, c):
 		configInx = ConfigEncoder.Configs.index(self.model.Config)
@@ -134,8 +142,8 @@ class UIHeader:
 		self.cmbConfig = UIFactory.AddCombo(parent, ConfigEncoder.Configs, configInx, r, c+1, self.OnConfigChanged, 10)
 
 	def OnConfigChanged(self, event):
-		self.model.UpdateConfig(self.cmbConfig[0].current())
-		print 'Config Changed to : ' + self.model.Config
+		if self.model.UpdateConfig(self.cmbConfig[0].current()):
+			print 'Config Changed to : ' + self.model.Config
 
 	def AddBranch(self, parent, r, c):
 		UIFactory.AddLabel(parent, 'Branch', r, c)
@@ -147,8 +155,8 @@ class UIHeader:
 		self.cmbPltfm = UIFactory.AddCombo(parent, ConfigEncoder.Platforms, platformInx, r, c+1, self.OnPlatformChanged, 10)
 
 	def OnPlatformChanged(self, event):
-		self.model.UpdatePlatform(self.cmbPltfm[0].current())
-		print 'Platform Changed to : ' + self.model.Platform
+		if self.model.UpdatePlatform(self.cmbPltfm[0].current()):
+			print 'Platform Changed to : ' + self.model.Platform
 
 	def AddTest(self, parent, r, c):
 		UIFactory.AddLabel(parent, 'Test', r, c)
@@ -156,10 +164,10 @@ class UIHeader:
 		self.cmbTest = UIFactory.AddCombo(parent, testNames, self.model.TestIndex, r, c+1, self.OnTestChanged, 70)
 
 	def OnTestChanged(self, event):
-		self.model.UpdateTest(self.cmbTest[0].current(), False)
-		print 'Test Changed to : ' + self.model.TestName
-		for i in range(self.model.MaxSlots):
-			self.chkSlots[i].set((i+1) in self.model.slots)
+		if self.model.UpdateTest(self.cmbTest[0].current(), False):
+			print 'Test Changed to : ' + self.model.TestName
+			for i in range(self.model.MaxSlots):
+				self.chkSlots[i].set((i+1) in self.model.slots)
 
 	def AddAttachMmi(self, parent, r, c):
 		UIFactory.AddLabel(parent, 'Attach MMi', r, c)
@@ -192,7 +200,7 @@ class UIHeader:
 
 	def AddActiveSrcs(self, parent, r, c):
 		UIFactory.AddLabel(parent, 'Sources', r, c)
-		frame = UIFactory.AddFrame(parent, r, c+1, columnspan=3)
+		frame = UIFactory.AddFrame(parent, r, c+1, columnspan=4)
 		self.chkActiveSrcs = []
 		srcs = self.model.ActiveSrcs
 		for i in range(len(self.model.Sources)):
@@ -210,10 +218,10 @@ class UIHeader:
 			print 'Disabled the source : ' + str(self.model.Sources[index][0])
 
 class UIMainMenu:
-	def __init__(self, parent, r, c, model):
-		self.model = model
+	def __init__(self, parent, r, c, klaRunner):
+		self.model = klaRunner.model
 		self.frame = UIFactory.AddFrame(parent, r, c, 20, 20)
-		self.klaRunner = KlaRunner()
+		self.klaRunner = klaRunner
 		self.testRunner = AutoTestRunner(self.model)
 		self.settings = Settings(self.model, self.klaRunner)
 		self.appRunner = AppRunner(self.model, self.testRunner)
@@ -226,6 +234,7 @@ class UIMainMenu:
 		self.AddColumn2(parent, 1)
 		self.AddColumn3(parent, 2)
 		self.AddColumn4(parent, 3)
+		self.AddColumn5(parent, 4)
 
 	def AddColumn1(self, parent, c):
 		actionData = [
@@ -236,7 +245,6 @@ class UIMainMenu:
 			['Run Handler alone', self.appRunner.RunHandler],
 			['Run MMi from Source', self.appRunner.RunMMi, True],
 			['Run MMi from C:Icos', self.appRunner.RunMMi, False],
-			['Run ToolLink Host', self.appRunner.RunToollinkHost],
 		]
 		self.Col1 = UIActionGroup(parent, 0, c, actionData)
 
@@ -274,6 +282,13 @@ class UIMainMenu:
 			['Open Local Diff', self.OpenLocalDif],
 			['Open Git GUI', self.OpenGitGui],
 			['Open Git Bash', self.OpenGitBash],
+		]
+		UIActionGroup(parent, 0, c, actionData)
+
+	def AddColumn4(self, parent, c):
+		actionData = [
+			['Run Slots', self.RunSlots],
+			['Run ToolLink Host', self.appRunner.RunToollinkHost],
 			['Comment VisionSystem', self.testRunner.ModifyVisionSystem],
 			['Copy Mock License', self.testRunner.CopyMockLicense],
 			['Copy xPort xml', self.testRunner.CopyIllumRef],
@@ -281,7 +296,10 @@ class UIMainMenu:
 		]
 		UIActionGroup(parent, 0, c, actionData)
 
-	def AddColumn4(self, parent, c):
+	def RunSlots(self):
+		VMWareRunner.RunSlots(self.model)
+
+	def AddColumn5(self, parent, c):
 		sourceBuilder = self.klaSourceBuilder
 		settings = self.settings
 		effortLogger = EffortLogger(self.model)
@@ -332,7 +350,8 @@ class UIActionGroup:
 	def CreateUI(self, parent):
 		for inx,item in enumerate(self.actionData):
 			arg = item[2] if len(item) > 2 else None
-			self.Buttons.append(UIFactory.AddButton(parent, item[0], inx, 0, item[1], arg, 20))
+			but = UIFactory.AddButton(parent, item[0], inx, 0, item[1], arg, 19)
+			self.Buttons.append(but)
 
 class Menu:
 	def __init__(self, klaRunner, model):
@@ -537,7 +556,7 @@ class AppRunner:
 
 	def RunMMi(self, fromSrc, doPause = True):
 		self.StopTask('MMi.exe')
-		VMWareRunner.RunSlots(self.model.VMwareWS, self.model.slots)
+		VMWareRunner.RunSlots(self.model)
 
 		mmiPath = self.testRunner.CopyMockLicense(fromSrc, False)
 		self.testRunner.CopyIllumRef()
@@ -587,6 +606,7 @@ class AppRunner:
 	def StopTasks(self, doPause):
 		for exeName in [
 			'Mmi.exe',
+			'Mmi_spc.exe',
 			'console.exe',
 			'CIT100Simulator.exe',
 			'HostCamServer.exe',
@@ -602,12 +622,12 @@ class AppRunner:
 		if len(processIds) == 0:
 			return
 		if exceptProcId < 0:
-			print exeName
+			print '{} Process IDs : {}'.format(exeName, processIds)
 			OsOperations.Popen([ 'TASKKILL', '/IM', exeName, '/T', '/F' ])
 		else:
 			processIds.remove(exceptProcId)
+			print '{} Process IDs : {}'.format(exeName, processIds)
 			for proId in processIds:
-				print '{} {}'.format(exeName, proId)
 				OsOperations.Popen([ 'TASKKILL', '/PID', str(proId), '/T', '/F' ])
 
 	@classmethod
@@ -619,7 +639,9 @@ class AppRunner:
 
 class VMWareRunner:
 	@classmethod
-	def RunSlots(self, vMwareWS, slots):
+	def RunSlots(self, model):
+		vMwareWS = model.VMwareWS
+		slots = model.slots
 		vmRunExe = vMwareWS + "vmrun.exe"
 		vmWareExe = vMwareWS + "vmware.exe"
 		vmxGenericPath = r'C:\\MVS8000\\slot{}\\MVS8000_stage2.vmx'
@@ -640,7 +662,7 @@ class VMWareRunner:
 			else:
 				subprocess.Popen([vmWareExe, vmxPath])
 				print 'Start VMware Slot ' + str(slot)
-				OsOperations.Pause()
+				os.system('PAUSE')
 				print 'VMware Slot ' + str(slot) + ' : Started.'
 
 class AutoTestRunner:
@@ -687,7 +709,7 @@ class AutoTestRunner:
 
 	def RunAutoTestAsync(self, startUp):
 		AppRunner.StopTasks(False)
-		VMWareRunner.RunSlots(self.model.VMwareWS, self.model.slots)
+		VMWareRunner.RunSlots(self.model)
 		self.ModifyVisionSystem(False)
 		self.CopyIllumRef(False, True)
 		#FileOperations.Copy(self.model.StartPath + '/Profiles', 'C:/icos/Profiles', 8, 3)
@@ -1529,6 +1551,8 @@ class Model:
 		self.StartPath = os.path.dirname(os.path.abspath(__file__))
 		self.fileName = self.StartPath + '\\KlaRunner.ini'
 
+		self.SrcIndex = -1
+		self.TestIndex = -1
 		self.Source = ''
 		self.Branch = ''
 		self.TestName = ''
@@ -1541,10 +1565,11 @@ class Model:
 			_model = json.load(f)
 
 		self.Sources = [ConfigEncoder.DecodeSource(item) for item in _model['Sources']]
-		self.SrcIndex = _model['SrcIndex']
-		self.ActiveSrcs = _model['ActiveSrcs']
+		self.UpdateSource(_model['SrcIndex'], False)
 		self.Tests = _model['Tests']
-		self.TestIndex = _model['TestIndex']
+		if not self.UpdateTest(_model['TestIndex'], False):
+			self.TestIndex = 0
+		self.ActiveSrcs = _model['ActiveSrcs']
 		self.VisualStudioBuild = _model['VisualStudioBuild']
 		self.VisualStudioRun = _model['VisualStudioRun']
 		self.GitBin = _model['GitBin']
@@ -1560,9 +1585,6 @@ class Model:
 		self.MenuColCnt = _model['MenuColCnt']
 		self.MaxSlots = _model['MaxSlots']
 		self.ClearHistory = _model['ClearHistory']
-
-		self.UpdateSource(self.SrcIndex, False)
-		self.UpdateTest(self.TestIndex, False)
 
 	def WriteConfigFile(self):
 		_model = OrderedDict()
@@ -1592,32 +1614,46 @@ class Model:
 
 	def UpdateSource(self, index, writeToFile):
 		if index < 0 or index >= len(self.Sources):
-			return
+			return False
+		if self.SrcIndex == index:
+			return False
 		self.SrcIndex = index
 		self.Source, self.Config, self.Platform = self.Sources[self.SrcIndex]
 		self.Branch = Git.GetBranch(self.Source)
 		if writeToFile:
 			self.WriteConfigFile()
+		return True
 
 	def UpdateTest(self, index, writeToFile):
 		if index < 0 or index >= len(self.Tests):
-			return
+			return False
+		if self.TestIndex == index:
+			return False
 		self.TestIndex = index
 		self.TestName, self.slots = TestNameEncoer.Encode(self.Tests[self.TestIndex])
 		if writeToFile:
 			self.WriteConfigFile()
+		return True
 
 	def UpdateConfig(self, index):
 		if index < 0 or index >= len(ConfigEncoder.Configs):
-			return
-		self.Config = ConfigEncoder.Configs[index]
+			return False
+		newConfig = ConfigEncoder.Configs[index]
+		if self.Config == newConfig:
+			return False
+		self.Config = newConfig
 		self.Sources[self.SrcIndex] = self.Source, self.Config, self.Platform
+		return True
 
 	def UpdatePlatform(self, index):
 		if index < 0 or index >= len(ConfigEncoder.Platforms):
-			return
-		self.Platform = ConfigEncoder.Platforms[index]
+			return False
+		newPlatform = ConfigEncoder.Platforms[index]
+		if self.Platform == newPlatform:
+			return False
+		self.Platform = newPlatform
 		self.Sources[self.SrcIndex] = self.Source, self.Config, self.Platform
+		return True
 
 	def UpdateSlots(self, index, isSelected):
 		slotNum = index + 1
