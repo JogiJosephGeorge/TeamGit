@@ -304,10 +304,10 @@ class UIMainMenu:
 		settings = self.settings
 		effortLogger = EffortLogger(self.model)
 		actionData = [
-			['Build Source', self.BuildSource],
 			['Clean Source', self.CleanSource],
+			['Build Source', self.BuildSource],
 			#['Add Test', self.AddTest],
-			['Cls', self.ClearScreen],
+			['Clear Screen', self.ClearScreen],
 			['Effort Log', effortLogger.ReadEffortLog],
 			['Stop All KLA Apps', self.StopTasks],
 		]
@@ -555,9 +555,13 @@ class AppRunner:
 		OsOperations.Pause(doPause and self.model.ClearHistory)
 
 	def RunMMi(self, fromSrc, doPause = True):
+		# Set correct path to C:\Windows\mmi_han.ini
+
 		self.StopTask('MMi.exe')
 		VMWareRunner.RunSlots(self.model)
 
+		if fromSrc:
+			self.testRunner.CopyMockLicense(False, False) # Do we need this
 		mmiPath = self.testRunner.CopyMockLicense(fromSrc, False)
 		self.testRunner.CopyIllumRef()
 
@@ -619,14 +623,14 @@ class AppRunner:
 	@classmethod
 	def StopTask(self, exeName, exceptProcId = -1):
 		processIds = OsOperations.GetProcessIds(exeName)
+		if exceptProcId > 0:
+			processIds.remove(exceptProcId)
 		if len(processIds) == 0:
 			return
+		print '{} Process IDs : {}'.format(exeName, processIds)
 		if exceptProcId < 0:
-			print '{} Process IDs : {}'.format(exeName, processIds)
 			OsOperations.Popen([ 'TASKKILL', '/IM', exeName, '/T', '/F' ])
 		else:
-			processIds.remove(exceptProcId)
-			print '{} Process IDs : {}'.format(exeName, processIds)
 			for proId in processIds:
 				OsOperations.Popen([ 'TASKKILL', '/PID', str(proId), '/T', '/F' ])
 
@@ -702,9 +706,9 @@ class AutoTestRunner:
 			newText = oldText.replace(oldLine, newLine)
 			with open(fileName, "w") as f:
 				f.write(newText)
-			print 'VisionSystem.py has been modified.'
+			print fileName + ' has been modified.'
 		else:
-			print 'VisionSystem.py had already been modified.'
+			print fileName + ' had already been modified.'
 		OsOperations.Pause(doPause and self.model.ClearHistory)
 
 	def RunAutoTestAsync(self, startUp):
@@ -1399,6 +1403,8 @@ class EffortLogger:
 		lastDt = None
 		totalTime = timedelta()
 		for line in FileOperations.ReadLine(logFile, self.LogFileEncode):
+			if line[:7] == 'Current':
+				continue
 			lineParts = self.FormatText(line).split('$')
 			if len(lineParts) > 2:
 				dt = datetime.strptime(lineParts[0], self.DTFormat)
