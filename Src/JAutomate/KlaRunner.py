@@ -65,9 +65,9 @@ class UIFactory:
 		return chkValue
 
 	@classmethod
-	def AddFrame(cls, parent, r, c, px = 0, py = 0, columnspan=1):
+	def AddFrame(cls, parent, r, c, px = 0, py = 0, columnspan=1, sticky='w'):
 		frame = ttk.Frame(parent)
-		frame.grid(row=r, column=c, sticky='w', padx=px, pady=py, columnspan=columnspan)
+		frame.grid(row=r, column=c, sticky=sticky, padx=px, pady=py, columnspan=columnspan)
 		return frame
 
 class UI:
@@ -102,32 +102,37 @@ class UIHeader:
 	def __init__(self, parent, r, c, model):
 		self.model = model
 		frame = UIFactory.AddFrame(parent, r, c, 20, 0)
+		self.Row = 0
 		self.CreateUI(frame)
 
+	def AddRow(self):
+		self.Row += 1
+
 	def CreateUI(self, parent):
-		UIFactory.AddLabel(parent, ' ', 0, 2)
-		UIFactory.AddLabel(parent, ' ', 0, 5)
+		UIFactory.AddLabel(parent, ' ', self.Row, 2)
+		UIFactory.AddLabel(parent, ' ', self.Row, 5)
 
-		r = 1
-		self.AddSource(parent, r, 0)
-		self.AddConfig(parent, r, 3)
-		self.AddAttachMmi(parent, r, 6)
+		self.AddRow()
+		self.AddSource(parent, 0)
+		self.AddConfig(parent, 3)
+		self.AddAttachMmi(parent, 6)
 
-		r = 2
-		self.AddBranch(parent, r, 0)
-		self.AddPlatform(parent, r, 3)
-		self.AddCopyMmi(parent, r, 6)
+		self.AddRow()
+		self.AddBranch(parent, 0)
+		self.AddPlatform(parent, 3)
+		self.AddCopyMmi(parent, 6)
 
-		r = 3
-		self.AddTest(parent, r, 0)
-		self.AddActiveSrcs(parent, r, 3)
+		self.AddRow()
+		self.AddTest(parent, 0)
+		self.AddActiveSrcs(parent, 3)
 
-		self.AddSlots(parent, 4, 0)
+		self.AddRow()
+		self.AddSlots(parent, 0)
 
-	def AddSource(self, parent, r, c):
-		UIFactory.AddLabel(parent, 'Source', r, c)
+	def AddSource(self, parent, c):
+		UIFactory.AddLabel(parent, 'Source', self.Row, c)
 		srcs = [src[0] for src in self.model.Sources]
-		self.cmbSource = UIFactory.AddCombo(parent, srcs, self.model.SrcIndex, r, c+1, self.OnSrcChanged, 70)
+		self.cmbSource = UIFactory.AddCombo(parent, srcs, self.model.SrcIndex, self.Row, c+1, self.OnSrcChanged, 70)
 
 	def OnSrcChanged(self, event):
 		if self.model.UpdateSource(self.cmbSource[0].current(), False):
@@ -136,32 +141,32 @@ class UIHeader:
 			self.cmbPltfm[1].set(self.model.Platform)
 			print 'Source Changed to : ' + self.model.Source
 
-	def AddConfig(self, parent, r, c):
+	def AddConfig(self, parent, c):
 		configInx = ConfigEncoder.Configs.index(self.model.Config)
-		UIFactory.AddLabel(parent, 'Config', r, c)
-		self.cmbConfig = UIFactory.AddCombo(parent, ConfigEncoder.Configs, configInx, r, c+1, self.OnConfigChanged, 10)
+		UIFactory.AddLabel(parent, 'Config', self.Row, c)
+		self.cmbConfig = UIFactory.AddCombo(parent, ConfigEncoder.Configs, configInx, self.Row, c+1, self.OnConfigChanged, 10)
 
 	def OnConfigChanged(self, event):
 		if self.model.UpdateConfig(self.cmbConfig[0].current()):
 			print 'Config Changed to : ' + self.model.Config
 
-	def AddBranch(self, parent, r, c):
-		UIFactory.AddLabel(parent, 'Branch', r, c)
-		self.lblBranch = UIFactory.AddLabel(parent, self.model.Branch, r, c+1)
+	def AddBranch(self, parent, c):
+		UIFactory.AddLabel(parent, 'Branch', self.Row, c)
+		self.lblBranch = UIFactory.AddLabel(parent, self.model.Branch, self.Row, c+1)
 
-	def AddPlatform(self, parent, r, c):
+	def AddPlatform(self, parent, c):
 		platformInx = ConfigEncoder.Platforms.index(self.model.Platform)
-		UIFactory.AddLabel(parent, 'Platform', r, c)
-		self.cmbPltfm = UIFactory.AddCombo(parent, ConfigEncoder.Platforms, platformInx, r, c+1, self.OnPlatformChanged, 10)
+		UIFactory.AddLabel(parent, 'Platform', self.Row, c)
+		self.cmbPltfm = UIFactory.AddCombo(parent, ConfigEncoder.Platforms, platformInx, self.Row, c+1, self.OnPlatformChanged, 10)
 
 	def OnPlatformChanged(self, event):
 		if self.model.UpdatePlatform(self.cmbPltfm[0].current()):
 			print 'Platform Changed to : ' + self.model.Platform
 
-	def AddTest(self, parent, r, c):
-		UIFactory.AddLabel(parent, 'Test', r, c)
+	def AddTest(self, parent, c):
+		UIFactory.AddLabel(parent, 'Test', self.Row, c)
 		testNames = [TestNameEncoer.Encode(item)[0] for item in self.model.Tests]
-		self.cmbTest = UIFactory.AddCombo(parent, testNames, self.model.TestIndex, r, c+1, self.OnTestChanged, 70)
+		self.cmbTest = UIFactory.AddCombo(parent, testNames, self.model.TestIndex, self.Row, c+1, self.OnTestChanged, 70)
 
 	def OnTestChanged(self, event):
 		if self.model.UpdateTest(self.cmbTest[0].current(), False):
@@ -169,25 +174,25 @@ class UIHeader:
 			for i in range(self.model.MaxSlots):
 				self.chkSlots[i].set((i+1) in self.model.slots)
 
-	def AddAttachMmi(self, parent, r, c):
-		UIFactory.AddLabel(parent, 'Attach MMi', r, c)
-		self.chkAttachMmi = UIFactory.AddCheckBox(parent, self.model.DebugVision, r, c+1, self.OnAttach)
+	def AddAttachMmi(self, parent, c):
+		UIFactory.AddLabel(parent, 'Attach MMi', self.Row, c)
+		self.chkAttachMmi = UIFactory.AddCheckBox(parent, self.model.DebugVision, self.Row, c+1, self.OnAttach)
 
 	def OnAttach(self):
 		self.model.DebugVision = self.chkAttachMmi.get()
 		print 'Attach to MMi : ' + ('Yes' if self.model.DebugVision else 'No')
 
-	def AddCopyMmi(self, parent, r, c):
-		UIFactory.AddLabel(parent, 'Copy MMI to Icos', r, c)
-		self.chkCopyMmi = UIFactory.AddCheckBox(parent, self.model.CopyMmi, r, c+1, self.OnCopyMmi)
+	def AddCopyMmi(self, parent, c):
+		UIFactory.AddLabel(parent, 'Copy MMI to Icos', self.Row, c)
+		self.chkCopyMmi = UIFactory.AddCheckBox(parent, self.model.CopyMmi, self.Row, c+1, self.OnCopyMmi)
 
 	def OnCopyMmi(self):
 		self.model.CopyMmi = self.chkCopyMmi.get()
 		print 'Copy MMI to ICOS : ' + str(self.chkCopyMmi.get())
 
-	def AddSlots(self, parent, r, c):
-		UIFactory.AddLabel(parent, 'Slots', r, c)
-		frame = UIFactory.AddFrame(parent, r, c+1, columnspan=5)
+	def AddSlots(self, parent, c):
+		UIFactory.AddLabel(parent, 'Slots', self.Row, c)
+		frame = UIFactory.AddFrame(parent, self.Row, c+1, columnspan=5)
 		self.chkSlots = []
 		for i in range(self.model.MaxSlots):
 			isSelected = (i+1) in self.model.slots
@@ -198,9 +203,9 @@ class UIHeader:
 		self.model.UpdateSlots(index, self.chkSlots[index].get())
 		print 'Slots for the current test : ' + str(self.model.slots)
 
-	def AddActiveSrcs(self, parent, r, c):
-		UIFactory.AddLabel(parent, 'Sources', r, c)
-		frame = UIFactory.AddFrame(parent, r, c+1, columnspan=4)
+	def AddActiveSrcs(self, parent, c):
+		UIFactory.AddLabel(parent, 'Sources', self.Row, c)
+		frame = UIFactory.AddFrame(parent, self.Row, c+1, columnspan=4)
 		self.chkActiveSrcs = []
 		srcs = self.model.ActiveSrcs
 		for i in range(len(self.model.Sources)):
@@ -253,110 +258,80 @@ class UIMainMenu:
 		self.appRunner = AppRunner(self.model, self.testRunner)
 		self.klaSourceBuilder = KlaSourceBuilder(self.model, self.klaRunner)
 		self.threadHandler = ThreadHandler()
-		self.buttons = {}
+		self.Col = 0
 		self.CreateUI(self.frame)
-		self.lblRunTest = 'Run test'
-		self.lblStartTest = 'Start test'
 
 	def CreateUI(self, parent):
-		funcs = [
-			self.AddColumn1,
-			self.AddColumn2,
-			self.AddColumn3,
-			self.AddColumn4,
-			self.AddColumn5,
-		]
-		for i in range(len(funcs)):
-			uiActionGroup = funcs[i](parent, i)
-			for but in uiActionGroup.Buttons:
-				self.threadHandler.AddButton(but)
+		self.AddColumn1(parent)
+		self.AddColumn2(parent)
+		self.AddColumn3(parent)
+		self.AddColumn4(parent)
+		self.AddColumn5(parent)
 
-	def AddColumn1(self, parent, c):
-		actionData = [
-			['Open Python', self.klaRunner.OpenPython],
-			[self.lblRunTest, self.RunAutoTest, False],
-			[self.lblStartTest, self.RunAutoTest, True],
-			['Run Handler and MMi', self.appRunner.RunHandlerMMi],
-			['Run Handler alone', self.appRunner.RunHandler],
-			['Run MMi from Source', self.appRunner.RunMMi, True],
-			['Run MMi from C:Icos', self.appRunner.RunMMi, False],
-		]
-		return UIActionGroup(parent, 0, c, actionData)
+	def AddColumn1(self, parent):
+		self.CreateColumnFrame(parent)
+		self.AddButton('Open Python', self.klaRunner.OpenPython)
+		self.AddParallelButton('Run test', self.testRunner.RunAutoTest, (False,))
+		self.AddParallelButton('Start test', self.testRunner.RunAutoTest, (True,))
+		self.AddButton('Run Handler and MMi', self.appRunner.RunHandlerMMi)
+		self.AddButton('Run Handler alone', self.appRunner.RunHandler)
+		self.AddButton('Run MMi from Source', self.appRunner.RunMMi, True)
+		self.AddButton('Run MMi from C:Icos', self.appRunner.RunMMi, False)
 
-	def RunAutoTest(self, startOnly):
-		name = self.lblStartTest if startOnly else self.lblRunTest
-		self.threadHandler.Start(name,
-			self.testRunner.RunAutoTest,
-			(startOnly,))
-
-	def AddColumn2(self, parent, c):
+	def AddColumn2(self, parent):
 		sourceBuilder = self.klaSourceBuilder
-		actionData = [
-			['Open CIT100', sourceBuilder.OpenSolution, 0],
-			['Open Simulator', sourceBuilder.OpenSolution, 1],
-			['Open Mmi', sourceBuilder.OpenSolution, 2],
-			['Open MockLicense', sourceBuilder.OpenSolution, 3],
-			['Open Converters', sourceBuilder.OpenSolution, 4],
-		]
-		return UIActionGroup(parent, 0, c, actionData)
+		self.CreateColumnFrame(parent)
+		self.AddButton('Open CIT100', sourceBuilder.OpenSolution, 0)
+		self.AddButton('Open Simulator', sourceBuilder.OpenSolution, 1)
+		self.AddButton('Open Mmi', sourceBuilder.OpenSolution, 2)
+		self.AddButton('Open MockLicense', sourceBuilder.OpenSolution, 3)
+		self.AddButton('Open Converters', sourceBuilder.OpenSolution, 4)
 
-	def AddColumn3(self, parent, c):
-		actionData = [
-			['Open Test Folder', self.klaRunner.OpenTestFolder],
-			['Open Local Diff', AppRunner.OpenLocalDif, self.model],
-			['Open Git GUI', Git.OpenGitGui, self.model],
-			['Open Git Bash', Git.OpenGitBash, self.model],
-		]
-		return UIActionGroup(parent, 0, c, actionData)
+	def AddColumn3(self, parent):
+		self.CreateColumnFrame(parent)
+		self.AddButton('Open Test Folder', self.klaRunner.OpenTestFolder)
+		self.AddButton('Open Local Diff', AppRunner.OpenLocalDif, self.model)
+		self.AddButton('Open Git GUI', Git.OpenGitGui, self.model)
+		self.AddButton('Open Git Bash', Git.OpenGitBash, self.model)
 
-	def AddColumn4(self, parent, c):
-		actionData = [
-			['Run Slots', self.RunSlots],
-			['Run ToolLink Host', self.appRunner.RunToollinkHost],
-			['Comment VisionSystem', self.testRunner.ModifyVisionSystem],
-			['Copy Mock License', self.testRunner.CopyMockLicense],
-			['Copy xPort xml', self.testRunner.CopyIllumRef],
-			['Print mmi.h IDs', self.klaRunner.PrintMissingIds],
-		]
-		return UIActionGroup(parent, 0, c, actionData)
+	def AddColumn4(self, parent):
+		self.CreateColumnFrame(parent)
+		self.AddParallelButton('Run Slots', VMWareRunner.RunSlots, (self.model,))
+		self.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
+		self.AddButton('Comment VisionSystem', self.testRunner.ModifyVisionSystem)
+		self.AddButton('Copy Mock License', self.testRunner.CopyMockLicense)
+		self.AddButton('Copy xPort xml', self.testRunner.CopyIllumRef)
+		self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
 
-	def RunSlots(self):
-		self.threadHandler.Start('Run Slots',
-			VMWareRunner.RunSlots,
-			(self.model,))
-
-	def AddColumn5(self, parent, c):
+	def AddColumn5(self, parent):
 		sourceBuilder = self.klaSourceBuilder
 		settings = self.settings
 		effortLogger = EffortLogger(self.model)
-		actionData = [
-			['Clean Source', self.CleanSource],
-			['Build Source', self.BuildSource],
-			['Clear Screen', OsOperations.Cls],
-			['Effort Log', effortLogger.ReadEffortLog],
-			['Stop All KLA Apps', AppRunner.StopTasks, True],
-		]
-		return UIActionGroup(parent, 0, c, actionData)
+		self.CreateColumnFrame(parent)
+		self.AddParallelButton('Clean Source', self.klaSourceBuilder.CleanSource)
+		self.AddParallelButton('Build Source', self.klaSourceBuilder.BuildSource)
+		self.AddButton('Clear Screen', OsOperations.Cls)
+		self.AddButton('Effort Log', effortLogger.ReadEffortLog)
+		self.AddButton('Stop All KLA Apps', AppRunner.StopTasks, True)
 
-	def CleanSource(self):
-		self.threadHandler.Start('Clean Source', self.klaSourceBuilder.CleanSource)
+	def CreateColumnFrame(self, parent):
+		self.ColFrame = UIFactory.AddFrame(parent, 0, self.Col, sticky='n')
+		self.Col += 1
+		self.ColInx = 0
 
-	def BuildSource(self):
-		self.threadHandler.Start('Build Source', self.klaSourceBuilder.BuildSource)
+	def AddParallelButton(self, label, funPnt, arg = None):
+		args = (label, funPnt, arg)
+		but = UIFactory.AddButton(self.ColFrame, label, self.ColInx, 0, self.CallAsync, args, 19)
+		self.threadHandler.AddButton(but)
+		self.ColInx += 1
 
-class UIActionGroup:
-	def __init__(self, parent, r, c, actionData):
-		self.Buttons = []
-		self.actionData = actionData
-		self.frame = ttk.Frame(parent)
-		self.frame.grid(row=r, column=c, sticky='n')
-		self.CreateUI(self.frame)
+	def CallAsync(self, args):
+		self.threadHandler.Start(*args)
 
-	def CreateUI(self, parent):
-		for inx,item in enumerate(self.actionData):
-			arg = item[2] if len(item) > 2 else None
-			but = UIFactory.AddButton(parent, item[0], inx, 0, item[1], arg, 19)
-			self.Buttons.append(but)
+	def AddButton(self, label, funPnt, arg = None):
+		but = UIFactory.AddButton(self.ColFrame, label, self.ColInx, 0, funPnt, arg, 19)
+		self.threadHandler.AddButton(but)
+		self.ColInx += 1
 
 class Menu:
 	def __init__(self, klaRunner, model):
