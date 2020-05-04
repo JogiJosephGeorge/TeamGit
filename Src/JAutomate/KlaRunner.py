@@ -196,7 +196,7 @@ class UIHeader:
 
 	def OnSlotChn(self, index):
 		self.model.UpdateSlots(index, self.chkSlots[index].get())
-		print 'Selected slots for the current test : ' + str(self.model.slots)
+		print 'Slots for the current test : ' + str(self.model.slots)
 
 	def AddActiveSrcs(self, parent, r, c):
 		UIFactory.AddLabel(parent, 'Sources', r, c)
@@ -217,6 +217,32 @@ class UIHeader:
 			self.model.ActiveSrcs.remove(index)
 			print 'Disabled the source : ' + str(self.model.Sources[index][0])
 
+class ThreadHandler:
+	def __init__(self):
+		self.threads = {}
+		self.Buttons = {}
+
+	def Start(self, name, funPnt, args = None):
+		if args is None:
+			self.threads[name] = threading.Thread(target=funPnt)
+		else:
+			self.threads[name] = threading.Thread(target=funPnt, args=args)
+		self.threads[name].start()
+		self.Buttons[name].config(background='red')
+		threading.Thread(target=self.WaitForThread, args=(name,)).start()
+
+	def WaitForThread(self, name):
+		self.threads[name].join()
+		self.Buttons[name].config(background='SystemButtonFace')
+		del self.threads[name]
+
+	def AddButton(self, but):
+		name = self.GetButtonName(but)
+		self.Buttons[name] = but
+
+	def GetButtonName(self, but):
+		return ' '.join(but.config('text')[-1])
+
 class UIMainMenu:
 	def __init__(self, parent, r, c, klaRunner):
 		self.model = klaRunner.model
@@ -226,44 +252,42 @@ class UIMainMenu:
 		self.settings = Settings(self.model, self.klaRunner)
 		self.appRunner = AppRunner(self.model, self.testRunner)
 		self.klaSourceBuilder = KlaSourceBuilder(self.model, self.klaRunner)
+		self.threadHandler = ThreadHandler()
+		self.buttons = {}
 		self.CreateUI(self.frame)
-		self.thread1 = None
+		self.lblRunTest = 'Run test'
+		self.lblStartTest = 'Start test'
 
 	def CreateUI(self, parent):
-		self.AddColumn1(parent, 0)
-		self.AddColumn2(parent, 1)
-		self.AddColumn3(parent, 2)
-		self.AddColumn4(parent, 3)
-		self.AddColumn5(parent, 4)
+		funcs = [
+			self.AddColumn1,
+			self.AddColumn2,
+			self.AddColumn3,
+			self.AddColumn4,
+			self.AddColumn5,
+		]
+		for i in range(len(funcs)):
+			uiActionGroup = funcs[i](parent, i)
+			for but in uiActionGroup.Buttons:
+				self.threadHandler.AddButton(but)
 
 	def AddColumn1(self, parent, c):
 		actionData = [
 			['Open Python', self.klaRunner.OpenPython],
-			['Run test', self.RunAutoTest, False],
-			['Start test', self.RunAutoTest, True],
+			[self.lblRunTest, self.RunAutoTest, False],
+			[self.lblStartTest, self.RunAutoTest, True],
 			['Run Handler and MMi', self.appRunner.RunHandlerMMi],
 			['Run Handler alone', self.appRunner.RunHandler],
 			['Run MMi from Source', self.appRunner.RunMMi, True],
 			['Run MMi from C:Icos', self.appRunner.RunMMi, False],
 		]
-		self.Col1 = UIActionGroup(parent, 0, c, actionData)
+		return UIActionGroup(parent, 0, c, actionData)
 
 	def RunAutoTest(self, startOnly):
-		index = 2 if startOnly else 1
-		self.thread1 = self.testRunner.RunAutoTestAsync(startOnly)
-		if not startOnly:
-			self.SetActiveButton(self.Col1.Buttons[index])
-
-	def SetActiveButton(self, but):
-		but.config(background='red')
-		self.ActiveButton = but
-		threading.Thread(target=self.WaitForThread).start()
-
-	def WaitForThread(self):
-		if self.thread1:
-			self.thread1.join()
-		if self.ActiveButton:
-			self.ActiveButton.config(background='SystemButtonFace')
+		name = self.lblStartTest if startOnly else self.lblRunTest
+		self.threadHandler.Start(name,
+			self.testRunner.RunAutoTest,
+			(startOnly,))
 
 	def AddColumn2(self, parent, c):
 		sourceBuilder = self.klaSourceBuilder
@@ -274,16 +298,16 @@ class UIMainMenu:
 			['Open MockLicense', sourceBuilder.OpenSolution, 3],
 			['Open Converters', sourceBuilder.OpenSolution, 4],
 		]
-		UIActionGroup(parent, 0, c, actionData)
+		return UIActionGroup(parent, 0, c, actionData)
 
 	def AddColumn3(self, parent, c):
 		actionData = [
 			['Open Test Folder', self.klaRunner.OpenTestFolder],
-			['Open Local Diff', self.OpenLocalDif],
-			['Open Git GUI', self.OpenGitGui],
-			['Open Git Bash', self.OpenGitBash],
+			['Open Local Diff', AppRunner.OpenLocalDif, self.model],
+			['Open Git GUI', Git.OpenGitGui, self.model],
+			['Open Git Bash', Git.OpenGitBash, self.model],
 		]
-		UIActionGroup(parent, 0, c, actionData)
+		return UIActionGroup(parent, 0, c, actionData)
 
 	def AddColumn4(self, parent, c):
 		actionData = [
@@ -294,10 +318,12 @@ class UIMainMenu:
 			['Copy xPort xml', self.testRunner.CopyIllumRef],
 			['Print mmi.h IDs', self.klaRunner.PrintMissingIds],
 		]
-		UIActionGroup(parent, 0, c, actionData)
+		return UIActionGroup(parent, 0, c, actionData)
 
 	def RunSlots(self):
-		VMWareRunner.RunSlots(self.model)
+		self.threadHandler.Start('Run Slots',
+			VMWareRunner.RunSlots,
+			(self.model,))
 
 	def AddColumn5(self, parent, c):
 		sourceBuilder = self.klaSourceBuilder
@@ -306,38 +332,17 @@ class UIMainMenu:
 		actionData = [
 			['Clean Source', self.CleanSource],
 			['Build Source', self.BuildSource],
-			#['Add Test', self.AddTest],
-			['Clear Screen', self.ClearScreen],
+			['Clear Screen', OsOperations.Cls],
 			['Effort Log', effortLogger.ReadEffortLog],
-			['Stop All KLA Apps', self.StopTasks],
+			['Stop All KLA Apps', AppRunner.StopTasks, True],
 		]
-		UIActionGroup(parent, 0, c, actionData)
-
-	def OpenLocalDif(self):
-		AppRunner.OpenLocalDif(self.model.Source)
-
-	def OpenGitGui(self):
-		Git.OpenGitGui(self.model.Source)
-
-	def OpenGitBash(self):
-		Git.OpenGitBash((self.model.GitBin, self.model.Source))
-
-	def ClearScreen(self):
-		OsOperations.Cls()
-
-	def StopTasks(self):
-		AppRunner.StopTasks(True)
-		if self.thread1 is not None:
-			self.thread1._Thread__stop()
-
-	def BuildSource(self):
-		self.klaSourceBuilder.BuildSource()
+		return UIActionGroup(parent, 0, c, actionData)
 
 	def CleanSource(self):
-		self.klaSourceBuilder.CleanSource()
+		self.threadHandler.Start('Clean Source', self.klaSourceBuilder.CleanSource)
 
-	def AddTest(self):
-		print 'Not implemented in UI. Its available only in console.'
+	def BuildSource(self):
+		self.threadHandler.Start('Build Source', self.klaSourceBuilder.BuildSource)
 
 class UIActionGroup:
 	def __init__(self, parent, r, c, actionData):
@@ -380,8 +385,8 @@ class Menu:
 		group = [
 		[
 			[1, ['Open Python', self.klaRunner.OpenPython]],
-			[2, ['Run test' + autoTest, testRunner.RunAutoTestAsync, False]],
-			[3, ['Start test' + autoTest, testRunner.RunAutoTestAsync, True]],
+			[2, ['Run test' + autoTest, testRunner.RunAutoTest, False]],
+			[3, ['Start test' + autoTest, testRunner.RunAutoTest, True]],
 			[4, ['Run Handler and MMi', self.appRunner.RunHandlerMMi]],
 			[5, ['Run Handler alone', self.appRunner.RunHandler]],
 			[6, ['Run MMi from Source', self.appRunner.RunMMi, True]],
@@ -396,9 +401,9 @@ class Menu:
 			[15, ['Open Converters', sourceBuilder.OpenSolution, 4]],
 		],[
 			[20, ['Open Test Folder', self.klaRunner.OpenTestFolder]],
-			[21, ['Open Local Diff', AppRunner.OpenLocalDif, model.Source]],
-			[22, ['Open Git GUI', Git.OpenGitGui, model.Source]],
-			[23, ['Open Git Bash', Git.OpenGitBash, (model.GitBin, model.Source)]],
+			[21, ['Open Local Diff', AppRunner.OpenLocalDif, model]],
+			[22, ['Open Git GUI', Git.OpenGitGui, model]],
+			[23, ['Open Git Bash', Git.OpenGitBash, model]],
 			[24, ['Comment VisionSystem', testRunner.ModifyVisionSystem]],
 			[25, ['Copy Mock License', testRunner.CopyMockLicense]],
 			[26, ['Copy xPort xml', testRunner.CopyIllumRef, model.ClearHistory]],
@@ -635,8 +640,8 @@ class AppRunner:
 				OsOperations.Popen([ 'TASKKILL', '/PID', str(proId), '/T', '/F' ])
 
 	@classmethod
-	def OpenLocalDif(self, source):
-		par = [ 'TortoiseGitProc.exe', '/command:diff', '/path:' + source + '' ]
+	def OpenLocalDif(self, model):
+		par = [ 'TortoiseGitProc.exe', '/command:diff', '/path:' + model.Source + '' ]
 		print 'subprocess.Popen : ' + str(par)
 		subprocess.Popen(par)
 		OsOperations.Pause()
@@ -711,18 +716,15 @@ class AutoTestRunner:
 			print fileName + ' had already been modified.'
 		OsOperations.Pause(doPause and self.model.ClearHistory)
 
-	def RunAutoTestAsync(self, startUp):
+	def RunAutoTest(self, startUp):
 		AppRunner.StopTasks(False)
 		VMWareRunner.RunSlots(self.model)
 		self.ModifyVisionSystem(False)
 		self.CopyIllumRef(False, True)
 		#FileOperations.Copy(self.model.StartPath + '/Profiles', 'C:/icos/Profiles', 8, 3)
 		os.chdir(self.model.StartPath)
-		t1 = threading.Thread(target=self.Run, args=(startUp,))
-		t1.start()
-		return t1
 
-	def Run(self, startUp):
+		FileOperations.Delete('{}/libs/testing/myconfig.py'.format(self.model.Source))
 		libsPath = AutoTestRunner.UpdateLibsTestingPath(self.model.Source)
 		tests = AutoTestRunner.SearchInTests(libsPath, self.model.TestName)
 		if len(tests) == 0:
@@ -775,6 +777,7 @@ class AutoTestRunner:
 		newPath = os.path.abspath(source + libsTesting)
 		index = ArrayOrganizer.ContainsInArray(newPath, sys.path)
 		if index >= 0:
+			print 'The path ({}) already exists in sys.path.'.format(newPath)
 			return newPath
 		paths = [p.replace('\\', '/') for p in sys.path]
 		index = ArrayOrganizer.ContainsInArray(libsTesting, paths)
@@ -1010,6 +1013,12 @@ class FileOperations:
 		for root, dirs, files in os.walk(dirName):
 			if fileName in files:
 				os.remove('{}/{}'.format(root, fileName))
+
+	@classmethod
+	def Delete(cls, fileName):
+		if os.path.isfile(fileName):
+			os.remove(fileName)
+			print 'File deleted : ' + fileName
 
 	@classmethod
 	def Copy(cls, src, des, initWait = 0, inter = 0):
@@ -1308,15 +1317,15 @@ class Git:
 		OsOperations.Call(gitSubModule + ['foreach', 'git', 'reset', '--hard'])
 
 	@classmethod
-	def OpenGitGui(self, source):
-		param = [ 'git-gui', '--working-dir', source ]
+	def OpenGitGui(self, model):
+		param = [ 'git-gui', '--working-dir', model.Source ]
 		print 'Staring Git GUI'
 		subprocess.Popen(param)
 		OsOperations.Pause()
 
 	@classmethod
-	def OpenGitBash(self, args):
-		par = 'start {}sh.exe --cd={}'.format(*args)
+	def OpenGitBash(self, model):
+		par = 'start {}sh.exe --cd={}'.format(model.GitBin, model.Source)
 		OsOperations.System(par, 'Staring Git Bash')
 		OsOperations.Pause()
 
@@ -1419,20 +1428,24 @@ class EffortLogger:
 				print 'Error: ' + line
 		data = []
 		oneMinAppsTime = timedelta()
+		dollarTime = None
 		for k,v in dictAppNameToTime.items():
 			if v > self.MinTime:
 				data.append([self.Trim(k, self.ColWidth), v])
 			else:
 				oneMinAppsTime += v
+			if k == '$':
+				dollarTime = v
 		minAppDesc = 'Other Apps Less Than {} Minute(s)'.format(self.MinMinutes)
 		data.append([minAppDesc, oneMinAppsTime])
 		data = sorted(data, key = lambda x : x[1], reverse=True)
 		menuData = [['Applications On ' + message, 'Time Taken'], ['-']] + data
 		menuData += [['-'], ['Total Time', totalTime]]
 		table = PrettyTable(TableFormatFactory().SetSingleLine()).ToString(menuData)
-		print table
 		#table = datetime.now().strftime('%Y %b %d %H:%M:%S\n') + table
 		#FileOperations.Append(logFile + '.txt', table)
+		print table,
+		print totalTime - dollarTime
 
 	def IsSameDate(self, a, b):
 		return a.day == b.day and a.month == b.month and a.year == b.year
