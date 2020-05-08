@@ -1684,6 +1684,7 @@ class Model:
 		slotNum = index + 1
 		if isSelected:
 			self.slots.append(slotNum)
+			self.slots.sort()
 		else:
 			self.slots.remove(slotNum)
 		self.Tests[self.TestIndex] = TestNameEncoer.Decode(self.TestName, self.slots)
