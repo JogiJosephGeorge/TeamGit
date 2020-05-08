@@ -15,6 +15,7 @@ import sys
 import shutil
 import threading
 import Tkinter as tk
+import tkMessageBox as messagebox
 import ttk
 
 class UIFactory:
@@ -74,7 +75,7 @@ class UI:
 	def __init__(self):
 		self.klaRunner = KlaRunner()
 		self.model = self.klaRunner.model
-		OsOperations.RunFromUI = True
+		KlaRunner.RunFromUI = True
 
 	def Run(self):
 		if not ctypes.windll.shell32.IsUserAnAdmin():
@@ -296,12 +297,13 @@ class UIMainMenu:
 
 	def AddColumn4(self, parent):
 		self.CreateColumnFrame(parent)
-		self.AddParallelButton('Run Slots', VMWareRunner.RunSlots, (self.model,))
+		self.AddButton('Run Slots', VMWareRunner.RunSlots, self.model)
 		self.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
 		self.AddButton('Comment VisionSystem', self.testRunner.ModifyVisionSystem)
 		self.AddButton('Copy Mock License', self.testRunner.CopyMockLicense)
 		self.AddButton('Copy xPort xml', self.testRunner.CopyIllumRef)
 		self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
+		self.AddButton('Copy MmiSaveLogs.exe', self.klaRunner.CopyMmiSaveLogExe)
 
 	def AddColumn5(self, parent):
 		sourceBuilder = self.klaSourceBuilder
@@ -311,7 +313,7 @@ class UIMainMenu:
 		self.AddParallelButton('Clean Source', self.klaSourceBuilder.CleanSource)
 		self.AddParallelButton('Build Source', self.klaSourceBuilder.BuildSource)
 		self.AddButton('Clear Screen', OsOperations.Cls)
-		self.AddButton('Effort Log', effortLogger.ReadEffortLog)
+		self.AddButton('Effort Log', effortLogger.Print)
 		self.AddButton('Stop All KLA Apps', AppRunner.StopTasks, True)
 
 	def CreateColumnFrame(self, parent):
@@ -366,8 +368,8 @@ class Menu:
 			[5, ['Run Handler alone', self.appRunner.RunHandler]],
 			[6, ['Run MMi from Source', self.appRunner.RunMMi, True]],
 			[7, ['Run MMi from C:Icos', self.appRunner.RunMMi, False]],
+			[8, ['Run Slots', VMWareRunner.RunSlots, model]],
 			[9, ['Run ToolLink Host', self.appRunner.RunToollinkHost]],
-			[8, ['Effort Log', effortLogger.ReadEffortLog]],
 		],[
 			[10, ['Open CIT100', sourceBuilder.OpenSolution, 0]],
 			[11, ['Open Simulator', sourceBuilder.OpenSolution, 1]],
@@ -383,6 +385,7 @@ class Menu:
 			[25, ['Copy Mock License', testRunner.CopyMockLicense]],
 			[26, ['Copy xPort xml', testRunner.CopyIllumRef, model.ClearHistory]],
 			[27, ['Print mmi.h IDs', self.klaRunner.PrintMissingIds]],
+			[28, ['Copy MmiSaveLogs.exe', self.klaRunner.CopyMmiSaveLogExe]],
 		],[
 			[91, ['Build Source ' + activeSrcs, sourceBuilder.BuildSource]],
 			[92, ['Clean Source ' + activeSrcs, sourceBuilder.CleanSource]],
@@ -390,6 +393,8 @@ class Menu:
 			[94, ['Change Test', settings.ChangeTest]],
 			[95, ['Change Source', settings.ChangeSource]],
 			[96, ['Change MMI Attach', settings.ChangeDebugVision]],
+			[97, ['Effort Log', effortLogger.Print]],
+			[98, ['Clear Screen', OsOperations.Cls]],
 			[99, ['Stop All KLA Apps', AppRunner.StopTasks, True]],
 			[0, 'EXIT']
 		]]
@@ -412,6 +417,8 @@ class Menu:
 		return [-1]
 
 class KlaRunner:
+	RunFromUI = False
+
 	def __init__(self):
 		self.model = Model()
 		self.model.ReadConfigFile()
@@ -438,6 +445,7 @@ class KlaRunner:
 				selItem[1](selItem[2])
 
 	def OpenPython(self):
+		FileOperations.Delete('{}/libs/testing/myconfig.py'.format(self.model.Source))
 		fileName = os.path.abspath(self.model.Source + '/libs/testing/my.py')
 		par = 'start python -i ' + fileName
 		OsOperations.System(par, 'Starting my.py')
@@ -471,6 +479,12 @@ class KlaRunner:
 		PrettyTable.PrintArray([pr(st) for st in sets], 6)
 		print 
 		OsOperations.Pause(self.model.ClearHistory)
+
+	def CopyMmiSaveLogExe(self):
+		destin = os.path.abspath("{}/handler/tests/{}~\Icos".format(
+			self.model.Source, self.model.TestName))
+		FileOperations.Copy('C:\\Icos\\MmiSaveLogs.exe', destin)
+		pass
 
 	def GetSourceInfo(self, activeSrcs):
 		heading = ['Source', 'Branch', 'Config', 'Platform']
@@ -607,6 +621,11 @@ class AppRunner:
 			processIds.remove(exceptProcId)
 		if len(processIds) == 0:
 			return
+		'''
+		wmic process where name="mmi.exe" call terminate
+		wmic process where "name='mmi.exe'" delete
+		taskkill /IM "mmi.exe" /T /F
+		'''
 		print '{} Process IDs : {}'.format(exeName, processIds)
 		if exceptProcId < 0:
 			OsOperations.Popen([ 'TASKKILL', '/IM', exeName, '/T', '/F' ])
@@ -640,27 +659,31 @@ class VMWareRunner:
 
 		for slot in slots:
 			vmxPath = vmxGenericPath.format(slot)
+			slotName = 'VMware Slot ' + str(slot)
 			if slot in runningSlots:
-				print 'VMware Slot ' + str(slot) + ' : Restarted.'
+				print slotName + ' : Restarted.'
 				subprocess.Popen([vmRunExe, '-vp', '1', 'reset', vmxPath])
 			else:
 				subprocess.Popen([vmWareExe, vmxPath])
-				print 'Start VMware Slot ' + str(slot)
-				os.system('PAUSE')
-				print 'VMware Slot ' + str(slot) + ' : Started.'
+				message = 'Please start ' + slotName
+				if KlaRunner.RunFromUI:
+					messagebox.showinfo(slotName, message)
+				else:
+					print message
+					os.system('PAUSE')
+				print slotName + ' : Started.'
 
 class AutoTestRunner:
 	def __init__(self, model):
 		self.model = model
 
 	def CopyMockLicense(self, fromSrc = True, doPause = True):
+		args = (self.model.Source, self.model.Platform, self.model.Config)
 		if fromSrc:
-			args = (self.model.Source, self.model.Platform, self.model.Config)
 			mmiPath = os.path.abspath('{}/mmi/mmi/Bin/{}/{}'.format(*args))
 		else:
 			mmiPath = 'C:/icos'
 		licencePath = '{}/mmi/mmi/mmi_stat/integration/code/MockLicenseDll/{}/{}/License.dll'
-		args = (self.model.Source, self.model.Platform, self.model.Config)
 		licenseFile = os.path.abspath(licencePath.format(*args))
 		FileOperations.Copy(licenseFile, mmiPath)
 		OsOperations.Pause(doPause and self.model.ClearHistory)
@@ -1020,8 +1043,6 @@ class FileOperations:
 			print 'Wrong input - Neither file nor directory : ' + src
 
 class OsOperations:
-	RunFromUI = False
-
 	@classmethod
 	def Cls(cls):
 		os.system('cls')
@@ -1036,7 +1057,7 @@ class OsOperations:
 
 	@classmethod
 	def Pause(cls, condition = True):
-		if condition and not cls.RunFromUI:
+		if condition and not KlaRunner.RunFromUI:
 			#raw_input('Press ENTER key to continue . . .')
 			os.system('PAUSE')
 
@@ -1373,15 +1394,17 @@ class EffortLogger:
 		self.ColWidth = 80
 		self.MinMinutes = 3
 		self.MinTime = timedelta(minutes=self.MinMinutes)
+		self.DayStarts = timedelta(hours=4) # 4am
 
-	def ReadEffortLog(self):
+	def Print(self):
 		yesterday = datetime.now() - timedelta(days=1)
-		self.ReadEffortLogOn(yesterday, 'Yesterday')
+		self.PrintErrortTable(yesterday, 'Yesterday')
 		today = datetime.now()
-		self.ReadEffortLogOn(today, 'Today')
+		self.PrintErrortTable(today, 'Today')
 		OsOperations.Pause()
+		self.CheckApplication()
 
-	def ReadEffortLogOn(self, date, message):
+	def PrintErrortTable(self, date, message):
 		logFile = self.model.EffortLogFile
 		dictAppNameToTime = NumValDict()
 		lastDt = None
@@ -1414,7 +1437,7 @@ class EffortLogger:
 		minAppDesc = 'Other Apps Less Than {} Minute(s)'.format(self.MinMinutes)
 		data.append([minAppDesc, oneMinAppsTime])
 		data = sorted(data, key = lambda x : x[1], reverse=True)
-		menuData = [['Applications On ' + message, 'Time Taken'], ['-']] + data
+		menuData = [[message, 'Time Taken'], ['-']] + data
 		menuData += [['-'], ['Total Time', totalTime]]
 		table = PrettyTable(TableFormatFactory().SetSingleLine()).ToString(menuData)
 		#table = datetime.now().strftime('%Y %b %d %H:%M:%S\n') + table
@@ -1423,7 +1446,9 @@ class EffortLogger:
 		print totalTime - dollarTime
 
 	def IsSameDate(self, a, b):
-		return a.day == b.day and a.month == b.month and a.year == b.year
+		a1 = a - self.DayStarts
+		b1 = b - self.DayStarts
+		return a1.day == b1.day and a1.month == b1.month and a1.year == b1.year
 
 	def FormatText(self, message):
 		return message.encode('ascii', 'ignore').decode('ascii')
@@ -1446,6 +1471,12 @@ class EffortLogger:
 		if len(message) > width:
 			return message[:width / 2 - 1] + '...' + message[2 - width / 2:]
 		return message
+
+	def CheckApplication(self):
+		if len(OsOperations.GetProcessIds('EffortCapture_2013.exe')) > 0:
+			print 'Effort logger is running'
+		else:
+			print 'Effort logger is not running'
 
 class TestEffortLogger:
 	def __init__(self):
