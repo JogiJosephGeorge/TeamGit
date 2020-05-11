@@ -20,11 +20,11 @@ import ttk
 
 class UIFactory:
 	@classmethod
-	def AddButton(cls, parent, text, r, c, cmd, arg, width = 0):
-		if arg is None:
+	def AddButton(cls, parent, text, r, c, cmd, args, width = 0):
+		if args is None:
 			action = cmd
 		else:
-			action = lambda: cmd(arg)
+			action = lambda: cmd(*args)
 		but = tk.Button(parent, text = text, command=action)
 		if width > 0:
 			but['width'] = width
@@ -276,33 +276,33 @@ class UIMainMenu:
 		self.AddParallelButton('Start test', self.testRunner.RunAutoTest, (True,))
 		self.AddButton('Run Handler and MMi', self.appRunner.RunHandlerMMi)
 		self.AddButton('Run Handler alone', self.appRunner.RunHandler)
-		self.AddButton('Run MMi from Source', self.appRunner.RunMMi, True)
-		self.AddButton('Run MMi from C:Icos', self.appRunner.RunMMi, False)
+		self.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True,False))
+		self.AddButton('Run MMi from C:Icos', self.appRunner.RunMMi, (False,False))
 
 	def AddColumn2(self, parent):
 		sourceBuilder = self.klaSourceBuilder
 		self.CreateColumnFrame(parent)
-		self.AddButton('Open CIT100', sourceBuilder.OpenSolution, 0)
-		self.AddButton('Open Simulator', sourceBuilder.OpenSolution, 1)
-		self.AddButton('Open Mmi', sourceBuilder.OpenSolution, 2)
-		self.AddButton('Open MockLicense', sourceBuilder.OpenSolution, 3)
-		self.AddButton('Open Converters', sourceBuilder.OpenSolution, 4)
+		self.AddButton('Open CIT100', sourceBuilder.OpenSolution, (0,))
+		self.AddButton('Open Simulator', sourceBuilder.OpenSolution, (1,))
+		self.AddButton('Open Mmi', sourceBuilder.OpenSolution, (2,))
+		self.AddButton('Open MockLicense', sourceBuilder.OpenSolution, (3,))
+		self.AddButton('Open Converters', sourceBuilder.OpenSolution, (4,))
 
 	def AddColumn3(self, parent):
 		self.CreateColumnFrame(parent)
 		self.AddButton('Open Test Folder', self.klaRunner.OpenTestFolder)
-		self.AddButton('Open Local Diff', AppRunner.OpenLocalDif, self.model)
-		self.AddButton('Open Git GUI', Git.OpenGitGui, self.model)
-		self.AddButton('Open Git Bash', Git.OpenGitBash, self.model)
+		self.AddButton('Open Local Diff', AppRunner.OpenLocalDif, (self.model,))
+		self.AddButton('Open Git GUI', Git.OpenGitGui, (self.model,))
+		self.AddButton('Open Git Bash', Git.OpenGitBash, (self.model,))
 
 	def AddColumn4(self, parent):
 		self.CreateColumnFrame(parent)
-		self.AddButton('Run Slots', VMWareRunner.RunSlots, self.model)
-		self.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
+		self.AddButton('Run Slots', VMWareRunner.RunSlots, (self.model,))
+		#self.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
 		self.AddButton('Comment VisionSystem', self.testRunner.ModifyVisionSystem)
-		self.AddButton('Copy Mock License', self.testRunner.CopyMockLicense)
-		self.AddButton('Copy xPort xml', self.testRunner.CopyIllumRef)
-		self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
+		#self.AddButton('Copy Mock License', self.testRunner.CopyMockLicense)
+		#self.AddButton('Copy xPort xml', self.testRunner.CopyIllumRef)
+		#self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
 		self.AddButton('Copy MmiSaveLogs.exe', self.klaRunner.CopyMmiSaveLogExe)
 
 	def AddColumn5(self, parent):
@@ -310,11 +310,11 @@ class UIMainMenu:
 		settings = self.settings
 		effortLogger = EffortLogger(self.model)
 		self.CreateColumnFrame(parent)
+		self.AddButton('Clear Output', OsOperations.Cls)
 		self.AddParallelButton('Clean Source', self.klaSourceBuilder.CleanSource)
 		self.AddParallelButton('Build Source', self.klaSourceBuilder.BuildSource)
-		self.AddButton('Clear Screen', OsOperations.Cls)
 		self.AddButton('Effort Log', effortLogger.Print)
-		self.AddButton('Stop All KLA Apps', AppRunner.StopTasks, True)
+		self.AddButton('Stop All KLA Apps', AppRunner.StopTasks, (False,))
 
 	def CreateColumnFrame(self, parent):
 		self.ColFrame = UIFactory.AddFrame(parent, 0, self.Col, sticky='n')
@@ -327,11 +327,11 @@ class UIMainMenu:
 		self.threadHandler.AddButton(but)
 		self.ColInx += 1
 
-	def CallAsync(self, args):
+	def CallAsync(self, *args):
 		self.threadHandler.Start(*args)
 
-	def AddButton(self, label, funPnt, arg = None):
-		but = UIFactory.AddButton(self.ColFrame, label, self.ColInx, 0, funPnt, arg, 19)
+	def AddButton(self, label, funPnt, args = None):
+		but = UIFactory.AddButton(self.ColFrame, label, self.ColInx, 0, funPnt, args, 19)
 		self.threadHandler.AddButton(but)
 		self.ColInx += 1
 
@@ -394,7 +394,7 @@ class Menu:
 			[95, ['Change Source', settings.ChangeSource]],
 			[96, ['Change MMI Attach', settings.ChangeDebugVision]],
 			[97, ['Effort Log', effortLogger.Print]],
-			[98, ['Clear Screen', OsOperations.Cls]],
+			[98, ['Clear Output', OsOperations.Cls]],
 			[99, ['Stop All KLA Apps', AppRunner.StopTasks, True]],
 			[0, 'EXIT']
 		]]
@@ -483,7 +483,9 @@ class KlaRunner:
 	def CopyMmiSaveLogExe(self):
 		destin = os.path.abspath("{}/handler/tests/{}~\Icos".format(
 			self.model.Source, self.model.TestName))
-		FileOperations.Copy('C:\\Icos\\MmiSaveLogs.exe', destin)
+		src = os.path.abspath('{}/mmi/mmi/Bin/{}/{}/MmiSaveLogs.exe'.format(
+			self.model.Source, self.model.Platform, self.model.Config))
+		FileOperations.Copy(src, destin)
 		pass
 
 	def GetSourceInfo(self, activeSrcs):
@@ -513,6 +515,14 @@ class KlaRunner:
 		if not os.path.isdir(wd):
 			os.mkdir(wd)
 		os.chdir(wd)
+
+	@classmethod
+	def ShowInfo(cls, caption, msg, doPause):
+		if KlaRunner.RunFromUI:
+			messagebox.showinfo(caption, msg)
+		else:
+			print msg
+			OsOperations.Pause(doPause)
 
 class AppRunner:
 	def __init__(self, model, testRunner):
@@ -549,8 +559,6 @@ class AppRunner:
 		OsOperations.Pause(doPause and self.model.ClearHistory)
 
 	def RunMMi(self, fromSrc, doPause = True):
-		# Set correct path to C:\Windows\mmi_han.ini
-
 		self.StopTask('MMi.exe')
 		VMWareRunner.RunSlots(self.model)
 
@@ -666,11 +674,7 @@ class VMWareRunner:
 			else:
 				subprocess.Popen([vmWareExe, vmxPath])
 				message = 'Please start ' + slotName
-				if KlaRunner.RunFromUI:
-					messagebox.showinfo(slotName, message)
-				else:
-					print message
-					os.system('PAUSE')
+				KlaRunner.ShowInfo(slotName, message, True)
 				print slotName + ' : Started.'
 
 class AutoTestRunner:
@@ -926,7 +930,11 @@ class KlaSourceBuilder:
 		]
 		subprocess.Popen(param)
 		print 'Open solution : ' + fileName
-		OsOperations.Pause(self.model.ClearHistory)
+		if self.model.Config is not 'Debug' or self.model.Platform is not 'Win32':
+			msg = 'Please check configuration and platform in Visual Studio'
+			KlaRunner.ShowInfo('Visual Studio', msg, self.model.ClearHistory)
+		else:
+			OsOperations.Pause(self.model.ClearHistory)
 
 class BuildLoger:
 	def __init__(self, fileName):
@@ -1395,10 +1403,12 @@ class EffortLogger:
 		self.MinMinutes = 3
 		self.MinTime = timedelta(minutes=self.MinMinutes)
 		self.DayStarts = timedelta(hours=4) # 4am
+		self.ShowPrevDaysLogs = 3
 
 	def Print(self):
-		yesterday = datetime.now() - timedelta(days=1)
-		self.PrintErrortTable(yesterday, 'Yesterday')
+		for i in range(self.ShowPrevDaysLogs, 0, -1):
+			prevDay = datetime.now() - timedelta(days=i)
+			self.PrintErrortTable(prevDay, prevDay.strftime(self.model.DateFormat))
 		today = datetime.now()
 		self.PrintErrortTable(today, 'Today')
 		OsOperations.Pause()
@@ -1426,7 +1436,7 @@ class EffortLogger:
 				print 'Error: ' + line
 		data = []
 		oneMinAppsTime = timedelta()
-		dollarTime = None
+		dollarTime = timedelta()
 		for k,v in dictAppNameToTime.items():
 			if v > self.MinTime:
 				data.append([self.Trim(k, self.ColWidth), v])
