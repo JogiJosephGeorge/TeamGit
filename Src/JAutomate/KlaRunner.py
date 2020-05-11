@@ -323,12 +323,10 @@ class UIMainMenu:
 
 	def AddParallelButton(self, label, funPnt, arg = None):
 		args = (label, funPnt, arg)
-		but = UIFactory.AddButton(self.ColFrame, label, self.ColInx, 0, self.CallAsync, args, 19)
+		but = UIFactory.AddButton(self.ColFrame, label, self.ColInx, 0,
+			self.threadHandler.Start, args, 19)
 		self.threadHandler.AddButton(but)
 		self.ColInx += 1
-
-	def CallAsync(self, *args):
-		self.threadHandler.Start(*args)
 
 	def AddButton(self, label, funPnt, args = None):
 		but = UIFactory.AddButton(self.ColFrame, label, self.ColInx, 0, funPnt, args, 19)
