@@ -298,11 +298,11 @@ class UIMainMenu:
 	def AddColumn4(self, parent):
 		self.CreateColumnFrame(parent)
 		self.AddButton('Run Slots', VMWareRunner.RunSlots, (self.model,))
-		#self.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
+		self.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
 		self.AddButton('Comment VisionSystem', self.testRunner.ModifyVisionSystem)
-		#self.AddButton('Copy Mock License', self.testRunner.CopyMockLicense)
-		#self.AddButton('Copy xPort xml', self.testRunner.CopyIllumRef)
-		#self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
+		self.AddButton('Copy Mock License', self.testRunner.CopyMockLicense)
+		self.AddButton('Copy xPort xml', self.testRunner.CopyIllumRef)
+		self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
 		self.AddButton('Copy MmiSaveLogs.exe', self.klaRunner.CopyMmiSaveLogExe)
 
 	def AddColumn5(self, parent):
@@ -1401,7 +1401,7 @@ class EffortLogger:
 		self.MinMinutes = 3
 		self.MinTime = timedelta(minutes=self.MinMinutes)
 		self.DayStarts = timedelta(hours=4) # 4am
-		self.ShowPrevDaysLogs = 3
+		self.ShowPrevDaysLogs = 1
 
 	def Print(self):
 		for i in range(self.ShowPrevDaysLogs, 0, -1):
