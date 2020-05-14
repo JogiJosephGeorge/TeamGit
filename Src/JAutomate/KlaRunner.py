@@ -662,7 +662,7 @@ class VMWareRunner:
 		vmWareExe = vMwareWS + "vmware.exe"
 		vmxGenericPath = r'C:\\MVS8000\\slot{}\\MVS8000_stage2.vmx'
 		par = [vmRunExe, '-vp', '1', 'list']
-		output = subprocess.Popen(par, stdout=subprocess.PIPE).communicate()[0]
+		output = OsOperations.ProcessOpen(par)
 		runningSlots = []
 		searchPattern = r'C:\\MVS8000\\slot(\d*)\\MVS8000_stage2\.vmx'
 		for line in output.split():
@@ -679,7 +679,8 @@ class VMWareRunner:
 			else:
 				subprocess.Popen([vmWareExe, vmxPath])
 				message = 'Please start ' + slotName
-				KlaRunner.ShowInfo(slotName, message, True)
+				print message
+				os.system('PAUSE')
 				print slotName + ' : Started.'
 
 class AutoTestRunner:
@@ -1078,7 +1079,7 @@ class OsOperations:
 		exeName = exeName.lower()
 		params = [ 'TASKLIST', '/FI' ]
 		params.append('IMAGENAME eq {}'.format(exeName))
-		output = subprocess.Popen(params, stdout=subprocess.PIPE).communicate()[0]
+		output = OsOperations.ProcessOpen(params)
 		processIds = []
 		for line in output.splitlines():
 			parts = line.lower().split()
@@ -1306,7 +1307,7 @@ class Git:
 	@classmethod
 	def GetBranch(self, source):
 		params = ['git', '-C', source, 'branch']
-		output = subprocess.Popen(params, stdout=subprocess.PIPE).communicate()[0]
+		output = OsOperations.ProcessOpen(params)
 		isCurrent = False
 		for part in output.split():
 			if isCurrent:
