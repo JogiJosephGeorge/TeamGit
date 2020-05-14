@@ -315,6 +315,7 @@ class UIMainMenu:
 		self.AddParallelButton('Build Source', self.klaSourceBuilder.BuildSource)
 		self.AddButton('Effort Log', effortLogger.Print)
 		self.AddButton('Stop All KLA Apps', AppRunner.StopTasks, (False,))
+		self.AddButton('Version', AppRunner.ShowVersion)
 
 	def CreateColumnFrame(self, parent):
 		self.ColFrame = UIFactory.AddFrame(parent, 0, self.Col, sticky='n')
@@ -645,6 +646,12 @@ class AppRunner:
 		print 'subprocess.Popen : ' + str(par)
 		subprocess.Popen(par)
 		OsOperations.Pause()
+
+	@classmethod
+	def ShowVersion(self):
+		v = OsOperations.ProcessOpen(['git', 'describe', '--always'])
+		msg = '1.0.' + v
+		KlaRunner.ShowInfo('Version', msg, True)
 
 class VMWareRunner:
 	@classmethod
@@ -1106,6 +1113,10 @@ class OsOperations:
 				outLine = output.strip()
 				callPrint(output.strip())
 		process.poll()
+
+	@classmethod
+	def ProcessOpen(cls, params):
+		return subprocess.Popen(params, stdout=subprocess.PIPE).communicate()[0]
 
 	@classmethod
 	def Call(cls, params):
