@@ -166,7 +166,7 @@ class UIHeader:
 
 	def AddTest(self, parent, c):
 		UIFactory.AddLabel(parent, 'Test', self.Row, c)
-		testNames = [TestNameEncoer.Encode(item)[0] for item in self.model.Tests]
+		testNames = self.model.AutoTests.GetNames()
 		self.cmbTest = UIFactory.AddCombo(parent, testNames, self.model.TestIndex, self.Row, c+1, self.OnTestChanged, 70)
 
 	def OnTestChanged(self, event):
@@ -796,7 +796,7 @@ class Settings:
 		self.klaRunner = klaRunner
 
 	def ChangeTest(self):
-		index = self.SelectOption1('Test Name', self.model.Tests, self.model.TestIndex)
+		index = self.SelectOption1('Test Name', self.model.AutoTests.GetNames(), self.model.TestIndex)
 		self.model.UpdateTest(index, True)
 		OsOperations.Pause(self.model.ClearHistory)
 
@@ -806,13 +806,12 @@ class Settings:
 		if testName == '':
 			print 'There is no test exists for the number : ' + str(number)
 			return
-		if ArrayOrganizer.ContainsInArray(testName, self.model.Tests) >= 0:
+		if self.model.AutoTests.Contains(testName):
 			print 'The given test ({}) already exists'.format(testName)
 			return
 		slots = raw_input('Enter slots : ')
-		testNameAndSlot = '{} {}'.format(testName, slots)
-		self.model.Tests.append(testNameAndSlot)
-		self.model.UpdateTest(len(self.model.Tests) - 1, True)
+		index = self.model.AutoTests.AddTest(testName, slots)
+		self.model.UpdateTest(index, True)
 		OsOperations.Pause(self.model.ClearHistory)
 
 	def ChangeSource(self):
@@ -1568,14 +1567,46 @@ class ConfigEncoder:
 	def EncodeSource(cls, srcSet):
 		return [srcSet[0], srcSet[1][0] + srcSet[2][-2:]]
 
-class TestNameEncoer:
-	@classmethod
-	def Encode(cls, testNameSlots):
+class AutoTests:
+	def __init__(self, fileName):
+		self.FileName = fileName
+
+	def Read(self):
+		self.Tests = list(FileOperations.ReadLine(self.FileName))
+
+	def Write(self):
+		content = '\n'.join(self.Tests)
+		FileOperations.Write(self.FileName, content)
+
+	def IsValidIndex(self, index):
+		return index >= 0 and index < len(self.Tests)
+
+	def GetTest(self, index):
+		if self.IsValidIndex(index):
+			return self.Encode(self.Tests[index])
+
+	def GetNames(self):
+		return [self.Encode(item)[0] for item in self.Tests]
+
+	def GetNameSlots(self, index):
+		return self.Encode(self.Tests[index])
+
+	def SetNameSlots(self, index, name, slots):
+		self.Tests[index] = self.Decode(name, slots)
+
+	def Contains(self, testName):
+		return ArrayOrganizer.ContainsInArray(testName, self.Tests) >= 0
+
+	def AddTest(self, testName, slots):
+		testNameAndSlot = '{} {}'.format(testName, slots)
+		self.Tests.append(testNameAndSlot)
+		return len(self.Tests) - 1
+
+	def Encode(self, testNameSlots):
 		parts = testNameSlots.split()
 		return (parts[0], map(int, parts[1].split('_')))
 
-	@classmethod
-	def Decode(cls, testName, slots):
+	def Decode(self, testName, slots):
 		slotStrs = [str(slot) for slot in slots]
 		return '{} {}'.format(testName, '_'.join(slotStrs))
 
@@ -1583,6 +1614,7 @@ class Model:
 	def __init__(self):
 		self.StartPath = os.path.dirname(os.path.abspath(__file__))
 		self.fileName = self.StartPath + '\\KlaRunner.ini'
+		self.AutoTests = AutoTests(self.StartPath + '\\Tests.txt')
 
 		self.SrcIndex = -1
 		self.TestIndex = -1
@@ -1594,12 +1626,12 @@ class Model:
 		self.Platform = ''
 
 	def ReadConfigFile(self):
+		self.AutoTests.Read()
 		with open(self.fileName) as f:
 			_model = json.load(f)
 
 		self.Sources = [ConfigEncoder.DecodeSource(item) for item in _model['Sources']]
 		self.UpdateSource(_model['SrcIndex'], False)
-		self.Tests = _model['Tests']
 		if not self.UpdateTest(_model['TestIndex'], False):
 			self.TestIndex = 0
 		self.ActiveSrcs = _model['ActiveSrcs']
@@ -1620,11 +1652,11 @@ class Model:
 		self.ClearHistory = _model['ClearHistory']
 
 	def WriteConfigFile(self):
+		self.AutoTests.Write()
 		_model = OrderedDict()
 		_model['Sources'] = [ConfigEncoder.EncodeSource(item) for item in self.Sources]
 		_model['SrcIndex'] = self.SrcIndex
 		_model['ActiveSrcs'] = self.ActiveSrcs
-		_model['Tests'] = self.Tests
 		_model['TestIndex'] = self.TestIndex
 		_model['VisualStudioBuild'] = self.VisualStudioBuild
 		_model['VisualStudioRun'] = self.VisualStudioRun
@@ -1658,12 +1690,12 @@ class Model:
 		return True
 
 	def UpdateTest(self, index, writeToFile):
-		if index < 0 or index >= len(self.Tests):
+		if not self.AutoTests.IsValidIndex(index):
 			return False
 		if self.TestIndex == index:
 			return False
 		self.TestIndex = index
-		self.TestName, self.slots = TestNameEncoer.Encode(self.Tests[self.TestIndex])
+		self.TestName, self.slots = self.AutoTests.GetNameSlots(self.TestIndex)
 		if writeToFile:
 			self.WriteConfigFile()
 		return True
@@ -1695,7 +1727,7 @@ class Model:
 			self.slots.sort()
 		else:
 			self.slots.remove(slotNum)
-		self.Tests[self.TestIndex] = TestNameEncoer.Decode(self.TestName, self.slots)
+		self.AutoTests.SetNameSlots(self.TestIndex, self.TestName, self.slots)
 
 	def GetSources(self, srcIndices = None):
 		if None == srcIndices:
