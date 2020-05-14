@@ -17,8 +17,12 @@ obj
 bin
 Debug
 Src/JAutomate/Display.stp
-Src/JAutomate/Log.txt
 Src/JAutomate/SeriousError.txt
 Src/JAutomate/SimulatorLog
 Src/JAutomate/TestReport.txt
-Src/JAutomate/VisionSystem
+Src/JAutomate/PsiIcShiftLog.log
+Src/JAutomate/TaperPosLog.log
+Src/JAutomate/handler/log/SecsGem/HostSimulator.log
+Src/JAutomate/handler/log/SecsGem/Host_Alarms_20200512.log
+Src/JAutomate/handler/log/SecsGem/Host_Events_20200512.log
+Src/JAutomate/handler/log/SecsGem/Host_SECS_20200512.log
