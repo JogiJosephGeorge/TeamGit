@@ -83,7 +83,8 @@ class UI:
 			os.system('PAUSE')
 			return
 		self.window = tk.Tk()
-		self.window.title('KLA Application Runner')
+		title = 'KLA Application Runner 0.9.' + Git.GetHash()
+		self.window.title(title)
 		iconPath = self.model.StartPath + r'\Plus.ico'
 		if os.path.exists(iconPath):
 			self.window.iconbitmap(iconPath)
@@ -115,17 +116,17 @@ class UIHeader:
 
 		self.AddRow()
 		self.AddSource(parent, 0)
+		self.AddActiveSrcs(parent, 3)
+
+		self.AddRow()
+		self.AddBranch(parent, 0)
 		self.AddConfig(parent, 3)
 		self.AddAttachMmi(parent, 6)
 
 		self.AddRow()
-		self.AddBranch(parent, 0)
+		self.AddTest(parent, 0)
 		self.AddPlatform(parent, 3)
 		self.AddCopyMmi(parent, 6)
-
-		self.AddRow()
-		self.AddTest(parent, 0)
-		self.AddActiveSrcs(parent, 3)
 
 		self.AddRow()
 		self.AddSlots(parent, 0)
@@ -205,7 +206,7 @@ class UIHeader:
 		print 'Slots for the current test : ' + str(self.model.slots)
 
 	def AddActiveSrcs(self, parent, c):
-		UIFactory.AddLabel(parent, 'Sources', self.Row, c)
+		UIFactory.AddLabel(parent, 'Active Srcs', self.Row, c)
 		frame = UIFactory.AddFrame(parent, self.Row, c+1, columnspan=4)
 		self.chkActiveSrcs = []
 		srcs = self.model.ActiveSrcs
@@ -315,7 +316,6 @@ class UIMainMenu:
 		self.AddParallelButton('Build Source', self.klaSourceBuilder.BuildSource)
 		self.AddButton('Effort Log', effortLogger.Print)
 		self.AddButton('Stop All KLA Apps', AppRunner.StopTasks, (False,))
-		self.AddButton('Version', AppRunner.ShowVersion)
 
 	def CreateColumnFrame(self, parent):
 		self.ColFrame = UIFactory.AddFrame(parent, 0, self.Col, sticky='n')
@@ -529,7 +529,7 @@ class AppRunner:
 		self.testRunner = testRunner
 
 	@classmethod
-	def GetPlatform(self, platform, isSimulator = False):
+	def GetPlatform(cls, platform, isSimulator = False):
 		if isSimulator and 'Win32' == platform:
 			platform = 'x86'
 		return platform
@@ -608,7 +608,7 @@ class AppRunner:
 		processes.secshost.proxy.runHostCommandSend(remoteCommand=ActionIds.PP_SELECT, commandParameters=ppSelectParams, waitForAnswer=True, enhanced=True)
 
 	@classmethod
-	def StopTasks(self, doPause):
+	def StopTasks(cls, doPause):
 		for exeName in [
 			'Mmi.exe',
 			'Mmi_spc.exe',
@@ -622,7 +622,7 @@ class AppRunner:
 		OsOperations.Pause(doPause)
 
 	@classmethod
-	def StopTask(self, exeName, exceptProcId = -1):
+	def StopTask(cls, exeName, exceptProcId = -1):
 		processIds = OsOperations.GetProcessIds(exeName)
 		if exceptProcId > 0:
 			processIds.remove(exceptProcId)
@@ -641,21 +641,15 @@ class AppRunner:
 				OsOperations.Popen([ 'TASKKILL', '/PID', str(proId), '/T', '/F' ])
 
 	@classmethod
-	def OpenLocalDif(self, model):
+	def OpenLocalDif(cls, model):
 		par = [ 'TortoiseGitProc.exe', '/command:diff', '/path:' + model.Source + '' ]
 		print 'subprocess.Popen : ' + str(par)
 		subprocess.Popen(par)
 		OsOperations.Pause()
 
-	@classmethod
-	def ShowVersion(self):
-		v = OsOperations.ProcessOpen(['git', 'describe', '--always'])
-		msg = '1.0.' + v
-		KlaRunner.ShowInfo('Version', msg, True)
-
 class VMWareRunner:
 	@classmethod
-	def RunSlots(self, model):
+	def RunSlots(cls, model):
 		vMwareWS = model.VMwareWS
 		slots = model.slots
 		vmRunExe = vMwareWS + "vmrun.exe"
@@ -1010,17 +1004,23 @@ class FileOperations:
 			yield line
 
 	@classmethod
-	def Append(self, fileName, message):
+	def Append(cls, fileName, message):
+		if not os.path.exists(fileName):
+			print "File doesn't exist : " + fileName
+			return
 		with open(fileName, 'a') as f:
 			 f.write((message + '\n').encode('utf8'))
 
 	@classmethod
-	def Write(self, fileName, message):
+	def Write(cls, fileName, message):
+		if not os.path.exists(fileName):
+			print "File doesn't exist : " + fileName
+			return
 		with open(fileName, 'w') as f:
 			 f.write((message + '\n').encode('utf8'))
 
 	@classmethod
-	def DeleteAllInTree(self, dirName, fileName):
+	def DeleteAllInTree(cls, dirName, fileName):
 		for root, dirs, files in os.walk(dirName):
 			if fileName in files:
 				os.remove('{}/{}'.format(root, fileName))
@@ -1232,7 +1232,7 @@ class PrettyTable:
 			print ''.join(line)
 
 	@classmethod
-	def PrintArray(self, arr, colCnt):
+	def PrintArray(cls, arr, colCnt):
 		for inx, item in enumerate(arr):
 			if inx % colCnt == 0:
 				print
@@ -1305,7 +1305,7 @@ ICOS,12345,False
 
 class Git:
 	@classmethod
-	def GetBranch(self, source):
+	def GetBranch(cls, source):
 		params = ['git', '-C', source, 'branch']
 		output = OsOperations.ProcessOpen(params)
 		isCurrent = False
@@ -1316,31 +1316,35 @@ class Git:
 				isCurrent = True
 
 	@classmethod
-	def Clean(self, source, options):
+	def Clean(cls, source, options):
 		OsOperations.Popen(['git', '-C', source, 'clean', options])
 
 	@classmethod
-	def ResetHard(self, source):
+	def ResetHard(cls, source):
 		OsOperations.Popen(['git', '-C', source, 'reset', '--hard'])
 
 	@classmethod
-	def SubmoduleUpdate(self, source):
+	def SubmoduleUpdate(cls, source):
 		gitSubModule = ['git', '-C', source, 'submodule']
 		OsOperations.Call(gitSubModule + ['update', '--init', '--recursive'])
 		OsOperations.Call(gitSubModule + ['foreach', 'git', 'reset', '--hard'])
 
 	@classmethod
-	def OpenGitGui(self, model):
+	def OpenGitGui(cls, model):
 		param = [ 'git-gui', '--working-dir', model.Source ]
 		print 'Staring Git GUI'
 		subprocess.Popen(param)
 		OsOperations.Pause()
 
 	@classmethod
-	def OpenGitBash(self, model):
+	def OpenGitBash(cls, model):
 		par = 'start {}sh.exe --cd={}'.format(model.GitBin, model.Source)
 		OsOperations.System(par, 'Staring Git Bash')
 		OsOperations.Pause()
+
+	@classmethod
+	def GetHash(cls):
+		return OsOperations.ProcessOpen(['git', 'describe', '--always'])
 
 class StdOutRedirect(object):
 	def __init__(self):
@@ -1379,7 +1383,7 @@ class ArrayOrganizer:
 		return newArrArr
 
 	@classmethod
-	def ContainsInArray(self, str, strArray):
+	def ContainsInArray(cls, str, strArray):
 		for inx, item in enumerate(strArray):
 			if str in item:
 				return inx
@@ -1415,6 +1419,10 @@ class EffortLogger:
 		self.ShowPrevDaysLogs = 1
 
 	def Print(self):
+		logFile = self.model.EffortLogFile
+		if not os.path.exists(logFile):
+			print "File doesn't exist : " + logFile
+			return
 		for i in range(self.ShowPrevDaysLogs, 0, -1):
 			prevDay = datetime.now() - timedelta(days=i)
 			self.PrintErrortTable(prevDay, prevDay.strftime(self.model.DateFormat))
@@ -1504,9 +1512,11 @@ class TestEffortLogger:
 		self.EL = EffortLogger(model)
 		self.TestTrim()
 		self.PrepareDescription()
+
 	def TestTrim(self):
 		Test.Assert(self.EL.Trim('India is my country', 10), 'Indi...try')
 		Test.Assert(self.EL.Trim('India is my country', 15), 'India ...untry')
+
 	def PrepareDescription(self):
 		Test.Assert(self.EL.PrepareDescription('explorer.exe', 'ICOS SecsGem Interface'), 'explorer.exe')
 
@@ -1584,6 +1594,9 @@ class AutoTests:
 		self.FileName = fileName
 
 	def Read(self):
+		if not os.path.exists(self.FileName):
+			print "File doesn't exist : " + self.FileName
+			return
 		self.Tests = list(FileOperations.ReadLine(self.FileName))
 
 	def Write(self):
