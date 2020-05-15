@@ -103,6 +103,7 @@ class UI:
 class UIHeader:
 	def __init__(self, parent, r, c, model):
 		self.model = model
+		self.VM = UIViewModel(model)
 		frame = UIFactory.AddFrame(parent, r, c, 20, 0)
 		self.Row = 0
 		self.CreateUI(frame)
@@ -134,7 +135,57 @@ class UIHeader:
 	def AddSource(self, parent, c):
 		UIFactory.AddLabel(parent, 'Source', self.Row, c)
 		srcs = [src[0] for src in self.model.Sources]
-		self.cmbSource = UIFactory.AddCombo(parent, srcs, self.model.SrcIndex, self.Row, c+1, self.OnSrcChanged, 70)
+		self.VM.cmbSource = UIFactory.AddCombo(parent, srcs, self.model.SrcIndex, self.Row, c+1, self.VM.OnSrcChanged, 70)
+
+	def AddConfig(self, parent, c):
+		configInx = ConfigEncoder.Configs.index(self.model.Config)
+		UIFactory.AddLabel(parent, 'Config', self.Row, c)
+		self.VM.cmbConfig = UIFactory.AddCombo(parent, ConfigEncoder.Configs, configInx, self.Row, c+1, self.VM.OnConfigChanged, 10)
+
+	def AddBranch(self, parent, c):
+		UIFactory.AddLabel(parent, 'Branch', self.Row, c)
+		self.VM.lblBranch = UIFactory.AddLabel(parent, self.model.Branch, self.Row, c+1)
+
+	def AddPlatform(self, parent, c):
+		platformInx = ConfigEncoder.Platforms.index(self.model.Platform)
+		UIFactory.AddLabel(parent, 'Platform', self.Row, c)
+		self.VM.cmbPltfm = UIFactory.AddCombo(parent, ConfigEncoder.Platforms, platformInx, self.Row, c+1, self.VM.OnPlatformChanged, 10)
+
+	def AddTest(self, parent, c):
+		UIFactory.AddLabel(parent, 'Test', self.Row, c)
+		testNames = self.model.AutoTests.GetNames()
+		self.VM.cmbTest = UIFactory.AddCombo(parent, testNames, self.model.TestIndex, self.Row, c+1, self.VM.OnTestChanged, 70)
+
+	def AddAttachMmi(self, parent, c):
+		UIFactory.AddLabel(parent, 'Attach MMi', self.Row, c)
+		self.VM.chkAttachMmi = UIFactory.AddCheckBox(parent, self.model.DebugVision, self.Row, c+1, self.VM.OnAttach)
+
+	def AddCopyMmi(self, parent, c):
+		UIFactory.AddLabel(parent, 'Copy MMI to Icos', self.Row, c)
+		self.VM.chkCopyMmi = UIFactory.AddCheckBox(parent, self.model.CopyMmi, self.Row, c+1, self.VM.OnCopyMmi)
+
+	def AddSlots(self, parent, c):
+		UIFactory.AddLabel(parent, 'Slots', self.Row, c)
+		frame = UIFactory.AddFrame(parent, self.Row, c+1, columnspan=5)
+		self.VM.chkSlots = []
+		for i in range(self.model.MaxSlots):
+			isSelected = (i+1) in self.model.slots
+			UIFactory.AddLabel(frame, str(i+1), 0, i * 2)
+			self.VM.chkSlots.append(UIFactory.AddCheckBox(frame, isSelected, 0, i * 2 + 1, self.VM.OnSlotChn, i))
+
+	def AddActiveSrcs(self, parent, c):
+		UIFactory.AddLabel(parent, 'Active Srcs', self.Row, c)
+		frame = UIFactory.AddFrame(parent, self.Row, c+1, columnspan=4)
+		self.VM.chkActiveSrcs = []
+		srcs = self.model.ActiveSrcs
+		for i in range(len(self.model.Sources)):
+			isSelected = True if i in srcs else False
+			UIFactory.AddLabel(frame, str(i+1), 0, i * 2)
+			self.VM.chkActiveSrcs.append(UIFactory.AddCheckBox(frame, isSelected, 0, i * 2 + 1, self.VM.OnActiveSrcsChn, i))
+
+class UIViewModel:
+	def __init__(self, model):
+		self.model = model
 
 	def OnSrcChanged(self, event):
 		if self.model.UpdateSource(self.cmbSource[0].current(), False):
@@ -143,32 +194,13 @@ class UIHeader:
 			self.cmbPltfm[1].set(self.model.Platform)
 			print 'Source Changed to : ' + self.model.Source
 
-	def AddConfig(self, parent, c):
-		configInx = ConfigEncoder.Configs.index(self.model.Config)
-		UIFactory.AddLabel(parent, 'Config', self.Row, c)
-		self.cmbConfig = UIFactory.AddCombo(parent, ConfigEncoder.Configs, configInx, self.Row, c+1, self.OnConfigChanged, 10)
-
 	def OnConfigChanged(self, event):
 		if self.model.UpdateConfig(self.cmbConfig[0].current()):
 			print 'Config Changed to : ' + self.model.Config
 
-	def AddBranch(self, parent, c):
-		UIFactory.AddLabel(parent, 'Branch', self.Row, c)
-		self.lblBranch = UIFactory.AddLabel(parent, self.model.Branch, self.Row, c+1)
-
-	def AddPlatform(self, parent, c):
-		platformInx = ConfigEncoder.Platforms.index(self.model.Platform)
-		UIFactory.AddLabel(parent, 'Platform', self.Row, c)
-		self.cmbPltfm = UIFactory.AddCombo(parent, ConfigEncoder.Platforms, platformInx, self.Row, c+1, self.OnPlatformChanged, 10)
-
 	def OnPlatformChanged(self, event):
 		if self.model.UpdatePlatform(self.cmbPltfm[0].current()):
 			print 'Platform Changed to : ' + self.model.Platform
-
-	def AddTest(self, parent, c):
-		UIFactory.AddLabel(parent, 'Test', self.Row, c)
-		testNames = self.model.AutoTests.GetNames()
-		self.cmbTest = UIFactory.AddCombo(parent, testNames, self.model.TestIndex, self.Row, c+1, self.OnTestChanged, 70)
 
 	def OnTestChanged(self, event):
 		if self.model.UpdateTest(self.cmbTest[0].current(), False):
@@ -176,44 +208,17 @@ class UIHeader:
 			for i in range(self.model.MaxSlots):
 				self.chkSlots[i].set((i+1) in self.model.slots)
 
-	def AddAttachMmi(self, parent, c):
-		UIFactory.AddLabel(parent, 'Attach MMi', self.Row, c)
-		self.chkAttachMmi = UIFactory.AddCheckBox(parent, self.model.DebugVision, self.Row, c+1, self.OnAttach)
-
 	def OnAttach(self):
 		self.model.DebugVision = self.chkAttachMmi.get()
 		print 'Attach to MMi : ' + ('Yes' if self.model.DebugVision else 'No')
-
-	def AddCopyMmi(self, parent, c):
-		UIFactory.AddLabel(parent, 'Copy MMI to Icos', self.Row, c)
-		self.chkCopyMmi = UIFactory.AddCheckBox(parent, self.model.CopyMmi, self.Row, c+1, self.OnCopyMmi)
 
 	def OnCopyMmi(self):
 		self.model.CopyMmi = self.chkCopyMmi.get()
 		print 'Copy MMI to ICOS : ' + str(self.chkCopyMmi.get())
 
-	def AddSlots(self, parent, c):
-		UIFactory.AddLabel(parent, 'Slots', self.Row, c)
-		frame = UIFactory.AddFrame(parent, self.Row, c+1, columnspan=5)
-		self.chkSlots = []
-		for i in range(self.model.MaxSlots):
-			isSelected = (i+1) in self.model.slots
-			UIFactory.AddLabel(frame, str(i+1), 0, i * 2)
-			self.chkSlots.append(UIFactory.AddCheckBox(frame, isSelected, 0, i * 2 + 1, self.OnSlotChn, i))
-
 	def OnSlotChn(self, index):
 		self.model.UpdateSlots(index, self.chkSlots[index].get())
 		print 'Slots for the current test : ' + str(self.model.slots)
-
-	def AddActiveSrcs(self, parent, c):
-		UIFactory.AddLabel(parent, 'Active Srcs', self.Row, c)
-		frame = UIFactory.AddFrame(parent, self.Row, c+1, columnspan=4)
-		self.chkActiveSrcs = []
-		srcs = self.model.ActiveSrcs
-		for i in range(len(self.model.Sources)):
-			isSelected = True if i in srcs else False
-			UIFactory.AddLabel(frame, str(i+1), 0, i * 2)
-			self.chkActiveSrcs.append(UIFactory.AddCheckBox(frame, isSelected, 0, i * 2 + 1, self.OnActiveSrcsChn, i))
 
 	def OnActiveSrcsChn(self, index):
 		if self.chkActiveSrcs[index].get():
@@ -261,14 +266,11 @@ class UIMainMenu:
 		self.klaSourceBuilder = KlaSourceBuilder(self.model, self.klaRunner)
 		self.threadHandler = ThreadHandler()
 		self.Col = 0
-		self.CreateUI(self.frame)
-
-	def CreateUI(self, parent):
-		self.AddColumn1(parent)
-		self.AddColumn2(parent)
-		self.AddColumn3(parent)
-		self.AddColumn4(parent)
-		self.AddColumn5(parent)
+		self.AddColumn1(self.frame)
+		self.AddColumn2(self.frame)
+		self.AddColumn3(self.frame)
+		self.AddColumn4(self.frame)
+		self.AddColumn5(self.frame)
 
 	def AddColumn1(self, parent):
 		self.CreateColumnFrame(parent)
@@ -307,14 +309,11 @@ class UIMainMenu:
 		self.AddButton('Copy MmiSaveLogs.exe', self.klaRunner.CopyMmiSaveLogExe)
 
 	def AddColumn5(self, parent):
-		sourceBuilder = self.klaSourceBuilder
-		settings = self.settings
-		effortLogger = EffortLogger(self.model)
 		self.CreateColumnFrame(parent)
 		self.AddButton('Clear Output', OsOperations.Cls)
 		self.AddParallelButton('Clean Source', self.klaSourceBuilder.CleanSource)
 		self.AddParallelButton('Build Source', self.klaSourceBuilder.BuildSource)
-		self.AddButton('Effort Log', effortLogger.Print)
+		self.AddButton('Effort Log', EffortLogger(self.model).Print)
 		self.AddButton('Stop All KLA Apps', AppRunner.StopTasks, (False,))
 
 	def CreateColumnFrame(self, parent):
@@ -1344,7 +1343,8 @@ class Git:
 
 	@classmethod
 	def GetHash(cls):
-		return OsOperations.ProcessOpen(['git', 'describe', '--always'])
+		str = OsOperations.ProcessOpen(['git', 'describe', '--always'])
+		return re.sub('\W+', '', str)
 
 class StdOutRedirect(object):
 	def __init__(self):
@@ -1635,10 +1635,68 @@ class AutoTests:
 		slotStrs = [str(slot) for slot in slots]
 		return '{} {}'.format(testName, '_'.join(slotStrs))
 
+class ConfigInfo:
+	def __init__(self, fileName):
+		self.FileName = fileName
+
+	def Read(self, model):
+		if not os.path.exists(self.FileName):
+			print "File doesn't exist : " + self.FileName
+			return
+		with open(self.FileName) as f:
+			_model = json.load(f)
+
+		model.Sources = [ConfigEncoder.DecodeSource(item) for item in _model['Sources']]
+		model.UpdateSource(_model['SrcIndex'], False)
+		if not model.UpdateTest(_model['TestIndex'], False):
+			model.TestIndex = 0
+		model.ActiveSrcs = _model['ActiveSrcs']
+		model.VisualStudioBuild = _model['VisualStudioBuild']
+		model.VisualStudioRun = _model['VisualStudioRun']
+		model.GitBin = _model['GitBin']
+		model.VMwareWS = _model['VMwareWS']
+		model.EffortLogFile = _model['EffortLogFile']
+		model.DateFormat = _model['DateFormat']
+		model.MMiConfigPath = _model['MMiConfigPath']
+		model.MMiSetupsPath = _model['MMiSetupsPath']
+		model.DebugVision = _model['DebugVision']
+		model.CopyMmi = _model['CopyMmi']
+		model.TempDir = _model['TempDir']
+		model.LogFileName = _model['LogFileName']
+		model.MenuColCnt = _model['MenuColCnt']
+		model.MaxSlots = _model['MaxSlots']
+		model.ClearHistory = _model['ClearHistory']
+
+	def Write(self, model):
+		content = '\n'.join(model.AutoTests.Tests)
+		_model = OrderedDict()
+		_model['Sources'] = [ConfigEncoder.EncodeSource(item) for item in model.Sources]
+		_model['SrcIndex'] = model.SrcIndex
+		_model['ActiveSrcs'] = model.ActiveSrcs
+		_model['TestIndex'] = model.TestIndex
+		_model['VisualStudioBuild'] = model.VisualStudioBuild
+		_model['VisualStudioRun'] = model.VisualStudioRun
+		_model['GitBin'] = model.GitBin
+		_model['VMwareWS'] = model.VMwareWS
+		_model['EffortLogFile'] = model.EffortLogFile
+		_model['DateFormat'] = model.DateFormat
+		_model['MMiConfigPath'] = model.MMiConfigPath
+		_model['MMiSetupsPath'] = model.MMiSetupsPath
+		_model['DebugVision'] = model.DebugVision
+		_model['CopyMmi'] = model.CopyMmi
+		_model['TempDir'] = model.TempDir
+		_model['LogFileName'] = model.LogFileName
+		_model['MenuColCnt'] = model.MenuColCnt
+		_model['MaxSlots'] = model.MaxSlots
+		_model['ClearHistory'] = model.ClearHistory
+
+		with open(self.FileName, 'w') as f:
+			json.dump(_model, f, indent=3)
+
 class Model:
 	def __init__(self):
 		self.StartPath = os.path.dirname(os.path.abspath(__file__))
-		self.fileName = self.StartPath + '\\KlaRunner.ini'
+		self.ConfigInfo = ConfigInfo(self.StartPath + '\\KlaRunner.ini')
 		self.AutoTests = AutoTests(self.StartPath + '\\Tests.txt')
 
 		self.SrcIndex = -1
@@ -1652,55 +1710,11 @@ class Model:
 
 	def ReadConfigFile(self):
 		self.AutoTests.Read()
-		with open(self.fileName) as f:
-			_model = json.load(f)
-
-		self.Sources = [ConfigEncoder.DecodeSource(item) for item in _model['Sources']]
-		self.UpdateSource(_model['SrcIndex'], False)
-		if not self.UpdateTest(_model['TestIndex'], False):
-			self.TestIndex = 0
-		self.ActiveSrcs = _model['ActiveSrcs']
-		self.VisualStudioBuild = _model['VisualStudioBuild']
-		self.VisualStudioRun = _model['VisualStudioRun']
-		self.GitBin = _model['GitBin']
-		self.VMwareWS = _model['VMwareWS']
-		self.EffortLogFile = _model['EffortLogFile']
-		self.DateFormat = _model['DateFormat']
-		self.MMiConfigPath = _model['MMiConfigPath']
-		self.MMiSetupsPath = _model['MMiSetupsPath']
-		self.DebugVision = _model['DebugVision']
-		self.CopyMmi = _model['CopyMmi']
-		self.TempDir = _model['TempDir']
-		self.LogFileName = _model['LogFileName']
-		self.MenuColCnt = _model['MenuColCnt']
-		self.MaxSlots = _model['MaxSlots']
-		self.ClearHistory = _model['ClearHistory']
+		self.ConfigInfo.Read(self)
 
 	def WriteConfigFile(self):
 		self.AutoTests.Write()
-		_model = OrderedDict()
-		_model['Sources'] = [ConfigEncoder.EncodeSource(item) for item in self.Sources]
-		_model['SrcIndex'] = self.SrcIndex
-		_model['ActiveSrcs'] = self.ActiveSrcs
-		_model['TestIndex'] = self.TestIndex
-		_model['VisualStudioBuild'] = self.VisualStudioBuild
-		_model['VisualStudioRun'] = self.VisualStudioRun
-		_model['GitBin'] = self.GitBin
-		_model['VMwareWS'] = self.VMwareWS
-		_model['EffortLogFile'] = self.EffortLogFile
-		_model['DateFormat'] = self.DateFormat
-		_model['MMiConfigPath'] = self.MMiConfigPath
-		_model['MMiSetupsPath'] = self.MMiSetupsPath
-		_model['DebugVision'] = self.DebugVision
-		_model['CopyMmi'] = self.CopyMmi
-		_model['TempDir'] = self.TempDir
-		_model['LogFileName'] = self.LogFileName
-		_model['MenuColCnt'] = self.MenuColCnt
-		_model['MaxSlots'] = self.MaxSlots
-		_model['ClearHistory'] = self.ClearHistory
-
-		with open(self.fileName, 'w') as f:
-			json.dump(_model, f, indent=3)
+		self.ConfigInfo.Write(self)
 
 	def UpdateSource(self, index, writeToFile):
 		if index < 0 or index >= len(self.Sources):
