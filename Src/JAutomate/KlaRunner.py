@@ -91,14 +91,9 @@ class UI:
 		#self.window.geometry('750x350')
 		#self.window.resizable(0, 0) # To Disable Max button, Then half screen won't work
 		#self.window.overrideredirect(1) # Remove Window border
-		self.window.protocol("WM_DELETE_WINDOW", self.OnCloseWindow)
 		UIHeader(self.window, 0, 0, self.model)
 		UIMainMenu(self.window, 1, 0, self.klaRunner)
 		self.window.mainloop()
-
-	def OnCloseWindow(self):
-		self.model.WriteConfigFile()
-		self.window.destroy()
 
 class UIHeader:
 	def __init__(self, parent, r, c, model):
@@ -188,7 +183,7 @@ class UIViewModel:
 		self.model = model
 
 	def OnSrcChanged(self, event):
-		if self.model.UpdateSource(self.cmbSource[0].current(), False):
+		if self.model.UpdateSource(self.cmbSource[0].current(), True):
 			self.lblBranch[1].set(self.model.Branch)
 			self.cmbConfig[1].set(self.model.Config)
 			self.cmbPltfm[1].set(self.model.Platform)
@@ -196,28 +191,33 @@ class UIViewModel:
 
 	def OnConfigChanged(self, event):
 		if self.model.UpdateConfig(self.cmbConfig[0].current()):
+			self.model.WriteConfigFile()
 			print 'Config Changed to : ' + self.model.Config
 
 	def OnPlatformChanged(self, event):
 		if self.model.UpdatePlatform(self.cmbPltfm[0].current()):
+			self.model.WriteConfigFile()
 			print 'Platform Changed to : ' + self.model.Platform
 
 	def OnTestChanged(self, event):
-		if self.model.UpdateTest(self.cmbTest[0].current(), False):
+		if self.model.UpdateTest(self.cmbTest[0].current(), True):
 			print 'Test Changed to : ' + self.model.TestName
 			for i in range(self.model.MaxSlots):
 				self.chkSlots[i].set((i+1) in self.model.slots)
 
 	def OnAttach(self):
 		self.model.DebugVision = self.chkAttachMmi.get()
+		self.model.WriteConfigFile()
 		print 'Attach to MMi : ' + ('Yes' if self.model.DebugVision else 'No')
 
 	def OnCopyMmi(self):
 		self.model.CopyMmi = self.chkCopyMmi.get()
+		self.model.WriteConfigFile()
 		print 'Copy MMI to ICOS : ' + str(self.chkCopyMmi.get())
 
 	def OnSlotChn(self, index):
 		self.model.UpdateSlots(index, self.chkSlots[index].get())
+		self.model.WriteConfigFile()
 		print 'Slots for the current test : ' + str(self.model.slots)
 
 	def OnActiveSrcsChn(self, index):
@@ -228,6 +228,7 @@ class UIViewModel:
 		else:
 			self.model.ActiveSrcs.remove(index)
 			print 'Disabled the source : ' + str(self.model.Sources[index][0])
+		self.model.WriteConfigFile()
 
 class ThreadHandler:
 	def __init__(self):
@@ -1466,11 +1467,11 @@ class EffortLogger:
 		data = sorted(data, key = lambda x : x[1], reverse=True)
 		menuData = [[message, 'Time Taken'], ['-']] + data
 		menuData += [['-'], ['Total Time', totalTime]]
+		menuData += [['Actual Time', totalTime - dollarTime]]
 		table = PrettyTable(TableFormatFactory().SetSingleLine()).ToString(menuData)
 		#table = datetime.now().strftime('%Y %b %d %H:%M:%S\n') + table
 		#FileOperations.Append(logFile + '.txt', table)
 		print table,
-		print totalTime - dollarTime
 
 	def IsSameDate(self, a, b):
 		a1 = a - self.DayStarts
