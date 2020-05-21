@@ -304,8 +304,8 @@ class UIMainMenu:
 		self.AddButton('Run Slots', VMWareRunner.RunSlots, (self.model,))
 		self.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
 		self.AddButton('Comment VisionSystem', self.testRunner.ModifyVisionSystem)
-		self.AddButton('Copy Mock License', self.testRunner.CopyMockLicense)
-		self.AddButton('Copy xPort xml', self.testRunner.CopyIllumRef)
+		self.AddButton('Copy Mock License', PreTestActions.CopyMockLicense, (self.model,))
+		self.AddButton('Copy xPort xml', PreTestActions.CopyIllumRef, (self.model,))
 		self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
 		self.AddButton('Copy MmiSaveLogs.exe', self.klaRunner.CopyMmiSaveLogExe)
 
@@ -383,8 +383,8 @@ class Menu:
 			[22, ['Open Git GUI', Git.OpenGitGui, model]],
 			[23, ['Open Git Bash', Git.OpenGitBash, model]],
 			[24, ['Comment VisionSystem', testRunner.ModifyVisionSystem]],
-			[25, ['Copy Mock License', testRunner.CopyMockLicense]],
-			[26, ['Copy xPort xml', testRunner.CopyIllumRef, model.ClearHistory]],
+			[25, ['Copy Mock License', PreTestActions.CopyMockLicense, model]],
+			[26, ['Copy xPort xml', PreTestActions.CopyIllumRef, model]],
 			[27, ['Print mmi.h IDs', self.klaRunner.PrintMissingIds]],
 			[28, ['Copy MmiSaveLogs.exe', self.klaRunner.CopyMmiSaveLogExe]],
 		],[
@@ -394,7 +394,7 @@ class Menu:
 			[94, ['Change Test', settings.ChangeTest]],
 			[95, ['Change Source', settings.ChangeSource]],
 			[96, ['Change MMI Attach', settings.ChangeDebugVision]],
-			[97, ['Effort Log', effortLogger.Print]],
+			[97, ['Effort Log', effortLogger.PrintInDetail]],
 			[98, ['Clear Output', OsOperations.Cls]],
 			[99, ['Stop All KLA Apps', TaskMan.StopTasks, True]],
 			[0, 'EXIT']
@@ -522,22 +522,16 @@ class AppRunner:
 		self.model = model
 		self.testRunner = testRunner
 
-	@classmethod
-	def GetPlatform(cls, platform, isSimulator = False):
-		if isSimulator and 'Win32' == platform:
-			platform = 'x86'
-		return platform
-
 	def RunHandler(self, doPause = True):
 		TaskMan.StopTasks(False)
 
 		config = self.model.Config
-		platform = self.GetPlatform(self.model.Platform)
+		platform = ConfigEncoder.GetPlatform(self.model.Platform)
 		handlerPath = '{}/handler/cpp/bin/{}/{}/system'.format(self.model.Source, platform, config)
 		consoleExe = handlerPath + '/console.exe'
 		testTempDir = self.model.Source + '/handler/tests/' + self.model.TestName + '~'
 
-		platform = self.GetPlatform(self.model.Platform, True)
+		platform = ConfigEncoder.GetPlatform(self.model.Platform, True)
 		simulatorExe = '{}/handler/Simulator/ApplicationFiles/bin/{}/{}/CIT100Simulator.exe'
 		simulatorExe = simulatorExe.format(self.model.Source, platform, config)
 
@@ -556,9 +550,9 @@ class AppRunner:
 		VMWareRunner.RunSlots(self.model)
 
 		if fromSrc:
-			self.testRunner.CopyMockLicense(False, False) # Do we need this
-		mmiPath = self.testRunner.CopyMockLicense(fromSrc, False)
-		self.testRunner.CopyIllumRef()
+			PreTestActions.CopyMockLicense(self.model, False, False) # Do we need this
+		mmiPath = PreTestActions.CopyMockLicense(self.model, fromSrc, False)
+		PreTestActions.CopyIllumRef(self.model)
 
 		OsOperations.Timeout(8)
 
@@ -672,12 +666,10 @@ class VMWareRunner:
 				os.system('PAUSE')
 				print slotName + ' : Started.'
 
-class AutoTestRunner:
-	def __init__(self, model):
-		self.model = model
-
-	def CopyMockLicense(self, fromSrc = True, doPause = True):
-		args = (self.model.Source, self.model.Platform, self.model.Config)
+class PreTestActions:
+	@classmethod
+	def CopyMockLicense(cls, model, fromSrc = True, doPause = True):
+		args = (model.Source, model.Platform, model.Config)
 		if fromSrc:
 			mmiPath = os.path.abspath('{}/mmi/mmi/Bin/{}/{}'.format(*args))
 		else:
@@ -685,17 +677,22 @@ class AutoTestRunner:
 		licencePath = '{}/mmi/mmi/mmi_stat/integration/code/MockLicenseDll/{}/{}/License.dll'
 		licenseFile = os.path.abspath(licencePath.format(*args))
 		FileOperations.Copy(licenseFile, mmiPath)
-		OsOperations.Pause(doPause and self.model.ClearHistory)
+		OsOperations.Pause(doPause and model.ClearHistory)
 		return mmiPath
 
-	def CopyIllumRef(self, doPause = False, delay = False):
-		src = self.model.StartPath + '\\xPort_IllumReference.xml'
+	@classmethod
+	def CopyIllumRef(cls, model, doPause = False, delay = False):
+		src = model.StartPath + '\\xPort_IllumReference.xml'
 		des = 'C:/icos/xPort/'
 		if delay:
 			FileOperations.Copy(src, des, 8, 3)
 		else:
 			FileOperations.Copy(src, des)
 		OsOperations.Pause(doPause)
+
+class AutoTestRunner:
+	def __init__(self, model):
+		self.model = model
 
 	def ModifyVisionSystem(self, doPause = True):
 		line = 'shutil.copy2(os.path.join(mvsSlots, slot, slot + ".bat"), os.path.join(self.mvsPath, slot, slot + ".bat"))'
@@ -717,7 +714,7 @@ class AutoTestRunner:
 		TaskMan.StopTasks(False)
 		VMWareRunner.RunSlots(self.model)
 		self.ModifyVisionSystem(False)
-		self.CopyIllumRef(False, True)
+		PreTestActions.CopyIllumRef(self.model, False, True)
 		#FileOperations.Copy(self.model.StartPath + '/Profiles', 'C:/icos/Profiles', 8, 3)
 		os.chdir(self.model.StartPath)
 
@@ -905,7 +902,7 @@ class KlaSourceBuilder:
 					print "Solution file doesn't exist : " + slnFile
 					continue
 				isSimulator = sln.split('/')[-1] == 'CIT100Simulator.sln'
-				platform = AppRunner.GetPlatform(srcPlatform, isSimulator)
+				platform = ConfigEncoder.GetPlatform(srcPlatform, isSimulator)
 				BuildConf = config + '|' + platform
 				outFile = os.path.abspath(source + '/Out_' + self.SlnNames[inx]) + '.txt'
 
@@ -1411,6 +1408,21 @@ class TestNumValDict:
 		d.Add('bye', 3)
 		Test.Assert(d, {'bye': 3, 'hi': 28})
 
+class DateTimeOps:
+	@classmethod
+	def IsSameDate(cls, datetime1, datetime2, dayStarts):
+		if datetime1 is None or datetime2 is None:
+			return False
+		a1 = datetime1 - dayStarts
+		b1 = datetime2 - dayStarts
+		return a1.day == b1.day and a1.month == b1.month and a1.year == b1.year
+
+	@classmethod
+	def Strftime(cls, myTimeDelta, format):
+		hours, remainder = divmod(myTimeDelta.total_seconds(), 3600)
+		minutes, seconds = divmod(remainder, 60)
+		return format.format(int(hours), int(minutes), int(seconds))
+
 class EffortReader:
 	def __init__(self, model):
 		self.model = model
@@ -1441,7 +1453,7 @@ class EffortReader:
 		totalTime = timedelta()
 		for lineParts in self.content:
 			dt = datetime.strptime(lineParts[0], self.DTFormat)
-			if not self.IsSameDate(dt, date):
+			if not DateTimeOps.IsSameDate(dt, date, self.DayStarts):
 				continue
 			ts = (dt - lastDt) if lastDt is not None else (dt-dt)
 			txt = self.PrepareDescription(lineParts[1], lineParts[2])
@@ -1458,11 +1470,11 @@ class EffortReader:
 		date = None
 		data = []
 		def AddRow(d1, t1):
-			formattedTime = self.Strftime(t1, '{:02}:{:02}')
+			formattedTime = DateTimeOps.Strftime(t1, '{:02}:{:02}')
 			data.append([d1, formattedTime])
 		for lineParts in self.content:
 			dt = datetime.strptime(lineParts[0], self.DTFormat)
-			if self.IsSameDate(dt, date):
+			if DateTimeOps.IsSameDate(dt, date, self.DayStarts):
 				ts = dt - lastDt
 				if len(lineParts[1] + lineParts[2]) > 0:
 					actualTime += ts
@@ -1475,13 +1487,6 @@ class EffortReader:
 			lastDt = dt
 		AddRow(formattedDay, actualTime)
 		return data
-
-	def IsSameDate(self, a, b):
-		if a is None or b is None:
-			return False
-		a1 = a - self.DayStarts
-		b1 = b - self.DayStarts
-		return a1.day == b1.day and a1.month == b1.month and a1.year == b1.year
 
 	def FormatText(self, message):
 		return message.encode('ascii', 'ignore').decode('ascii')
@@ -1499,11 +1504,6 @@ class EffortReader:
 		message = message2 if len(message2) > 50 else message1 + '$' + message2
 		message = message.replace('[Administrator]', '')
 		return message
-
-	def Strftime(self, myTimeDelta, format):
-		hours, remainder = divmod(myTimeDelta.total_seconds(), 3600)
-		minutes, seconds = divmod(remainder, 60)
-		return format.format(int(hours), int(minutes), int(seconds))
 
 	def CheckApplication(self):
 		if len(OsOperations.GetProcessIds('EffortCapture_2013.exe')) > 0:
@@ -1637,6 +1637,7 @@ class TestSourceCode:
 		for name, obj in inspect.getmembers(sys.modules[__name__]):
 			if inspect.isclass(obj) and str(obj)[:8] == '__main__':
 				lineCnt = len(inspect.getsourcelines(obj)[0])
+				#print '{:20} {}'.format(name, lineCnt)
 				if lineCnt > 100:
 					Test.Assert(lineCnt, '< 100', 'Exceeds line count : {}'.format(name))
 
@@ -1663,7 +1664,13 @@ class ConfigEncoder:
 	def EncodeSource(cls, srcSet):
 		return [srcSet[0], srcSet[1][0] + srcSet[2][-2:]]
 
-class AutoTests:
+	@classmethod
+	def GetPlatform(cls, platform, isSimulator = False):
+		if isSimulator and 'Win32' == platform:
+			platform = 'x86'
+		return platform
+
+class AutoTestModel:
 	def __init__(self, fileName):
 		self.FileName = fileName
 
@@ -1771,7 +1778,7 @@ class Model:
 	def __init__(self):
 		self.StartPath = os.path.dirname(os.path.abspath(__file__))
 		self.ConfigInfo = ConfigInfo(self.StartPath + '\\KlaRunner.ini')
-		self.AutoTests = AutoTests(self.StartPath + '\\Tests.txt')
+		self.AutoTests = AutoTestModel(self.StartPath + '\\Tests.txt')
 
 		self.SrcIndex = -1
 		self.TestIndex = -1
