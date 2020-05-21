@@ -1410,52 +1410,35 @@ class TestNumValDict:
 		d.Add('bye', 3)
 		Test.Assert(d, {'bye': 3, 'hi': 28})
 
-class EffortLogger:
+class EffortReader:
 	def __init__(self, model):
 		self.model = model
 		self.LogFileEncode = 'UTF-16'
 		self.DTFormat = self.model.DateFormat + ' %H:%M:%S'
-		self.ColWidth = 80
-		self.MinMinutes = 3
-		self.MinTime = timedelta(minutes=self.MinMinutes)
 		self.DayStarts = timedelta(hours=4) # 4am
-		self.ShowPrevDaysLogs = 1
-		self.DaysCount = 10
-
-	def PrintInDetail(self):
-		content = self.ReadFile()
-		for i in range(self.ShowPrevDaysLogs, 0, -1):
-			prevDay = datetime.now() - timedelta(days=i)
-			formattedDay = prevDay.strftime(self.model.DateFormat)
-			self.PrintEffortTable(prevDay, formattedDay, content)
-		today = datetime.now()
-		self.PrintEffortTable(today, 'Today', content)
-		OsOperations.Pause()
-		self.CheckApplication()
 
 	def ReadFile(self):
 		logFile = self.model.EffortLogFile
 		if not os.path.exists(logFile):
 			print "File doesn't exist : " + logFile
 			return []
-		content = []
+		self.content = []
 		for line in FileOperations.ReadLine(logFile, self.LogFileEncode):
 			if line[:7] == 'Current':
 				continue
 			lineParts = self.FormatText(line).split('$')
 			if len(lineParts) > 2:
-				content.append(lineParts)
+				self.content.append(lineParts)
 			else:
 				print 'Error: ' + line
-		return content
 
-	def PrintEffortTable(self, date, message, content):
-		if len(content) is 0:
+	def GetDetailedEfforts(self, date):
+		if len(self.content) is 0:
 			return
 		dictAppNameToTime = NumValDict()
 		lastDt = None
 		totalTime = timedelta()
-		for lineParts in content:
+		for lineParts in self.content:
 			dt = datetime.strptime(lineParts[0], self.DTFormat)
 			if not self.IsSameDate(dt, date):
 				continue
@@ -1464,38 +1447,10 @@ class EffortLogger:
 			dictAppNameToTime.Add(txt, ts)
 			lastDt = dt
 			totalTime += ts
-		data = []
-		oneMinAppsTime = timedelta()
-		dollarTime = timedelta()
-		for k,v in dictAppNameToTime.items():
-			if v > self.MinTime:
-				data.append([self.Trim(k, self.ColWidth), v])
-			else:
-				oneMinAppsTime += v
-			if k == '$':
-				dollarTime = v
-		minAppDesc = 'Other Apps Less Than {} Minute(s)'.format(self.MinMinutes)
-		data.append([minAppDesc, oneMinAppsTime])
-		data = sorted(data, key = lambda x : x[1], reverse=True)
-		menuData = [[message, 'Time Taken'], ['-']] + data
-		menuData += [['-'], ['Total Time', totalTime]]
-		menuData += [['Actual Time', totalTime - dollarTime]]
-		table = PrettyTable(TableFormatFactory().SetSingleLine()).ToString(menuData)
-		#table = datetime.now().strftime('%Y %b %d %H:%M:%S\n') + table
-		#FileOperations.Append(logFile + '.txt', table)
-		print table,
+		return dictAppNameToTime, totalTime
 
-	def PrintActualTime(self):
-		data = self.GetActualTime()
-		if data is None:
-			return
-		effortData = [['Date', 'Actual Time'], ['-']] + data
-		table = PrettyTable(TableFormatFactory().SetSingleLine()).ToString(effortData)
-		print table,
-
-	def GetActualTime(self):
-		content = self.ReadFile()
-		if len(content) is 0:
+	def GetConsolidatedTime(self):
+		if len(self.content) is 0:
 			return
 		lastDt = None
 		actualTime = None
@@ -1504,7 +1459,7 @@ class EffortLogger:
 		def AddRow(d1, t1):
 			formattedTime = self.Strftime(t1, '{:02}:{:02}')
 			data.append([d1, formattedTime])
-		for lineParts in content:
+		for lineParts in self.content:
 			dt = datetime.strptime(lineParts[0], self.DTFormat)
 			if self.IsSameDate(dt, date):
 				ts = dt - lastDt
@@ -1527,11 +1482,6 @@ class EffortLogger:
 		b1 = b - self.DayStarts
 		return a1.day == b1.day and a1.month == b1.month and a1.year == b1.year
 
-	def Strftime(self, myTimeDelta, format):
-		hours, remainder = divmod(myTimeDelta.total_seconds(), 3600)
-		minutes, seconds = divmod(remainder, 60)
-		return format.format(int(hours), int(minutes), int(seconds))
-
 	def FormatText(self, message):
 		return message.encode('ascii', 'ignore').decode('ascii')
 
@@ -1549,10 +1499,10 @@ class EffortLogger:
 		message = message.replace('[Administrator]', '')
 		return message
 
-	def Trim(self, message, width):
-		if len(message) > width:
-			return message[:width / 2 - 1] + '...' + message[2 - width / 2:]
-		return message
+	def Strftime(self, myTimeDelta, format):
+		hours, remainder = divmod(myTimeDelta.total_seconds(), 3600)
+		minutes, seconds = divmod(remainder, 60)
+		return format.format(int(hours), int(minutes), int(seconds))
 
 	def CheckApplication(self):
 		if len(OsOperations.GetProcessIds('EffortCapture_2013.exe')) > 0:
@@ -1560,20 +1510,76 @@ class EffortLogger:
 		else:
 			print 'Effort logger is not running'
 
+class EffortLogger:
+	def __init__(self, model):
+		self.model = model
+		self.ColWidth = 80
+		self.MinMinutes = 3
+		self.MinTime = timedelta(minutes=self.MinMinutes)
+		self.ShowPrevDaysLogs = 1
+
+	def PrintInDetail(self):
+		reader = EffortReader(self.model)
+		reader.ReadFile()
+		for i in range(self.ShowPrevDaysLogs, 0, -1):
+			prevDay = datetime.now() - timedelta(days=i)
+			formattedDay = prevDay.strftime(self.model.DateFormat)
+			self.PrintEffortTable(prevDay, formattedDay, reader)
+		today = datetime.now()
+		self.PrintEffortTable(today, 'Today', reader)
+		reader.CheckApplication()
+		OsOperations.Pause()
+
+	def PrintEffortTable(self, date, message, reader):
+		dictAppNameToTime, totalTime = reader.GetDetailedEfforts(date)
+		if dictAppNameToTime is None:
+			return
+		data = []
+		oneMinAppsTime = timedelta()
+		dollarTime = timedelta()
+		for k,v in dictAppNameToTime.items():
+			if v > self.MinTime:
+				data.append([self.Trim(k, self.ColWidth), v])
+			else:
+				oneMinAppsTime += v
+			if k == '$':
+				dollarTime = v
+		minAppDesc = 'Other Apps Less Than {} Minute(s)'.format(self.MinMinutes)
+		data.append([minAppDesc, oneMinAppsTime])
+		data = sorted(data, key = lambda x : x[1], reverse=True)
+		menuData = [[message, 'Time Taken'], ['-']] + data
+		menuData += [['-'], ['Total Time', totalTime]]
+		menuData += [['Actual Time', totalTime - dollarTime]]
+		table = PrettyTable(TableFormatFactory().SetSingleLine()).ToString(menuData)
+		#table = datetime.now().strftime('%Y %b %d %H:%M:%S\n') + table
+		#FileOperations.Append(logFile + '.txt', table)
+		print table,
+
+	def PrintActualTime(self):
+		reader = EffortReader(self.model)
+		reader.ReadFile()
+		data = reader.GetConsolidatedTime()
+		if data is None:
+			return
+		effortData = [['Date', 'Actual Time'], ['-']] + data
+		table = PrettyTable(TableFormatFactory().SetSingleLine()).ToString(effortData)
+		print table,
+
+	def Trim(self, message, width):
+		if len(message) > width:
+			return message[:width / 2 - 1] + '...' + message[2 - width / 2:]
+		return message
+
 class TestEffortLogger:
 	def __init__(self):
 		model = Model()
 		model.DateFormat = '%d-%b-%Y'
 		self.EL = EffortLogger(model)
 		self.TestTrim()
-		self.PrepareDescription()
 
 	def TestTrim(self):
 		Test.Assert(self.EL.Trim('India is my country', 10), 'Indi...try')
 		Test.Assert(self.EL.Trim('India is my country', 15), 'India ...untry')
-
-	def PrepareDescription(self):
-		Test.Assert(self.EL.PrepareDescription('explorer.exe', 'ICOS SecsGem Interface'), 'explorer.exe')
 
 class Test:
 	_ok = 0
