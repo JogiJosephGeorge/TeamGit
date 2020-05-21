@@ -275,7 +275,7 @@ class UIMainMenu:
 
 	def AddColumn1(self, parent):
 		self.CreateColumnFrame(parent)
-		self.AddButton('Open Python', self.klaRunner.OpenPython)
+		self.AddButton('Stop All KLA Apps', TaskMan.StopTasks, (False,))
 		self.AddParallelButton('Run test', self.testRunner.RunAutoTest, (False,))
 		self.AddParallelButton('Start test', self.testRunner.RunAutoTest, (True,))
 		self.AddButton('Run Handler and MMi', self.appRunner.RunHandlerMMi)
@@ -294,6 +294,7 @@ class UIMainMenu:
 
 	def AddColumn3(self, parent):
 		self.CreateColumnFrame(parent)
+		self.AddButton('Open Python', self.klaRunner.OpenPython)
 		self.AddButton('Open Test Folder', self.klaRunner.OpenTestFolder)
 		self.AddButton('Open Local Diff', AppRunner.OpenLocalDif, (self.model,))
 		self.AddButton('Open Git GUI', Git.OpenGitGui, (self.model,))
@@ -303,11 +304,10 @@ class UIMainMenu:
 		self.CreateColumnFrame(parent)
 		self.AddButton('Run Slots', VMWareRunner.RunSlots, (self.model,))
 		self.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
-		self.AddButton('Comment VisionSystem', self.testRunner.ModifyVisionSystem)
+		self.AddButton('Comment VisionSystem', PreTestActions.ModifyVisionSystem, (self.model,))
 		self.AddButton('Copy Mock License', PreTestActions.CopyMockLicense, (self.model,))
-		self.AddButton('Copy xPort xml', PreTestActions.CopyIllumRef, (self.model,))
-		self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
-		self.AddButton('Copy MmiSaveLogs.exe', self.klaRunner.CopyMmiSaveLogExe)
+		self.AddButton('Copy xPort xml', PreTestActions.CopyxPortIllumRef, (self.model,))
+		self.AddButton('Copy MmiSaveLogs.exe', PreTestActions.CopyMmiSaveLogExe, (self.model,))
 
 	def AddColumn5(self, parent):
 		self.CreateColumnFrame(parent)
@@ -315,9 +315,9 @@ class UIMainMenu:
 		self.AddButton('Clear Output', OsOperations.Cls)
 		self.AddParallelButton('Clean Source', self.klaSourceBuilder.CleanSource)
 		self.AddParallelButton('Build Source', self.klaSourceBuilder.BuildSource)
+		self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
 		self.AddButton('Effort Log', effortLogger.PrintInDetail)
 		self.AddButton('Daily Log', effortLogger.PrintActualTime)
-		self.AddButton('Stop All KLA Apps', TaskMan.StopTasks, (False,))
 
 	def CreateColumnFrame(self, parent):
 		self.ColFrame = UIFactory.AddFrame(parent, 0, self.Col, sticky='n')
@@ -352,7 +352,7 @@ class Menu:
 			['Branch', seperator, model.Branch, ' '*5, 'Platform', seperator, model.Platform],
 			['Test', seperator, model.TestName, ' '*5, 'Copy MMI to Icos', seperator, model.CopyMmi]
 		]
-		PrettyTable(TableFormatFactory().SetNoBorder('')).PrintTable(menuData)
+		PrettyTable(TableFormat().SetNoBorder('')).PrintTable(menuData)
 
 		testRunner = self.testRunner
 		sourceBuilder = self.klaSourceBuilder
@@ -382,11 +382,11 @@ class Menu:
 			[21, ['Open Local Diff', AppRunner.OpenLocalDif, model]],
 			[22, ['Open Git GUI', Git.OpenGitGui, model]],
 			[23, ['Open Git Bash', Git.OpenGitBash, model]],
-			[24, ['Comment VisionSystem', testRunner.ModifyVisionSystem]],
+			[24, ['Comment VisionSystem', PreTestActions.ModifyVisionSystem, model]],
 			[25, ['Copy Mock License', PreTestActions.CopyMockLicense, model]],
-			[26, ['Copy xPort xml', PreTestActions.CopyIllumRef, model]],
+			[26, ['Copy xPort xml', PreTestActions.CopyxPortIllumRef, model]],
 			[27, ['Print mmi.h IDs', self.klaRunner.PrintMissingIds]],
-			[28, ['Copy MmiSaveLogs.exe', self.klaRunner.CopyMmiSaveLogExe]],
+			[28, ['Copy MmiSaveLogs.exe', PreTestActions.CopyMmiSaveLogExe, model]],
 		],[
 			[91, ['Build Source ' + activeSrcs, sourceBuilder.BuildSource]],
 			[92, ['Clean Source ' + activeSrcs, sourceBuilder.CleanSource]],
@@ -408,7 +408,7 @@ class Menu:
 
 	def ReadUserInput(self):
 		menuData = self.PrepareMainMenu()
-		PrettyTable(TableFormatFactory().SetDoubleLineBorder()).PrintTable(menuData)
+		PrettyTable(TableFormat().SetDoubleLineBorder()).PrintTable(menuData)
 		userIn = OsOperations.InputNumber('Type the number then press ENTER: ')
 		for row in menuData:
 			for i in range(1, len(row)):
@@ -481,14 +481,6 @@ class KlaRunner:
 		print 
 		OsOperations.Pause(self.model.ClearHistory)
 
-	def CopyMmiSaveLogExe(self):
-		destin = os.path.abspath("{}/handler/tests/{}~\Icos".format(
-			self.model.Source, self.model.TestName))
-		src = os.path.abspath('{}/mmi/mmi/Bin/{}/{}/MmiSaveLogs.exe'.format(
-			self.model.Source, self.model.Platform, self.model.Config))
-		FileOperations.Copy(src, destin)
-		pass
-
 	def GetSourceInfo(self, activeSrcs):
 		heading = ['Source', 'Branch', 'Config', 'Platform']
 		if activeSrcs == None:
@@ -508,7 +500,7 @@ class KlaRunner:
 	def PrintBranches(self, activeSrcs = None):
 		heading, data = self.GetSourceInfo(activeSrcs)
 		menuData = [ heading, ['-'] ] + data
-		PrettyTable(TableFormatFactory().SetSingleLine()).PrintTable(menuData)
+		PrettyTable(TableFormat().SetSingleLine()).PrintTable(menuData)
 		return data
 
 	def SetWorkingDir(self):
@@ -552,7 +544,7 @@ class AppRunner:
 		if fromSrc:
 			PreTestActions.CopyMockLicense(self.model, False, False) # Do we need this
 		mmiPath = PreTestActions.CopyMockLicense(self.model, fromSrc, False)
-		PreTestActions.CopyIllumRef(self.model)
+		PreTestActions.CopyxPortIllumRef(self.model)
 
 		OsOperations.Timeout(8)
 
@@ -681,7 +673,7 @@ class PreTestActions:
 		return mmiPath
 
 	@classmethod
-	def CopyIllumRef(cls, model, doPause = False, delay = False):
+	def CopyxPortIllumRef(cls, model, doPause = False, delay = False):
 		src = model.StartPath + '\\xPort_IllumReference.xml'
 		des = 'C:/icos/xPort/'
 		if delay:
@@ -690,15 +682,20 @@ class PreTestActions:
 			FileOperations.Copy(src, des)
 		OsOperations.Pause(doPause)
 
-class AutoTestRunner:
-	def __init__(self, model):
-		self.model = model
+	@classmethod
+	def CopyMmiSaveLogExe(cls, model):
+		destin = os.path.abspath("{}/handler/tests/{}~\Icos".format(
+			model.Source, model.TestName))
+		src = os.path.abspath('{}/mmi/mmi/Bin/{}/{}/MmiSaveLogs.exe'.format(
+			model.Source, model.Platform, model.Config))
+		FileOperations.Copy(src, destin)
 
-	def ModifyVisionSystem(self, doPause = True):
+	@classmethod
+	def ModifyVisionSystem(cls, model, doPause = True):
 		line = 'shutil.copy2(os.path.join(mvsSlots, slot, slot + ".bat"), os.path.join(self.mvsPath, slot, slot + ".bat"))'
 		oldLine = ' ' + line
 		newLine = ' #' + line
-		fileName = os.path.abspath(self.model.Source + '/libs/testing/visionsystem.py')
+		fileName = os.path.abspath(model.Source + '/libs/testing/visionsystem.py')
 		with open(fileName) as f:
 			oldText = f.read()
 		if oldLine in oldText:
@@ -708,13 +705,17 @@ class AutoTestRunner:
 			print fileName + ' has been modified.'
 		else:
 			print fileName + ' had already been modified.'
-		OsOperations.Pause(doPause and self.model.ClearHistory)
+		OsOperations.Pause(doPause and model.ClearHistory)
+
+class AutoTestRunner:
+	def __init__(self, model):
+		self.model = model
 
 	def RunAutoTest(self, startUp):
 		TaskMan.StopTasks(False)
 		VMWareRunner.RunSlots(self.model)
-		self.ModifyVisionSystem(False)
-		PreTestActions.CopyIllumRef(self.model, False, True)
+		PreTestActions.ModifyVisionSystem(self.model, False)
+		PreTestActions.CopyxPortIllumRef(self.model, False, True)
 		#FileOperations.Copy(self.model.StartPath + '/Profiles', 'C:/icos/Profiles', 8, 3)
 		os.chdir(self.model.StartPath)
 
@@ -728,7 +729,7 @@ class AutoTestRunner:
 		my.c.startup = startUp
 		my.c.debugvision = self.model.DebugVision
 		my.c.copymmi = self.model.CopyMmi
-		my.c.mmiBuildConfiguration = self.model.GetBuildConfig()
+		my.c.mmiBuildConfiguration = ConfigEncoder.GetBuildConfig(self.model)
 		my.c.console_config = my.c.simulator_config = my.c.mmiBuildConfiguration[0]
 		my.c.platform = self.model.Platform
 		my.c.mmiConfigurationsPath = self.model.MMiConfigPath
@@ -835,7 +836,7 @@ class Settings:
 		for i,line in enumerate(arrOfArr):
 			line[0] = ('  ', '* ')[i == currentIndex] + line[0]
 			data.append([i + 1] + line)
-		PrettyTable(TableFormatFactory().SetSingleLine()).PrintTable(data)
+		PrettyTable(TableFormat().SetSingleLine()).PrintTable(data)
 		number = OsOperations.InputNumber('Type the number then press ENTER: ')
 		if number > 0 and number <= len(arrOfArr):
 			return number - 1
@@ -951,7 +952,7 @@ class BuildLoger:
 	def EndSource(self, src):
 		timeDelta = self.TimeDeltaToStr(datetime.now() - self.srcStartTime)
 		self.Log('Completed building : {} in {}'.format(src, timeDelta))
-		table = PrettyTable(TableFormatFactory().SetSingleLine()).ToString(self.logDataTable)
+		table = PrettyTable(TableFormat().SetSingleLine()).ToString(self.logDataTable)
 		print table
 		FileOperations.Append(self.fileName, table)
 
@@ -1137,7 +1138,7 @@ class TableLineRow:
 		yield self.chRig
 		yield self.chFil
 
-class TableFormatFactory:
+class TableFormat:
 	def SetSingleLine(self):
 		self.Top = TableLineRow(u'┌', u'┬', u'─', u'┐')
 		self.Mid = TableLineRow(u'├', u'┼', u'─', u'┤')
@@ -1260,7 +1261,7 @@ class TestPrettyTable:
 │ICOS│12345│False│
 └────┴─────┴─────┘
 '''[1:]
-		actual = PrettyTable(TableFormatFactory().SetSingleLine()).ToString(data)
+		actual = PrettyTable(TableFormat().SetSingleLine()).ToString(data)
 		#print actual
 		Test.AssertMultiLines(actual, expected)
 
@@ -1274,7 +1275,7 @@ class TestPrettyTable:
 ║ICOS│12345│False║
 ╚════╧═════╧═════╝
 '''[1:]
-		actual = PrettyTable(TableFormatFactory().SetDoubleLineBorder()).ToString(data)
+		actual = PrettyTable(TableFormat().SetDoubleLineBorder()).ToString(data)
 		#print actual
 		Test.AssertMultiLines(actual, expected)
 
@@ -1288,7 +1289,7 @@ class TestPrettyTable:
 ║ICOS║12345║False║
 ╚════╩═════╩═════╝
 '''[1:]
-		actual = PrettyTable(TableFormatFactory().SetDoubleLine()).ToString(data)
+		actual = PrettyTable(TableFormat().SetDoubleLine()).ToString(data)
 		#print actual
 		Test.AssertMultiLines(actual, expected)
 
@@ -1299,7 +1300,7 @@ ColA,Col B,Col C
 KLA ,  2  ,True 
 ICOS,12345,False
 '''[1:]
-		actual = PrettyTable(TableFormatFactory().SetNoBorder(',')).ToString(data)
+		actual = PrettyTable(TableFormat().SetNoBorder(',')).ToString(data)
 		#print actual
 		Test.AssertMultiLines(actual, expected)
 
@@ -1551,7 +1552,7 @@ class EffortLogger:
 		menuData = [[message, 'Time Taken'], ['-']] + data
 		menuData += [['-'], ['Total Time', totalTime]]
 		menuData += [['Actual Time', totalTime - dollarTime]]
-		table = PrettyTable(TableFormatFactory().SetSingleLine()).ToString(menuData)
+		table = PrettyTable(TableFormat().SetSingleLine()).ToString(menuData)
 		#table = datetime.now().strftime('%Y %b %d %H:%M:%S\n') + table
 		#FileOperations.Append(logFile + '.txt', table)
 		print table,
@@ -1563,7 +1564,7 @@ class EffortLogger:
 		if data is None:
 			return
 		effortData = [['Date', 'Actual Time'], ['-']] + data
-		table = PrettyTable(TableFormatFactory().SetSingleLine()).ToString(effortData)
+		table = PrettyTable(TableFormat().SetSingleLine()).ToString(effortData)
 		print table,
 
 	def Trim(self, message, width):
@@ -1587,9 +1588,9 @@ class Test:
 	_notOk = 0
 
 	@classmethod
-	def AssertMultiLines(cls, actual, expected):
+	def AssertMultiLines(cls, actual, expected, level = 0):
 		isEqual = True
-		clsName, funName = cls._GetClassMethod()
+		clsName, funName = cls._GetClassMethod(level)
 		for lineNum,(act,exp) in enumerate(itertools.izip(actual.splitlines(), expected.splitlines()), 1):
 			if act != exp:
 				message = '{}.{} Line # {}'.format(clsName, funName, lineNum)
@@ -1599,8 +1600,8 @@ class Test:
 		cls._Print(True, True, message)
 
 	@classmethod
-	def Assert(cls, actual, expected, message = ''):
-		clsName, funName = cls._GetClassMethod()
+	def Assert(cls, actual, expected, message = '', level = 0):
+		clsName, funName = cls._GetClassMethod(level)
 		message = '{}.{} {}'.format(clsName, funName, message)
 		cls._Print(actual, expected, message)
 
@@ -1616,10 +1617,10 @@ class Test:
 			cls._notOk += 1
 
 	@classmethod
-	def _GetClassMethod(cls):
+	def _GetClassMethod(cls, level):
 		stack = inspect.stack()
-		clsName = stack[2][0].f_locals['self'].__class__.__name__
-		funName = stack[2][0].f_code.co_name
+		clsName = stack[2 + level][0].f_locals['self'].__class__.__name__
+		funName = stack[2 + level][0].f_code.co_name
 		return (clsName, funName)
 
 	@classmethod
@@ -1634,12 +1635,17 @@ class TestSourceCode:
 		self.TestClassLineCount()
 
 	def TestClassLineCount(self):
+		data = []
 		for name, obj in inspect.getmembers(sys.modules[__name__]):
 			if inspect.isclass(obj) and str(obj)[:8] == '__main__':
 				lineCnt = len(inspect.getsourcelines(obj)[0])
-				#print '{:20} {}'.format(name, lineCnt)
-				if lineCnt > 100:
-					Test.Assert(lineCnt, '< 100', 'Exceeds line count : {}'.format(name))
+				data.append([name, lineCnt])
+		sorted(data, key=lambda x: x[1])
+		for item in data:
+			#Test.Assert(item[1] < 100, True, '{:20} {}'.format(item[0], item[1]))
+			#print '{:20} {}'.format(item[0], item[1])
+			if item[1] > 100:
+				Test.Assert(item[1], '< 100', 'Exceeds line count : {}'.format(item[0]))
 
 class UnitTestsRunner:
 	def Run(self):
@@ -1647,12 +1653,14 @@ class UnitTestsRunner:
 		TestEffortLogger()
 		TestPrettyTable()
 		TestSourceCode()
+		TestKlaRunnerIni()
 
 		Test.PrintResults()
 
 class ConfigEncoder:
 	Configs = ['Debug', 'Release']
 	Platforms = ['Win32', 'x64']
+
 	@classmethod
 	def DecodeSource(cls, srcArr):
 		source = srcArr[0]
@@ -1669,6 +1677,13 @@ class ConfigEncoder:
 		if isSimulator and 'Win32' == platform:
 			platform = 'x86'
 		return platform
+
+	@classmethod
+	def GetBuildConfig(cls, model):
+		debugConfigSet = ('debugx64', 'debug')
+		releaseConfigSet = ('releasex64', 'release')
+		configSet = (debugConfigSet, releaseConfigSet)[model.Config == cls.Configs[1]]
+		return configSet[model.Platform == cls.Platforms[0]]
 
 class AutoTestModel:
 	def __init__(self, fileName):
@@ -1774,6 +1789,39 @@ class ConfigInfo:
 		with open(self.FileName, 'w') as f:
 			json.dump(_model, f, indent=3)
 
+class TestKlaRunnerIni:
+	def __init__(self):
+		self.model = Model()
+		self.model.ReadConfigFile()
+		self.Source()
+		self.AutoTest()
+		self.FileExists()
+		self.DirectoryExists()
+
+	def Source(self):
+		for srcSet in self.model.Sources:
+			src = srcSet[0]
+			Test.Assert(os.path.isdir(src), True, 'Directory {} exists.'.format(src))
+		self.TestIndex(self.model.Sources, self.model.SrcIndex, 'Index')
+
+	def AutoTest(self):
+		self.TestIndex(self.model.AutoTests.Tests, self.model.TestIndex, 'Index')
+
+	def TestIndex(self, list, index, message):
+		isValidIndex = index >= 0 and index < len(list)
+		Test.Assert(isValidIndex, True, message, 1)
+
+	def FileExists(self):
+		Test.Assert(os.path.isfile(self.model.VisualStudioBuild), True, 'VisualStudioBuild')
+		Test.Assert(os.path.isfile(self.model.VisualStudioRun), True, 'VisualStudioRun')
+		Test.Assert(os.path.isfile(self.model.EffortLogFile), True, 'EffortLogFile')
+
+	def DirectoryExists(self):
+		Test.Assert(os.path.isdir(self.model.GitBin), True, 'GitBin')
+		Test.Assert(os.path.isdir(self.model.VMwareWS), True, 'VMwareWS')
+		Test.Assert(os.path.isdir(self.model.MMiConfigPath), True, 'MMiConfigPath')
+		Test.Assert(os.path.isdir(self.model.MMiSetupsPath), True, 'MMiSetupsPath')
+
 class Model:
 	def __init__(self):
 		self.StartPath = os.path.dirname(os.path.abspath(__file__))
@@ -1862,12 +1910,6 @@ class Model:
 
 	def GetLibsTestPath(self):
 		return self.Source + '/libs/testing'
-
-	def GetBuildConfig(self):
-		debugConfigSet = ('debugx64', 'debug')
-		releaseConfigSet = ('releasex64', 'release')
-		configSet = (debugConfigSet, releaseConfigSet)[self.Config == 'Release']
-		return configSet[self.Platform == 'Win32']
 
 def main():
 	if (len(sys.argv) == 2):
