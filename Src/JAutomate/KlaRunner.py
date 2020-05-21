@@ -317,7 +317,7 @@ class UIMainMenu:
 		self.AddParallelButton('Build Source', self.klaSourceBuilder.BuildSource)
 		self.AddButton('Effort Log', effortLogger.PrintInDetail)
 		self.AddButton('Daily Log', effortLogger.PrintActualTime)
-		self.AddButton('Stop All KLA Apps', AppRunner.StopTasks, (False,))
+		self.AddButton('Stop All KLA Apps', TaskMan.StopTasks, (False,))
 
 	def CreateColumnFrame(self, parent):
 		self.ColFrame = UIFactory.AddFrame(parent, 0, self.Col, sticky='n')
@@ -396,7 +396,7 @@ class Menu:
 			[96, ['Change MMI Attach', settings.ChangeDebugVision]],
 			[97, ['Effort Log', effortLogger.Print]],
 			[98, ['Clear Output', OsOperations.Cls]],
-			[99, ['Stop All KLA Apps', AppRunner.StopTasks, True]],
+			[99, ['Stop All KLA Apps', TaskMan.StopTasks, True]],
 			[0, 'EXIT']
 		]]
 		colCnt = model.MenuColCnt
@@ -517,14 +517,6 @@ class KlaRunner:
 			os.mkdir(wd)
 		os.chdir(wd)
 
-	@classmethod
-	def ShowInfo(cls, caption, msg, doPause):
-		if KlaRunner.RunFromUI:
-			messagebox.showinfo(caption, msg)
-		else:
-			print msg
-			OsOperations.Pause(doPause)
-
 class AppRunner:
 	def __init__(self, model, testRunner):
 		self.model = model
@@ -537,7 +529,7 @@ class AppRunner:
 		return platform
 
 	def RunHandler(self, doPause = True):
-		self.StopTasks(False)
+		TaskMan.StopTasks(False)
 
 		config = self.model.Config
 		platform = self.GetPlatform(self.model.Platform)
@@ -560,7 +552,7 @@ class AppRunner:
 		OsOperations.Pause(doPause and self.model.ClearHistory)
 
 	def RunMMi(self, fromSrc, doPause = True):
-		self.StopTask('MMi.exe')
+		TaskMan.StopTask('MMi.exe')
 		VMWareRunner.RunSlots(self.model)
 
 		if fromSrc:
@@ -610,6 +602,14 @@ class AppRunner:
 		processes.secshost.proxy.runHostCommandSend(remoteCommand=ActionIds.PP_SELECT, commandParameters=ppSelectParams, waitForAnswer=True, enhanced=True)
 
 	@classmethod
+	def OpenLocalDif(cls, model):
+		par = [ 'TortoiseGitProc.exe', '/command:diff', '/path:' + model.Source + '' ]
+		print 'subprocess.Popen : ' + str(par)
+		subprocess.Popen(par)
+		OsOperations.Pause()
+
+class TaskMan:
+	@classmethod
 	def StopTasks(cls, doPause):
 		for exeName in [
 			'Mmi.exe',
@@ -619,8 +619,8 @@ class AppRunner:
 			'HostCamServer.exe',
 			'Ves.exe',
 		]:
-			AppRunner.StopTask(exeName)
-		AppRunner.StopTask('python.exe', os.getpid())
+			TaskMan.StopTask(exeName)
+		TaskMan.StopTask('python.exe', os.getpid())
 		OsOperations.Pause(doPause)
 
 	@classmethod
@@ -641,13 +641,6 @@ class AppRunner:
 		else:
 			for proId in processIds:
 				OsOperations.Popen([ 'TASKKILL', '/PID', str(proId), '/T', '/F' ])
-
-	@classmethod
-	def OpenLocalDif(cls, model):
-		par = [ 'TortoiseGitProc.exe', '/command:diff', '/path:' + model.Source + '' ]
-		print 'subprocess.Popen : ' + str(par)
-		subprocess.Popen(par)
-		OsOperations.Pause()
 
 class VMWareRunner:
 	@classmethod
@@ -721,7 +714,7 @@ class AutoTestRunner:
 		OsOperations.Pause(doPause and self.model.ClearHistory)
 
 	def RunAutoTest(self, startUp):
-		AppRunner.StopTasks(False)
+		TaskMan.StopTasks(False)
 		VMWareRunner.RunSlots(self.model)
 		self.ModifyVisionSystem(False)
 		self.CopyIllumRef(False, True)
@@ -933,9 +926,17 @@ class KlaSourceBuilder:
 		print 'Open solution : ' + fileName
 		if self.model.Config is not 'Debug' or self.model.Platform is not 'Win32':
 			msg = 'Please check configuration and platform in Visual Studio'
-			KlaRunner.ShowInfo('Visual Studio', msg, self.model.ClearHistory)
+			KlaSourceBuilder.ShowInfo('Visual Studio', msg, self.model.ClearHistory)
 		else:
 			OsOperations.Pause(self.model.ClearHistory)
+
+	@classmethod
+	def ShowInfo(cls, caption, msg, doPause):
+		if KlaRunner.RunFromUI:
+			messagebox.showinfo(caption, msg)
+		else:
+			print msg
+			OsOperations.Pause(doPause)
 
 class BuildLoger:
 	def __init__(self, fileName):
@@ -1628,11 +1629,23 @@ class Test:
 		print 'Tests NOT OK : ' + str(cls._notOk)
 		print 'Total Tests  : ' + str(cls._ok + cls._notOk)
 
+class TestSourceCode:
+	def __init__(self):
+		self.TestClassLineCount()
+
+	def TestClassLineCount(self):
+		for name, obj in inspect.getmembers(sys.modules[__name__]):
+			if inspect.isclass(obj) and str(obj)[:8] == '__main__':
+				lineCnt = len(inspect.getsourcelines(obj)[0])
+				if lineCnt > 100:
+					Test.Assert(lineCnt, '< 100', 'Exceeds line count : {}'.format(name))
+
 class UnitTestsRunner:
 	def Run(self):
 		TestNumValDict()
 		TestEffortLogger()
 		TestPrettyTable()
+		TestSourceCode()
 
 		Test.PrintResults()
 
