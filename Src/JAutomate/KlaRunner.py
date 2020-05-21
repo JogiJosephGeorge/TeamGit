@@ -311,10 +311,12 @@ class UIMainMenu:
 
 	def AddColumn5(self, parent):
 		self.CreateColumnFrame(parent)
+		effortLogger = EffortLogger(self.model)
 		self.AddButton('Clear Output', OsOperations.Cls)
 		self.AddParallelButton('Clean Source', self.klaSourceBuilder.CleanSource)
 		self.AddParallelButton('Build Source', self.klaSourceBuilder.BuildSource)
-		self.AddButton('Effort Log', EffortLogger(self.model).Print)
+		self.AddButton('Effort Log', effortLogger.PrintInDetail)
+		self.AddButton('Daily Log', effortLogger.PrintActualTime)
 		self.AddButton('Stop All KLA Apps', AppRunner.StopTasks, (False,))
 
 	def CreateColumnFrame(self, parent):
@@ -1418,40 +1420,50 @@ class EffortLogger:
 		self.MinTime = timedelta(minutes=self.MinMinutes)
 		self.DayStarts = timedelta(hours=4) # 4am
 		self.ShowPrevDaysLogs = 1
+		self.DaysCount = 10
 
-	def Print(self):
-		logFile = self.model.EffortLogFile
-		if not os.path.exists(logFile):
-			print "File doesn't exist : " + logFile
-			return
+	def PrintInDetail(self):
+		content = self.ReadFile()
 		for i in range(self.ShowPrevDaysLogs, 0, -1):
 			prevDay = datetime.now() - timedelta(days=i)
-			self.PrintErrortTable(prevDay, prevDay.strftime(self.model.DateFormat))
+			formattedDay = prevDay.strftime(self.model.DateFormat)
+			self.PrintEffortTable(prevDay, formattedDay, content)
 		today = datetime.now()
-		self.PrintErrortTable(today, 'Today')
+		self.PrintEffortTable(today, 'Today', content)
 		OsOperations.Pause()
 		self.CheckApplication()
 
-	def PrintErrortTable(self, date, message):
+	def ReadFile(self):
 		logFile = self.model.EffortLogFile
-		dictAppNameToTime = NumValDict()
-		lastDt = None
-		totalTime = timedelta()
+		if not os.path.exists(logFile):
+			print "File doesn't exist : " + logFile
+			return []
+		content = []
 		for line in FileOperations.ReadLine(logFile, self.LogFileEncode):
 			if line[:7] == 'Current':
 				continue
 			lineParts = self.FormatText(line).split('$')
 			if len(lineParts) > 2:
-				dt = datetime.strptime(lineParts[0], self.DTFormat)
-				if not self.IsSameDate(dt, date):
-					continue
-				ts = (dt - lastDt) if lastDt is not None else (dt-dt)
-				txt = self.PrepareDescription(lineParts[1], lineParts[2])
-				dictAppNameToTime.Add(txt, ts)
-				lastDt = dt
-				totalTime += ts
+				content.append(lineParts)
 			else:
 				print 'Error: ' + line
+		return content
+
+	def PrintEffortTable(self, date, message, content):
+		if len(content) is 0:
+			return
+		dictAppNameToTime = NumValDict()
+		lastDt = None
+		totalTime = timedelta()
+		for lineParts in content:
+			dt = datetime.strptime(lineParts[0], self.DTFormat)
+			if not self.IsSameDate(dt, date):
+				continue
+			ts = (dt - lastDt) if lastDt is not None else (dt-dt)
+			txt = self.PrepareDescription(lineParts[1], lineParts[2])
+			dictAppNameToTime.Add(txt, ts)
+			lastDt = dt
+			totalTime += ts
 		data = []
 		oneMinAppsTime = timedelta()
 		dollarTime = timedelta()
@@ -1473,10 +1485,52 @@ class EffortLogger:
 		#FileOperations.Append(logFile + '.txt', table)
 		print table,
 
+	def PrintActualTime(self):
+		data = self.GetActualTime()
+		if data is None:
+			return
+		effortData = [['Date', 'Actual Time'], ['-']] + data
+		table = PrettyTable(TableFormatFactory().SetSingleLine()).ToString(effortData)
+		print table,
+
+	def GetActualTime(self):
+		content = self.ReadFile()
+		if len(content) is 0:
+			return
+		lastDt = None
+		actualTime = None
+		date = None
+		data = []
+		def AddRow(d1, t1):
+			formattedTime = self.Strftime(t1, '{:02}:{:02}')
+			data.append([d1, formattedTime])
+		for lineParts in content:
+			dt = datetime.strptime(lineParts[0], self.DTFormat)
+			if self.IsSameDate(dt, date):
+				ts = dt - lastDt
+				if len(lineParts[1] + lineParts[2]) > 0:
+					actualTime += ts
+			else:
+				if date is not None:
+					AddRow(formattedDay, actualTime)
+				date = dt
+				formattedDay = dt.strftime(self.model.DateFormat)
+				actualTime = timedelta()
+			lastDt = dt
+		AddRow(formattedDay, actualTime)
+		return data
+
 	def IsSameDate(self, a, b):
+		if a is None or b is None:
+			return False
 		a1 = a - self.DayStarts
 		b1 = b - self.DayStarts
 		return a1.day == b1.day and a1.month == b1.month and a1.year == b1.year
+
+	def Strftime(self, myTimeDelta, format):
+		hours, remainder = divmod(myTimeDelta.total_seconds(), 3600)
+		minutes, seconds = divmod(remainder, 60)
+		return format.format(int(hours), int(minutes), int(seconds))
 
 	def FormatText(self, message):
 		return message.encode('ascii', 'ignore').decode('ascii')
