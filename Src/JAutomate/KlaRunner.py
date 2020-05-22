@@ -7,7 +7,6 @@ import time
 import inspect
 import itertools
 import json
-import threading
 import os
 import re
 import subprocess
@@ -595,8 +594,11 @@ class AppRunner:
 		OsOperations.Pause()
 
 class TaskMan:
+	copyIllumTimer = None
+
 	@classmethod
 	def StopTasks(cls, doPause):
+		cls.StopTimers()
 		for exeName in [
 			'Mmi.exe',
 			'Mmi_spc.exe',
@@ -627,6 +629,12 @@ class TaskMan:
 		else:
 			for proId in processIds:
 				OsOperations.Popen([ 'TASKKILL', '/PID', str(proId), '/T', '/F' ])
+
+	@classmethod
+	def StopTimers(cls):
+		if cls.copyIllumTimer is not None:
+			cls.copyIllumTimer.stop()
+			cls.copyIllumTimer = None
 
 class VMWareRunner:
 	@classmethod
@@ -677,7 +685,8 @@ class PreTestActions:
 		src = model.StartPath + '\\xPort_IllumReference.xml'
 		des = 'C:/icos/xPort/'
 		if delay:
-			FileOperations.Copy(src, des, 8, 3)
+			TaskMan.StopTimers()
+			TaskMan.copyIllumTimer = FileOperations.Copy(src, des, 8, 3)
 		else:
 			FileOperations.Copy(src, des)
 		OsOperations.Pause(doPause)
@@ -1038,7 +1047,9 @@ class FileOperations:
 			cls._Copy(src, des, inter)
 		else:
 			print 'Try to Copy({},{}) after {} seconds.'.format(src, des, initWait)
-			threading.Timer(initWait, cls._Copy, [src, des, inter]).start()
+			copyTimer = MyTimer(cls._Copy, initWait, inter, src, des)
+			copyTimer.start()
+			return copyTimer
 
 	@classmethod
 	def _Copy(cls, src, des, inter = 0):
@@ -1055,6 +1066,30 @@ class FileOperations:
 			OsOperations.System('XCOPY /S /Y "' + src + '" "' + des + '"')
 		else:
 			print 'Wrong input - Neither file nor directory : ' + src
+
+class MyTimer(threading.Thread):
+	def __init__(self, target, initWait = 0, inter = 0, *args):
+		super(MyTimer, self).__init__()
+		self._stop = threading.Event()
+		self.target = target
+		self.initWait = initWait
+		self.interval = inter
+		self.args = args
+
+	def stop(self):
+		self._stop.set()
+
+	def stopped(self):
+		return self._stop.isSet()
+
+	def run(self):
+		if self.initWait > 0:
+			time.sleep(self.initWait)
+		while True:
+			if self.stopped():
+				return
+			self.target(*self.args)
+			time.sleep(self.interval)
 
 class OsOperations:
 	@classmethod
@@ -1683,7 +1718,9 @@ class ConfigEncoder:
 		debugConfigSet = ('debugx64', 'debug')
 		releaseConfigSet = ('releasex64', 'release')
 		configSet = (debugConfigSet, releaseConfigSet)[model.Config == cls.Configs[1]]
-		return configSet[model.Platform == cls.Platforms[0]]
+		# releasex64 is not working
+		# return configSet[model.Platform == cls.Platforms[0]]
+		return configSet[1]
 
 class AutoTestModel:
 	def __init__(self, fileName):
