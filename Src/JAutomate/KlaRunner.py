@@ -19,6 +19,21 @@ import ttk
 
 class UIFactory:
 	@classmethod
+	def CreateWindow(cls, parent, title, startPath):
+		if parent is None:
+			window = tk.Tk()
+		else:
+			window = tk.Toplevel(parent)
+		window.title(title)
+		iconPath = startPath + r'\Plus.ico'
+		#window.geometry('750x350')
+		#window.resizable(0, 0) # To Disable Max button, Then half screen won't work
+		#window.overrideredirect(1) # Remove Window border
+		if os.path.exists(iconPath):
+			window.iconbitmap(iconPath)
+		return window
+
+	@classmethod
 	def AddButton(cls, parent, text, r, c, cmd, args, width = 0):
 		if args is None:
 			action = cmd
@@ -81,15 +96,8 @@ class UI:
 			print 'Please run this application with Administrator privilates'
 			os.system('PAUSE')
 			return
-		self.window = tk.Tk()
 		title = 'KLA Application Runner 0.9.' + Git.GetHash()
-		self.window.title(title)
-		iconPath = self.model.StartPath + r'\Plus.ico'
-		if os.path.exists(iconPath):
-			self.window.iconbitmap(iconPath)
-		#self.window.geometry('750x350')
-		#self.window.resizable(0, 0) # To Disable Max button, Then half screen won't work
-		#self.window.overrideredirect(1) # Remove Window border
+		self.window = UIFactory.CreateWindow(None, title, self.model.StartPath)
 		UIHeader(self.window, 0, 0, self.model)
 		UIMainMenu(self.window, 1, 0, self.klaRunner)
 		self.window.mainloop()
@@ -262,6 +270,7 @@ class UIMainMenu:
 		self.klaRunner = klaRunner
 		self.testRunner = AutoTestRunner(self.model)
 		self.settings = Settings(self.model, self.klaRunner)
+		self.UISettings = UISettings(parent, self.model)
 		self.appRunner = AppRunner(self.model, self.testRunner)
 		self.klaSourceBuilder = KlaSourceBuilder(self.model, self.klaRunner)
 		self.threadHandler = ThreadHandler()
@@ -311,6 +320,7 @@ class UIMainMenu:
 	def AddColumn5(self, parent):
 		self.CreateColumnFrame(parent)
 		effortLogger = EffortLogger(self.model)
+		self.AddButton('Settings', self.UISettings.Show)
 		self.AddButton('Clear Output', OsOperations.Cls)
 		self.AddParallelButton('Clean Source', self.klaSourceBuilder.CleanSource)
 		self.AddParallelButton('Build Source', self.klaSourceBuilder.BuildSource)
@@ -334,6 +344,15 @@ class UIMainMenu:
 		but = UIFactory.AddButton(self.ColFrame, label, self.ColInx, 0, funPnt, args, 19)
 		self.threadHandler.AddButton(but)
 		self.ColInx += 1
+
+class UISettings:
+	def __init__(self, parent, model):
+		self.Parent = parent
+		self.model = model
+
+	def Show(self):
+		title = 'Settings'
+		self.window = UIFactory.CreateWindow(self.Parent, title, self.model.StartPath)
 
 class Menu:
 	def __init__(self, klaRunner, model):
@@ -1678,7 +1697,7 @@ class TestSourceCode:
 		sorted(data, key=lambda x: x[1])
 		for item in data:
 			#Test.Assert(item[1] < 100, True, '{:20} {}'.format(item[0], item[1]))
-			#print '{:20} {}'.format(item[0], item[1])
+			print '{:20} {}'.format(item[0], item[1])
 			if item[1] > 100:
 				Test.Assert(item[1], '< 100', 'Exceeds line count : {}'.format(item[0]))
 
