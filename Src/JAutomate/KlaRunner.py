@@ -16,6 +16,7 @@ import threading
 import Tkinter as tk
 import tkMessageBox as messagebox
 import ttk
+import tkFileDialog
 
 class UIFactory:
 	@classmethod
@@ -23,6 +24,7 @@ class UIFactory:
 		if parent is None:
 			window = tk.Tk()
 		else:
+			parent.withdraw()
 			window = tk.Toplevel(parent)
 		window.title(title)
 		iconPath = startPath + r'\Plus.ico'
@@ -55,6 +57,12 @@ class UIFactory:
 		return (label, labelVar)
 
 	@classmethod
+	def AddText(cls, parent, r, c, width = 0):
+		textBox = tk.Text(parent, width=width)
+		textBox.grid(row=r, column=c, sticky='w')
+		return textBox
+
+	@classmethod
 	def AddCombo(cls, parent, values, inx, r, c, cmd, width = 0):
 		var = tk.StringVar()
 		combo = ttk.Combobox(parent, textvariable=var)
@@ -84,6 +92,10 @@ class UIFactory:
 		frame = ttk.Frame(parent)
 		frame.grid(row=r, column=c, sticky=sticky, padx=px, pady=py, columnspan=columnspan)
 		return frame
+
+	@classmethod
+	def GetTextValue(cls, textBox):
+		return textBox.get('1.0', 'end-1c')
 
 class UI:
 	def __init__(self):
@@ -353,6 +365,54 @@ class UISettings:
 	def Show(self):
 		title = 'Settings'
 		self.window = UIFactory.CreateWindow(self.Parent, title, self.model.StartPath)
+		self.Row = 0
+		self.CreateUI(self.window)
+		self.window.protocol('WM_DELETE_WINDOW', self.OnClosing)
+
+	def OnClosing(self):
+		self.window.destroy()
+		self.Parent.deiconify()
+		self.model.WriteConfigFile()
+
+	def AddRow(self):
+		self.Row += 1
+
+	def CreateUI(self, parent):
+		self.AddSelectPathRow(parent, 'DevEnv.com', 'DevEnvCom')
+		self.AddSelectFileRow(parent, 'DevEnv.exe', 'DevEnvExe')
+		self.AddSelectPathRow(parent, 'Git Bin', 'GitBin')
+		self.AddSelectPathRow(parent, 'VM ware WS', 'VMwareWS')
+		self.AddSelectFileRow(parent, 'Effort Log File', 'EffortLogFile')
+		self.AddSelectPathRow(parent, 'MMi Config Path', 'MMiConfigPath')
+		self.AddSelectPathRow(parent, 'MMi Setups Path', 'MMiSetupsPath')
+
+	def AddSelectPathRow(self, parent, label, attrName):
+		self.AddSelectItemRow(parent, label, attrName, self.SelectPath)
+
+	def AddSelectFileRow(self, parent, label, attrName):
+		self.AddSelectItemRow(parent, label, attrName, self.SelectFile)
+
+	def AddSelectItemRow(self, parent, label, attrName, cmd):
+		UIFactory.AddLabel(parent, label, self.Row, 0)
+		text = getattr(self.model, attrName)
+		textVar = UIFactory.AddLabel(parent, text, self.Row, 1)[1]
+		args = (textVar, attrName)
+		UIFactory.AddButton(parent, '...', self.Row, 2, cmd, args)
+		self.AddRow()
+
+	def SelectPath(self, textVar, attrName):
+		folderSelected = tkFileDialog.askdirectory()
+		if len(folderSelected) > 0:
+			textVar.set(folderSelected)
+			setattr(self.model, attrName, folderSelected)
+			print '{} Path changed : {}'.format(attrName, folderSelected)
+
+	def SelectFile(self, textVar, attrName):
+		filename = tkFileDialog.askopenfilename(initialdir = "/", title = "Select file")
+		if len(filename) > 0:
+			textVar.set(filename)
+			setattr(self.model, attrName, filename)
+			print '{} Path changed : {}'.format(attrName, filename)
 
 class Menu:
 	def __init__(self, klaRunner, model):
@@ -936,7 +996,7 @@ class KlaSourceBuilder:
 				outFile = os.path.abspath(source + '/Out_' + self.SlnNames[inx]) + '.txt'
 
 				buildLoger.StartSolution(sln, self.SlnNames[inx], config, platform)
-				params = [self.model.VisualStudioBuild, slnFile, '/build', BuildConf, '/out', outFile]
+				params = [self.model.DevEnvCom, slnFile, '/build', BuildConf, '/out', outFile]
 				OsOperations.Popen(params, buildLoger.PrintMsg)
 				buildLoger.EndSolution()
 			buildLoger.EndSource(source)
@@ -945,7 +1005,7 @@ class KlaSourceBuilder:
 	def OpenSolution(self, index):
 		fileName = self.model.Source + self.Solutions[index]
 		param = [
-			self.model.VisualStudioRun,
+			self.model.DevEnvExe,
 			fileName
 		]
 		subprocess.Popen(param)
@@ -1803,8 +1863,8 @@ class ConfigInfo:
 		if not model.UpdateTest(_model['TestIndex'], False):
 			model.TestIndex = 0
 		model.ActiveSrcs = _model['ActiveSrcs']
-		model.VisualStudioBuild = _model['VisualStudioBuild']
-		model.VisualStudioRun = _model['VisualStudioRun']
+		model.DevEnvCom = _model['DevEnvCom']
+		model.DevEnvExe = _model['DevEnvExe']
 		model.GitBin = _model['GitBin']
 		model.VMwareWS = _model['VMwareWS']
 		model.EffortLogFile = _model['EffortLogFile']
@@ -1826,8 +1886,8 @@ class ConfigInfo:
 		_model['SrcIndex'] = model.SrcIndex
 		_model['ActiveSrcs'] = model.ActiveSrcs
 		_model['TestIndex'] = model.TestIndex
-		_model['VisualStudioBuild'] = model.VisualStudioBuild
-		_model['VisualStudioRun'] = model.VisualStudioRun
+		_model['DevEnvCom'] = model.DevEnvCom
+		_model['DevEnvExe'] = model.DevEnvExe
 		_model['GitBin'] = model.GitBin
 		_model['VMwareWS'] = model.VMwareWS
 		_model['EffortLogFile'] = model.EffortLogFile
@@ -1868,8 +1928,8 @@ class TestKlaRunnerIni:
 		Test.Assert(isValidIndex, True, message, 1)
 
 	def FileExists(self):
-		Test.Assert(os.path.isfile(self.model.VisualStudioBuild), True, 'VisualStudioBuild')
-		Test.Assert(os.path.isfile(self.model.VisualStudioRun), True, 'VisualStudioRun')
+		Test.Assert(os.path.isfile(self.model.DevEnvCom), True, 'DevEnv.com')
+		Test.Assert(os.path.isfile(self.model.DevEnvExe), True, 'DevEnv.exe')
 		Test.Assert(os.path.isfile(self.model.EffortLogFile), True, 'EffortLogFile')
 
 	def DirectoryExists(self):
