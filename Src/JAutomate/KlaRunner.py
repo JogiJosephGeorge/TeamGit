@@ -1154,13 +1154,15 @@ class FileOperations:
 				time.sleep(inter)
 			else:
 				print 'Wrong input - Destination folder not existing : ' + des
-				return
+				return False
 		if os.path.isfile(src):
 			OsOperations.System('COPY /Y "' + src + '" "' + des + '"')
 		elif os.path.isdir(src):
 			OsOperations.System('XCOPY /S /Y "' + src + '" "' + des + '"')
 		else:
 			print 'Wrong input - Neither file nor directory : ' + src
+			return False
+		return True
 
 class MyTimer(threading.Thread):
 	def __init__(self, target, initWait = 0, inter = 0, *args):
@@ -1183,7 +1185,8 @@ class MyTimer(threading.Thread):
 		while True:
 			if self.stopped():
 				return
-			self.target(*self.args)
+			if self.target(*self.args):
+				return
 			time.sleep(self.interval)
 
 class OsOperations:
