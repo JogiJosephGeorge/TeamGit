@@ -68,9 +68,10 @@ class UIFactory:
 		combo = ttk.Combobox(parent, textvariable=var)
 		combo['state'] = 'readonly'
 		combo['values'] = values
+		if len(values) > 0:
+			combo.current(inx)
 		if width > 0:
 			combo['width'] = width
-		combo.current(inx)
 		combo.grid(row=r, column=c)
 		combo.bind("<<ComboboxSelected>>", cmd)
 		return (combo,var)
@@ -99,11 +100,16 @@ class UIFactory:
 
 class UI:
 	def __init__(self):
-		self.klaRunner = KlaRunner()
-		self.model = self.klaRunner.model
 		KlaRunner.RunFromUI = True
 
 	def Run(self):
+		self.model = Model()
+		if not os.path.exists(self.model.ConfigInfo.FileName):
+			UISettings(None, self.model).Show()
+		else:
+			self.model.ReadConfigFile()
+		self.klaRunner = KlaRunner(self.model)
+
 		if not ctypes.windll.shell32.IsUserAnAdmin():
 			print 'Please run this application with Administrator privilates'
 			os.system('PAUSE')
@@ -365,19 +371,23 @@ class UISettings:
 	def Show(self):
 		title = 'Settings'
 		self.window = UIFactory.CreateWindow(self.Parent, title, self.model.StartPath)
-		self.Row = 0
+		self.Row = 2
 		self.CreateUI(self.window)
 		self.window.protocol('WM_DELETE_WINDOW', self.OnClosing)
 
 	def OnClosing(self):
-		self.window.destroy()
-		self.Parent.deiconify()
 		self.model.WriteConfigFile()
+		if self.Parent is not None:
+			self.Parent.deiconify()
+			self.Parent = None
+		self.window.destroy()
 
 	def AddRow(self):
 		self.Row += 1
 
 	def CreateUI(self, parent):
+		UIFactory.AddButton(parent, 'Add Source', 0, 0, self.AddSource, None)
+		UIFactory.AddButton(parent, 'Add Test', 1, 0, self.AddTest, None)
 		self.AddSelectPathRow(parent, 'DevEnv.com', 'DevEnvCom')
 		self.AddSelectFileRow(parent, 'DevEnv.exe', 'DevEnvExe')
 		self.AddSelectPathRow(parent, 'Git Bin', 'GitBin')
@@ -413,6 +423,15 @@ class UISettings:
 			textVar.set(filename)
 			setattr(self.model, attrName, filename)
 			print '{} Path changed : {}'.format(attrName, filename)
+
+	def AddSource(self):
+		folderSelected = tkFileDialog.askdirectory()
+		if len(folderSelected) > 0:
+			ConfigEncoder.AddSrc(self.model, folderSelected)
+			print 'New source added : ' + folderSelected
+
+	def AddTest(self):
+		pass
 
 class Menu:
 	def __init__(self, klaRunner, model):
@@ -498,9 +517,8 @@ class Menu:
 class KlaRunner:
 	RunFromUI = False
 
-	def __init__(self):
-		self.model = Model()
-		self.model.ReadConfigFile()
+	def __init__(self, model):
+		self.model = model
 		self.menu = Menu(self, self.model)
 		self.SetWorkingDir()
 
@@ -1085,12 +1103,13 @@ class BuildLoger:
 class FileOperations:
 	@classmethod
 	def ReadLine(cls, fileName, utf = 'utf-8'):
+		if not os.path.exists(fileName):
+			print "File doesn't exist : " + fileName
+			return []
 		f = open(fileName, 'rb')
 		data = f.read()
 		f.close()
-		lines = data.decode(utf).splitlines()
-		for line in lines:
-			yield line
+		return data.decode(utf).splitlines()
 
 	@classmethod
 	def Append(cls, fileName, message):
@@ -1102,9 +1121,6 @@ class FileOperations:
 
 	@classmethod
 	def Write(cls, fileName, message):
-		if not os.path.exists(fileName):
-			print "File doesn't exist : " + fileName
-			return
 		with open(fileName, 'w') as f:
 			 f.write((message + '\n').encode('utf8'))
 
@@ -1547,9 +1563,6 @@ class EffortReader:
 
 	def ReadFile(self):
 		logFile = self.model.EffortLogFile
-		if not os.path.exists(logFile):
-			print "File doesn't exist : " + logFile
-			return []
 		self.content = []
 		for line in FileOperations.ReadLine(logFile, self.LogFileEncode):
 			if line[:7] == 'Current':
@@ -1801,47 +1814,60 @@ class ConfigEncoder:
 		# return configSet[model.Platform == cls.Platforms[0]]
 		return configSet[1]
 
+	@classmethod
+	def AddSrc(cls, model, newSrcPath):
+		srcExists = False
+		for srcSet in model.Sources:
+			if newSrcPath == srcSet[0]:
+				srcExists = True
+				break
+		if not srcExists:
+			model.Sources.append((newSrcPath, cls.Configs[0], cls.Platforms[0]))
+
 class AutoTestModel:
 	def __init__(self, fileName):
 		self.FileName = fileName
+		self.Tests = []
 
 	def Read(self):
-		if not os.path.exists(self.FileName):
-			print "File doesn't exist : " + self.FileName
-			return
-		self.Tests = list(FileOperations.ReadLine(self.FileName))
+		self.Tests = []
+		for item in FileOperations.ReadLine(self.FileName):
+			nameSlot = self.Encode(item)
+			if nameSlot is not None:
+				self.Tests.append(nameSlot)
 
 	def Write(self):
-		content = '\n'.join(self.Tests)
+		tests = [self.Decode(item[0], item[1]) for item in self.Tests]
+		content = '\n'.join(tests)
 		FileOperations.Write(self.FileName, content)
 
 	def IsValidIndex(self, index):
 		return index >= 0 and index < len(self.Tests)
 
-	def GetTest(self, index):
-		if self.IsValidIndex(index):
-			return self.Encode(self.Tests[index])
-
 	def GetNames(self):
-		return [self.Encode(item)[0] for item in self.Tests]
+		return [item[0] for item in self.Tests]
 
 	def GetNameSlots(self, index):
-		return self.Encode(self.Tests[index])
+		return self.Tests[index]
 
 	def SetNameSlots(self, index, name, slots):
-		self.Tests[index] = self.Decode(name, slots)
+		self.Tests[index] = [name, slots]
 
 	def Contains(self, testName):
-		return ArrayOrganizer.ContainsInArray(testName, self.Tests) >= 0
+		for inx, item in self.Tests:
+			if testName in item[0]:
+				return inx
 
 	def AddTest(self, testName, slots):
-		testNameAndSlot = '{} {}'.format(testName, slots)
-		self.Tests.append(testNameAndSlot)
+		self.Tests.append([testName, slots])
 		return len(self.Tests) - 1
 
 	def Encode(self, testNameSlots):
 		parts = testNameSlots.split()
-		return (parts[0], map(int, parts[1].split('_')))
+		if len(parts) > 1:
+			return (parts[0], map(int, parts[1].split('_')))
+		elif len(parts) > 0:
+			return (parts[0], [])
 
 	def Decode(self, testName, slots):
 		slotStrs = [str(slot) for slot in slots]
@@ -1880,7 +1906,6 @@ class ConfigInfo:
 		model.ClearHistory = _model['ClearHistory']
 
 	def Write(self, model):
-		content = '\n'.join(model.AutoTests.Tests)
 		_model = OrderedDict()
 		_model['Sources'] = [ConfigEncoder.EncodeSource(item) for item in model.Sources]
 		_model['SrcIndex'] = model.SrcIndex
@@ -1946,12 +1971,30 @@ class Model:
 
 		self.SrcIndex = -1
 		self.TestIndex = -1
+		self.Sources = []
+		self.ActiveSrcs = []
 		self.Source = ''
 		self.Branch = ''
 		self.TestName = ''
 		self.slots = []
-		self.Config = ''
-		self.Platform = ''
+		self.Config = ConfigEncoder.Configs[0]
+		self.Platform = ConfigEncoder.Platforms[0]
+		
+		self.DevEnvCom = 'C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com'
+		self.DevEnvExe = 'C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/Common7/IDE/devenv.exe'
+		self.GitBin = 'C:/Progra~1/Git/bin/'
+		self.VMwareWS = 'C:/Program Files (x86)/VMware/VMware Workstation/'
+		self.EffortLogFile = 'D:/QuEST/Tools/EffortCapture_2013/timeline.log'
+		self.DateFormat = '%d-%b-%Y'
+		self.MMiConfigPath = 'D:/'
+		self.MMiSetupsPath = 'D:/MmiSetups'
+		self.DebugVision = False
+		self.CopyMmi = True
+		self.TempDir = 'bin'
+		self.LogFileName = 'bin/Log.txt'
+		self.MenuColCnt = 4
+		self.MaxSlots = 8
+		self.ClearHistory = False
 
 	def ReadConfigFile(self):
 		self.AutoTests.Read()
@@ -1979,7 +2022,7 @@ class Model:
 		if self.TestIndex == index:
 			return False
 		self.TestIndex = index
-		self.TestName, self.slots = self.AutoTests.GetNameSlots(self.TestIndex)
+		[self.TestName, self.slots] = self.AutoTests.GetNameSlots(self.TestIndex)
 		if writeToFile:
 			self.WriteConfigFile()
 		return True
@@ -2037,6 +2080,8 @@ def main():
 			UI().Run()
 			return
 	if (__name__ == '__main__'):
-		KlaRunner().Run()
+		model = Model()
+		model.ReadConfigFile()
+		KlaRunner().Run(model)
 
 main()
