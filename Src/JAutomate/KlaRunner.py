@@ -213,6 +213,12 @@ class UIViewModel:
 			self.cmbConfig[1].set(self.model.Config)
 			self.cmbPltfm[1].set(self.model.Platform)
 			print 'Source Changed to : ' + self.model.Source
+			argv = sys.argv
+			if not os.path.exists(argv[0]):
+				argv[0] = self.model.StartPath + '\\' + argv[0]
+				#argv[0] = self.model.StartPath + '\\StartKLARunner.lnk'
+			python = sys.executable
+			os.execl(python, python, * argv)
 
 	def OnConfigChanged(self, event):
 		if self.model.UpdateConfig(self.cmbConfig[0].current()):
@@ -845,11 +851,6 @@ class AutoTestRunner:
 
 	@classmethod
 	def SearchInTests(cls, libsPath, text):
-		# Remove the already loaded my module if source changed
-		if 'my' in sys.modules:
-			expectedPath = libsPath + '\\my.py'
-			if expectedPath != sys.modules['my'].__file__:
-				del sys.modules['my']
 		sys.stdout = stdOutRedirect = StdOutRedirect()
 		import my
 		lineBreak = 'KLARunnerLineBreak'
@@ -876,18 +877,7 @@ class AutoTestRunner:
 	def UpdateLibsTestingPath(cls, source):
 		libsTesting = '/libs/testing'
 		newPath = os.path.abspath(source + libsTesting)
-		index = ArrayOrganizer.ContainsInArray(newPath, sys.path)
-		if index >= 0:
-			print 'The path ({}) already exists in sys.path.'.format(newPath)
-			return newPath
-		paths = [p.replace('\\', '/') for p in sys.path]
-		index = ArrayOrganizer.ContainsInArray(libsTesting, paths)
-		if index >= 0:
-			print 'Old path ({}) has been replaced with new path ({}) in sys.path.'.format(sys.path[index], newPath)
-			sys.path[index] = newPath
-		else:
-			print 'New path ({}) has been added in sys.path.'.format(newPath)
-			sys.path.append(newPath)
+		sys.path.append(newPath)
 		return newPath
 		OsOperations.Pause(self.model.ClearHistory)
 
@@ -991,10 +981,10 @@ class KlaSourceBuilder:
 			with open(src + '/' + gitIgnore, 'w') as f:
 				f.writelines(str.join('\n', excludeDirs))
 			Git.Clean(src, '-fd')
-			print 'Reseting files in ' + src
-			Git.ResetHard(src)
-			print 'Submodule Update'
-			Git.SubmoduleUpdate(src)
+			#print 'Reseting files in ' + src
+			#Git.ResetHard(src)
+			#print 'Submodule Update'
+			#Git.SubmoduleUpdate(src)
 			print 'Cleaning completed for ' + src
 		OsOperations.Pause(self.model.ClearHistory)
 
@@ -1135,6 +1125,8 @@ class FileOperations:
 		if os.path.isfile(fileName):
 			os.remove(fileName)
 			print 'File deleted : ' + fileName
+		else:
+			print 'Not found to delete : ' + fileName
 
 	@classmethod
 	def Copy(cls, src, des, initWait = 0, inter = 0):
@@ -1908,6 +1900,8 @@ class ConfigInfo:
 		model.MaxSlots = _model['MaxSlots']
 		model.ClearHistory = _model['ClearHistory']
 
+		model.MMiConfigPath = model.MMiConfigPath.replace('/', '\\')
+
 	def Write(self, model):
 		_model = OrderedDict()
 		_model['Sources'] = [ConfigEncoder.EncodeSource(item) for item in model.Sources]
@@ -2078,13 +2072,12 @@ def main():
 		param1 = sys.argv[1].lower()
 		if param1 == 'test':
 			UnitTestsRunner().Run()
-			return
 		elif param1 == 'ui':
 			UI().Run()
-			return
-	if (__name__ == '__main__'):
+	elif (__name__ == '__main__'):
 		model = Model()
 		model.ReadConfigFile()
 		KlaRunner().Run(model)
 
 main()
+print 'Have a nice day...',
