@@ -209,7 +209,7 @@ class UIViewModel:
 		self.model = model
 
 	def OnSrcChanged(self, event):
-		if self.model.UpdateSource(self.cmbSource[0].current(), True):
+		if self.model.SrcCnf.UpdateSource(self.cmbSource[0].current(), True):
 			self.lblBranch[1].set(self.model.Branch)
 			self.cmbConfig[1].set(self.model.Config)
 			self.cmbPltfm[1].set(self.model.Platform)
@@ -927,7 +927,7 @@ class Settings:
 	def ChangeSource(self):
 		heading, data = self.klaRunner.GetSourceInfo(None)
 		index = self.SelectOption(heading, data, self.model.SrcIndex)
-		self.model.UpdateSource(index, True)
+		self.model.SrcCnf.UpdateSource(index, True)
 		OsOperations.Pause(self.model.ClearHistory)
 
 	def ChangeDebugVision(self):
@@ -1784,7 +1784,7 @@ class TestSourceCode:
 		sorted(data, key=lambda x: x[1])
 		for item in data:
 			#Test.Assert(item[1] < 100, True, '{:20} {}'.format(item[0], item[1]))
-			print '{:20} {}'.format(item[0], item[1])
+			#print '{:20} {}'.format(item[0], item[1])
 			if item[1] > 100:
 				Test.Assert(item[1], '< 100', 'Exceeds line count : {}'.format(item[0]))
 
@@ -1899,7 +1899,7 @@ class ConfigInfo:
 			_model = json.load(f)
 
 		model.Sources = [ConfigEncoder.DecodeSource(item) for item in _model['Sources']]
-		model.UpdateSource(_model['SrcIndex'], False)
+		model.SrcCnf.UpdateSource(_model['SrcIndex'], False)
 		if not model.UpdateTest(_model['TestIndex'], False):
 			model.TestIndex = 0
 		model.ActiveSrcs = _model['ActiveSrcs']
@@ -1946,6 +1946,22 @@ class ConfigInfo:
 		with open(self.FileName, 'w') as f:
 			json.dump(_model, f, indent=3)
 
+class SourceConfig:
+	def __init__(self, model):
+		self.model = model
+
+	def UpdateSource(self, index, writeToFile):
+		if index < 0 or index >= len(self.model.Sources):
+			return False
+		if self.model.SrcIndex == index:
+			return False
+		self.model.SrcIndex = index
+		self.model.Source, self.model.Config, self.model.Platform = self.model.Sources[self.model.SrcIndex]
+		self.model.Branch = Git.GetBranch(self.model.Source)
+		if writeToFile:
+			self.model.WriteConfigFile()
+		return True
+
 class TestKlaRunnerIni:
 	def __init__(self):
 		self.model = Model()
@@ -1984,6 +2000,7 @@ class Model:
 		self.StartPath = os.path.dirname(os.path.abspath(__file__))
 		self.ConfigInfo = ConfigInfo(self.StartPath + '\\KlaRunner.ini')
 		self.AutoTests = AutoTestModel(self.StartPath + '\\Tests.txt')
+		self.SrcCnf = SourceConfig(self)
 
 		self.SrcIndex = -1
 		self.TestIndex = -1
@@ -2019,18 +2036,6 @@ class Model:
 	def WriteConfigFile(self):
 		self.AutoTests.Write()
 		self.ConfigInfo.Write(self)
-
-	def UpdateSource(self, index, writeToFile):
-		if index < 0 or index >= len(self.Sources):
-			return False
-		if self.SrcIndex == index:
-			return False
-		self.SrcIndex = index
-		self.Source, self.Config, self.Platform = self.Sources[self.SrcIndex]
-		self.Branch = Git.GetBranch(self.Source)
-		if writeToFile:
-			self.WriteConfigFile()
-		return True
 
 	def UpdateTest(self, index, writeToFile):
 		if not self.AutoTests.IsValidIndex(index):
@@ -2071,17 +2076,6 @@ class Model:
 		else:
 			self.slots.remove(slotNum)
 		self.AutoTests.SetNameSlots(self.TestIndex, self.TestName, self.slots)
-
-	def GetSources(self, srcIndices = None):
-		if None == srcIndices:
-			return list(self.Sources)
-		sources = []
-		for index in srcIndices:
-			if index < 0 or index >= len(self.Sources):
-				print 'Wrong index has been given !!!'
-				return []
-			sources.append(self.Sources[index])
-		return sources
 
 	def GetLibsTestPath(self):
 		return self.Source + '/libs/testing'
