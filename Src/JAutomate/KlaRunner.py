@@ -1839,21 +1839,18 @@ class ConfigEncoder:
 			model.Sources.append((newSrcPath, cls.Configs[0], cls.Platforms[0]))
 
 class AutoTestModel:
-	def __init__(self, fileName):
-		self.FileName = fileName
+	def __init__(self):
 		self.Tests = []
 
-	def Read(self):
+	def Read(self, testArray):
 		self.Tests = []
-		for item in FileOperations.ReadLine(self.FileName):
+		for item in testArray:
 			nameSlot = self.Encode(item)
 			if nameSlot is not None:
 				self.Tests.append(nameSlot)
 
 	def Write(self):
-		tests = [self.Decode(item[0], item[1]) for item in self.Tests]
-		content = '\n'.join(tests)
-		FileOperations.Write(self.FileName, content)
+		return [self.Decode(item[0], item[1]) for item in self.Tests]
 
 	def IsValidIndex(self, index):
 		return index >= 0 and index < len(self.Tests)
@@ -1900,6 +1897,7 @@ class ConfigInfo:
 
 		model.Sources = [ConfigEncoder.DecodeSource(item) for item in _model['Sources']]
 		model.SrcCnf.UpdateSource(_model['SrcIndex'], False)
+		model.AutoTests.Read(_model['Tests'])
 		if not model.UpdateTest(_model['TestIndex'], False):
 			model.TestIndex = 0
 		model.ActiveSrcs = _model['ActiveSrcs']
@@ -1926,6 +1924,7 @@ class ConfigInfo:
 		_model['Sources'] = [ConfigEncoder.EncodeSource(item) for item in model.Sources]
 		_model['SrcIndex'] = model.SrcIndex
 		_model['ActiveSrcs'] = model.ActiveSrcs
+		_model['Tests'] = model.AutoTests.Write()
 		_model['TestIndex'] = model.TestIndex
 		_model['DevEnvCom'] = model.DevEnvCom
 		_model['DevEnvExe'] = model.DevEnvExe
@@ -1999,7 +1998,7 @@ class Model:
 	def __init__(self):
 		self.StartPath = os.path.dirname(os.path.abspath(__file__))
 		self.ConfigInfo = ConfigInfo(self.StartPath + '\\KlaRunner.ini')
-		self.AutoTests = AutoTestModel(self.StartPath + '\\Tests.txt')
+		self.AutoTests = AutoTestModel()
 		self.SrcCnf = SourceConfig(self)
 
 		self.SrcIndex = -1
@@ -2030,11 +2029,9 @@ class Model:
 		self.ClearHistory = False
 
 	def ReadConfigFile(self):
-		self.AutoTests.Read()
 		self.ConfigInfo.Read(self)
 
 	def WriteConfigFile(self):
-		self.AutoTests.Write()
 		self.ConfigInfo.Write(self)
 
 	def UpdateTest(self, index, writeToFile):
