@@ -106,6 +106,7 @@ class UI:
 		self.model = Model()
 		if not os.path.exists(self.model.ConfigInfo.FileName):
 			UISettings(None, self.model).Show()
+			return
 		else:
 			self.model.ReadConfigFile()
 		self.klaRunner = KlaRunner(self.model)
@@ -213,12 +214,16 @@ class UIViewModel:
 			self.cmbConfig[1].set(self.model.Config)
 			self.cmbPltfm[1].set(self.model.Platform)
 			print 'Source Changed to : ' + self.model.Source
-			argv = sys.argv
-			if not os.path.exists(argv[0]):
-				argv[0] = self.model.StartPath + '\\' + argv[0]
-				#argv[0] = self.model.StartPath + '\\StartKLARunner.lnk'
-			python = sys.executable
-			os.execl(python, python, * argv)
+			UIViewModel.RestartApp(self.model)
+
+	@classmethod
+	def RestartApp(cls, model):
+		argv = sys.argv
+		if not os.path.exists(argv[0]):
+			argv[0] = model.StartPath + '\\' + argv[0]
+			#argv[0] = model.StartPath + '\\StartKLARunner.lnk'
+		python = sys.executable
+		os.execl(python, python, * argv)
 
 	def OnConfigChanged(self, event):
 		if self.model.UpdateConfig(self.cmbConfig[0].current()):
@@ -391,13 +396,16 @@ class UISettings:
 		self.Row = 2
 		self.CreateUI(self.window)
 		self.window.protocol('WM_DELETE_WINDOW', self.OnClosing)
+		if self.Parent is None:
+			self.window.mainloop()
 
 	def OnClosing(self):
 		self.model.WriteConfigFile()
-		if self.Parent is not None:
-			self.Parent.deiconify()
-			self.Parent = None
-		self.window.destroy()
+		#if self.Parent is not None:
+		#	self.Parent.deiconify()
+		#	self.Parent = None
+		#self.window.destroy()
+		UIViewModel.RestartApp(self.model)
 
 	def AddRow(self):
 		self.Row += 1
