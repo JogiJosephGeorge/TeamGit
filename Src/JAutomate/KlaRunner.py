@@ -272,12 +272,12 @@ class ThreadHandler:
 		else:
 			self.threads[name] = threading.Thread(target=funPnt, args=args)
 		self.threads[name].start()
-		self.Buttons[name].config(background='red')
+		self.SetButtonActive(name)
 		threading.Thread(target=self.WaitForThread, args=(name,)).start()
 
 	def WaitForThread(self, name):
 		self.threads[name].join()
-		self.Buttons[name].config(background='SystemButtonFace')
+		self.SetButtonNormal(name)
 		del self.threads[name]
 
 	def AddButton(self, but):
@@ -286,6 +286,18 @@ class ThreadHandler:
 
 	def GetButtonName(self, but):
 		return ' '.join(but.config('text')[-1])
+
+	def SetButtonActive(self, name):
+		self.Buttons[name]['state'] = 'disabled'
+		#for button in self.Buttons.values():
+		#	button['state'] = 'disabled'
+		self.Buttons[name].config(background='red')
+
+	def SetButtonNormal(self, name):
+		self.Buttons[name]['state'] = 'normal'
+		#for button in self.Buttons.values():
+		#	button['state'] = 'normal'
+		self.Buttons[name].config(background='SystemButtonFace')
 
 class UIMainMenu:
 	def __init__(self, parent, r, c, klaRunner):
@@ -366,7 +378,6 @@ class UIMainMenu:
 
 	def AddButton(self, label, funPnt, args = None):
 		but = UIFactory.AddButton(self.ColFrame, label, self.ColInx, 0, funPnt, args, 19)
-		self.threadHandler.AddButton(but)
 		self.ColInx += 1
 
 class UISettings:
