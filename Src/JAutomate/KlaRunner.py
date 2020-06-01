@@ -1803,15 +1803,15 @@ class ConfigEncoder:
 	Platforms = ['Win32', 'x64']
 
 	@classmethod
-	def DecodeSource(cls, srcArr):
-		source = srcArr[0]
-		config = cls.Configs[srcArr[1][0] == 'R']
-		platform = cls.Platforms[srcArr[1][1:] == '64']
+	def DecodeSource(cls, srcStr):
+		source = srcStr[3:]
+		config = cls.Configs[srcStr[0] == 'R']
+		platform = cls.Platforms[srcStr[1:3] == '64']
 		return (source, config, platform)
 
 	@classmethod
 	def EncodeSource(cls, srcSet):
-		return [srcSet[0], srcSet[1][0] + srcSet[2][-2:]]
+		return srcSet[1][0] + srcSet[2][-2:] + srcSet[0]
 
 	@classmethod
 	def GetPlatform(cls, platform, isSimulator = False):
