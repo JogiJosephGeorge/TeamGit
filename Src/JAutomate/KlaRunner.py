@@ -218,6 +218,7 @@ class UIViewModel:
 
 	@classmethod
 	def RestartApp(cls, model):
+		print 'Application Restarted.'
 		argv = sys.argv
 		if not os.path.exists(argv[0]):
 			argv[0] = model.StartPath + '\\' + argv[0]
@@ -1804,14 +1805,14 @@ class ConfigEncoder:
 
 	@classmethod
 	def DecodeSource(cls, srcStr):
-		source = srcStr[3:]
+		source = srcStr[4:]
 		config = cls.Configs[srcStr[0] == 'R']
 		platform = cls.Platforms[srcStr[1:3] == '64']
 		return (source, config, platform)
 
 	@classmethod
 	def EncodeSource(cls, srcSet):
-		return srcSet[1][0] + srcSet[2][-2:] + srcSet[0]
+		return srcSet[1][0] + srcSet[2][-2:] + ' ' + srcSet[0]
 
 	@classmethod
 	def GetPlatform(cls, platform, isSimulator = False):
@@ -2090,4 +2091,4 @@ def main():
 		KlaRunner().Run(model)
 
 main()
-print 'Have a nice day...',
+print 'Have a nice day...'
