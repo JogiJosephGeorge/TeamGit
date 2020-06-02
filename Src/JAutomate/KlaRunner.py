@@ -68,7 +68,9 @@ class UIFactory:
 		combo = ttk.Combobox(parent, textvariable=var)
 		combo['state'] = 'readonly'
 		combo['values'] = values
-		if len(values) > 0:
+		print values
+		print inx
+		if inx >= 0 and inx < len(values):
 			combo.current(inx)
 		if width > 0:
 			combo['width'] = width
@@ -1840,13 +1842,12 @@ class ConfigEncoder:
 
 	@classmethod
 	def AddSrc(cls, model, newSrcPath):
-		srcExists = False
 		for srcSet in model.Sources:
 			if newSrcPath == srcSet[0]:
-				srcExists = True
-				break
-		if not srcExists:
-			model.Sources.append((newSrcPath, cls.Configs[0], cls.Platforms[0]))
+				return
+		model.Sources.append((newSrcPath, cls.Configs[0], cls.Platforms[0]))
+		if model.SrcIndex < 0:
+			model.SrcIndex = 0
 
 class AutoTestModel:
 	def __init__(self):
@@ -1880,6 +1881,9 @@ class AutoTestModel:
 				return inx
 
 	def AddTest(self, testName, slots):
+		for item in self.Tests:
+			if item[0] == testName:
+				return -1
 		self.Tests.append([testName, slots])
 		return len(self.Tests) - 1
 
