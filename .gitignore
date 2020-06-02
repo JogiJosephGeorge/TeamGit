@@ -16,6 +16,7 @@ ipch
 obj
 bin
 Debug
+Src/JAutomate/KlaRunner.ini
 Src/JAutomate/Display.stp
 Src/JAutomate/SeriousError.txt
 Src/JAutomate/SimulatorLog
