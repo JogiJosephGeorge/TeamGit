@@ -1,0 +1,30 @@
+Functionalities of Each Control
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Source
+	Combo box allows to select source.
+	After changing source the application will be restarted automatically.
+	New source can be added from Settings -> Add Source.
+Branch
+	Displays the git branch of current source.
+Test
+	Combo box selects test for python auto test.
+	New test can be added from Settings -> Add Test.
+Slots
+	Slots required for the current auto test.
+	This will be associated with test.
+	Default number of slots is 8. Can be edited in the .ini file.
+Active Srcs
+	These check boxes used to select sources for batch cleaning / building.
+	The combo boxes will be generated dynamically based on the number of sources.
+Config
+	Configuration of the current source.
+	This is associated with current source.
+	This value will be used for building source and running auto test.
+Platform
+	Platform of the current source.
+	This is associated with current source.
+	This value will be used for building source and running auto test.
+Attach MMi
+	This check box decides to attach debugger for MMi while running auto test
+Copy MMi to Icos
+	This check box decides to copy MMI DLLs from source to C:\Icos while running auto test
