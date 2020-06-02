@@ -38,5 +38,6 @@
    "LogFileName": "bin/Log.txt", 
    "MenuColCnt": 4, 
    "MaxSlots": 8, 
-   "ClearHistory": false
+   "ClearHistory": false, 
+   "ShowAllCommands": false
 }

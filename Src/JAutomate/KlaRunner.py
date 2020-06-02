@@ -2054,6 +2054,7 @@ class Model:
 		self.MenuColCnt = 4
 		self.MaxSlots = 8
 		self.ClearHistory = False
+		self.ShowAllCommands = False
 
 	def ReadConfigFile(self):
 		self.ConfigInfo.Read(self)
