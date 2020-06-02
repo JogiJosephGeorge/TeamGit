@@ -395,7 +395,8 @@ class UISettings:
 		title = 'Settings'
 		self.window = UIFactory.CreateWindow(self.Parent, title, self.model.StartPath)
 		self.Row = 2
-		self.CreateUI(self.window)
+		self.frame = UIFactory.AddFrame(self.window, 0, 0, 20, 20)
+		self.CreateUI(self.frame)
 		self.window.protocol('WM_DELETE_WINDOW', self.OnClosing)
 		if self.Parent is None:
 			self.window.mainloop()
@@ -412,8 +413,9 @@ class UISettings:
 		self.Row += 1
 
 	def CreateUI(self, parent):
-		UIFactory.AddButton(parent, 'Add Source', 0, 0, self.AddSource, None)
-		UIFactory.AddButton(parent, 'Add Test', 1, 0, self.AddTest, None)
+		frame = UIFactory.AddFrame(parent, 0, 0)
+		UIFactory.AddButton(frame, 'Add Source', 0, 0, self.AddSource, None, 19)
+		UIFactory.AddButton(frame, 'Add Test', 0, 1, self.AddTest, None, 19)
 		self.AddSelectPathRow(parent, 'DevEnv.com', 'DevEnvCom')
 		self.AddSelectFileRow(parent, 'DevEnv.exe', 'DevEnvExe')
 		self.AddSelectPathRow(parent, 'Git Bin', 'GitBin')
@@ -433,7 +435,7 @@ class UISettings:
 		text = getattr(self.model, attrName)
 		textVar = UIFactory.AddLabel(parent, text, self.Row, 1)[1]
 		args = (textVar, attrName)
-		UIFactory.AddButton(parent, '...', self.Row, 2, cmd, args)
+		UIFactory.AddButton(parent, ' ... ', self.Row, 2, cmd, args)
 		self.AddRow()
 
 	def SelectPath(self, textVar, attrName):
@@ -457,7 +459,14 @@ class UISettings:
 			print 'New source added : ' + folderSelected
 
 	def AddTest(self):
-		pass
+		dir = self.model.Source + '/handler/tests'
+		ftypes=[('Script Files', 'Script.py')]
+		title = "Select Script file"
+		filename = tkFileDialog.askopenfilename(initialdir=dir, filetypes=ftypes, title=title)
+		if len(filename) > 10:
+			testName = filename[len(dir) + 1: -10]
+			self.model.AutoTests.AddTest(testName, [])
+			print 'Test Added   : {}'.format(testName)
 
 class Menu:
 	def __init__(self, klaRunner, model):
