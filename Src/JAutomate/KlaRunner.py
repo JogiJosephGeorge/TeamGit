@@ -68,8 +68,6 @@ class UIFactory:
 		combo = ttk.Combobox(parent, textvariable=var)
 		combo['state'] = 'readonly'
 		combo['values'] = values
-		print values
-		print inx
 		if inx >= 0 and inx < len(values):
 			combo.current(inx)
 		if width > 0:
@@ -310,6 +308,7 @@ class ThreadHandler:
 class UIMainMenu:
 	def __init__(self, parent, r, c, klaRunner):
 		self.model = klaRunner.model
+		self.ShowAll = self.model.ShowAllCommands
 		self.frame = UIFactory.AddFrame(parent, r, c, 20, 20)
 		self.klaRunner = klaRunner
 		self.testRunner = AutoTestRunner(self.model)
@@ -331,9 +330,10 @@ class UIMainMenu:
 		self.AddParallelButton('Run test', self.testRunner.RunAutoTest, (False,))
 		self.AddParallelButton('Start test', self.testRunner.RunAutoTest, (True,))
 		self.AddButton('Run Handler and MMi', self.appRunner.RunHandlerMMi)
-		self.AddButton('Run Handler alone', self.appRunner.RunHandler)
-		self.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True,False))
-		self.AddButton('Run MMi from C:Icos', self.appRunner.RunMMi, (False,False))
+		if self.ShowAll:
+			self.AddButton('Run Handler alone', self.appRunner.RunHandler)
+			self.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True,False))
+			self.AddButton('Run MMi from C:Icos', self.appRunner.RunMMi, (False,False))
 
 	def AddColumn2(self, parent):
 		sourceBuilder = self.klaSourceBuilder
@@ -349,17 +349,19 @@ class UIMainMenu:
 		self.AddButton('Open Python', self.klaRunner.OpenPython)
 		self.AddButton('Open Test Folder', self.klaRunner.OpenTestFolder)
 		self.AddButton('Open Local Diff', AppRunner.OpenLocalDif, (self.model,))
-		self.AddButton('Open Git GUI', Git.OpenGitGui, (self.model,))
-		self.AddButton('Open Git Bash', Git.OpenGitBash, (self.model,))
+		if self.ShowAll:
+			self.AddButton('Open Git GUI', Git.OpenGitGui, (self.model,))
+			self.AddButton('Open Git Bash', Git.OpenGitBash, (self.model,))
 
 	def AddColumn4(self, parent):
 		self.CreateColumnFrame(parent)
 		self.AddButton('Run Slots', VMWareRunner.RunSlots, (self.model,))
-		self.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
 		self.AddButton('Comment VisionSystem', PreTestActions.ModifyVisionSystem, (self.model,))
-		self.AddButton('Copy Mock License', PreTestActions.CopyMockLicense, (self.model,))
-		self.AddButton('Copy xPort xml', PreTestActions.CopyxPortIllumRef, (self.model,))
-		self.AddButton('Copy MmiSaveLogs.exe', PreTestActions.CopyMmiSaveLogExe, (self.model,))
+		if self.ShowAll:
+			self.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
+			self.AddButton('Copy Mock License', PreTestActions.CopyMockLicense, (self.model,))
+			self.AddButton('Copy xPort xml', PreTestActions.CopyxPortIllumRef, (self.model,))
+			self.AddButton('Copy MmiSaveLogs.exe', PreTestActions.CopyMmiSaveLogExe, (self.model,))
 
 	def AddColumn5(self, parent):
 		self.CreateColumnFrame(parent)
@@ -368,9 +370,10 @@ class UIMainMenu:
 		self.AddButton('Clear Output', OsOperations.Cls)
 		self.AddParallelButton('Clean Source', self.klaSourceBuilder.CleanSource)
 		self.AddParallelButton('Build Source', self.klaSourceBuilder.BuildSource)
-		self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
-		self.AddButton('Effort Log', effortLogger.PrintInDetail)
-		self.AddButton('Daily Log', effortLogger.PrintActualTime)
+		if self.ShowAll:
+			self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
+			self.AddButton('Effort Log', effortLogger.PrintInDetail)
+			self.AddButton('Daily Log', effortLogger.PrintActualTime)
 
 	def CreateColumnFrame(self, parent):
 		self.ColFrame = UIFactory.AddFrame(parent, 0, self.Col, sticky='n')
@@ -427,14 +430,22 @@ class UISettings:
 		self.AddSelectPathRow(parent, 'MMi Setups Path', 'MMiSetupsPath')
 
 	def AddSelectPathRow(self, parent, label, attrName):
-		self.AddSelectItemRow(parent, label, attrName, self.SelectPath)
+		self.AddSelectItemRow(parent, label, attrName, False)
 
 	def AddSelectFileRow(self, parent, label, attrName):
-		self.AddSelectItemRow(parent, label, attrName, self.SelectFile)
+		self.AddSelectItemRow(parent, label, attrName, True)
 
-	def AddSelectItemRow(self, parent, label, attrName, cmd):
+	def AddSelectItemRow(self, parent, label, attrName, isFile):
 		UIFactory.AddLabel(parent, label, self.Row, 0)
 		text = getattr(self.model, attrName)
+		if isFile:
+			if not os.path.isfile(text):
+				print "Given file doesn't exist : " + text
+			cmd = self.SelectFile
+		else:
+			if not os.path.isdir(text):
+				print "Given directory doesn't exist : " + text
+			cmd = self.SelectPath
 		textVar = UIFactory.AddLabel(parent, text, self.Row, 1)[1]
 		args = (textVar, attrName)
 		UIFactory.AddButton(parent, ' ... ', self.Row, 2, cmd, args)
@@ -1930,6 +1941,7 @@ class ConfigInfo:
 		model.MenuColCnt = _model['MenuColCnt']
 		model.MaxSlots = _model['MaxSlots']
 		model.ClearHistory = _model['ClearHistory']
+		model.ShowAllCommands = _model['ShowAllCommands']
 
 		model.MMiConfigPath = model.MMiConfigPath.replace('/', '\\')
 
@@ -1955,6 +1967,7 @@ class ConfigInfo:
 		_model['MenuColCnt'] = model.MenuColCnt
 		_model['MaxSlots'] = model.MaxSlots
 		_model['ClearHistory'] = model.ClearHistory
+		_model['ShowAllCommands'] = model.ShowAllCommands
 
 		with open(self.FileName, 'w') as f:
 			json.dump(_model, f, indent=3)
