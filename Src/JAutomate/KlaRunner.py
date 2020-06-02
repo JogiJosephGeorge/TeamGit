@@ -349,8 +349,8 @@ class UIMainMenu:
 		self.AddButton('Open Python', self.klaRunner.OpenPython)
 		self.AddButton('Open Test Folder', self.klaRunner.OpenTestFolder)
 		self.AddButton('Open Local Diff', AppRunner.OpenLocalDif, (self.model,))
+		self.AddButton('Open Git GUI', Git.OpenGitGui, (self.model,))
 		if self.ShowAll:
-			self.AddButton('Open Git GUI', Git.OpenGitGui, (self.model,))
 			self.AddButton('Open Git Bash', Git.OpenGitBash, (self.model,))
 
 	def AddColumn4(self, parent):
