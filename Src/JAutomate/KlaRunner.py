@@ -308,7 +308,6 @@ class ThreadHandler:
 class UIMainMenu:
 	def __init__(self, parent, r, c, klaRunner):
 		self.model = klaRunner.model
-		self.ShowAll = self.model.ShowAllCommands
 		self.frame = UIFactory.AddFrame(parent, r, c, 20, 20)
 		self.klaRunner = klaRunner
 		self.testRunner = AutoTestRunner(self.model)
@@ -330,10 +329,9 @@ class UIMainMenu:
 		self.AddParallelButton('Run test', self.testRunner.RunAutoTest, (False,))
 		self.AddParallelButton('Start test', self.testRunner.RunAutoTest, (True,))
 		self.AddButton('Run Handler and MMi', self.appRunner.RunHandlerMMi)
-		if self.ShowAll:
-			self.AddButton('Run Handler alone', self.appRunner.RunHandler)
-			self.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True,False))
-			self.AddButton('Run MMi from C:Icos', self.appRunner.RunMMi, (False,False))
+		self.AddButton('Run Handler alone', self.appRunner.RunHandler)
+		self.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True,False))
+		self.AddButton('Run MMi from C:Icos', self.appRunner.RunMMi, (False,False))
 
 	def AddColumn2(self, parent):
 		sourceBuilder = self.klaSourceBuilder
@@ -348,20 +346,20 @@ class UIMainMenu:
 		self.CreateColumnFrame(parent)
 		self.AddButton('Open Python', self.klaRunner.OpenPython)
 		self.AddButton('Open Test Folder', self.klaRunner.OpenTestFolder)
+		self.AddButton('Compare Test Results', self.klaRunner.CompareMmiReports)
 		self.AddButton('Open Local Diff', AppRunner.OpenLocalDif, (self.model,))
 		self.AddButton('Open Git GUI', Git.OpenGitGui, (self.model,))
-		if self.ShowAll:
-			self.AddButton('Open Git Bash', Git.OpenGitBash, (self.model,))
+		self.AddButton('Open Git Bash', Git.OpenGitBash, (self.model,))
+		self.AddButton('Git Fetch Pull', Git.FetchPull, (self.model,))
 
 	def AddColumn4(self, parent):
 		self.CreateColumnFrame(parent)
 		self.AddButton('Run Slots', VMWareRunner.RunSlots, (self.model,))
 		self.AddButton('Comment VisionSystem', PreTestActions.ModifyVisionSystem, (self.model,))
-		if self.ShowAll:
-			self.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
-			self.AddButton('Copy Mock License', PreTestActions.CopyMockLicense, (self.model,))
-			self.AddButton('Copy xPort xml', PreTestActions.CopyxPortIllumRef, (self.model,))
-			self.AddButton('Copy MmiSaveLogs.exe', PreTestActions.CopyMmiSaveLogExe, (self.model,))
+		self.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
+		self.AddButton('Copy Mock License', PreTestActions.CopyMockLicense, (self.model,))
+		self.AddButton('Copy xPort xml', PreTestActions.CopyxPortIllumRef, (self.model,))
+		self.AddButton('Copy MmiSaveLogs.exe', PreTestActions.CopyMmiSaveLogExe, (self.model,))
 
 	def AddColumn5(self, parent):
 		self.CreateColumnFrame(parent)
@@ -370,10 +368,9 @@ class UIMainMenu:
 		self.AddButton('Clear Output', OsOperations.Cls)
 		self.AddParallelButton('Clean Source', self.klaSourceBuilder.CleanSource)
 		self.AddParallelButton('Build Source', self.klaSourceBuilder.BuildSource)
-		if self.ShowAll:
-			self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
-			self.AddButton('Effort Log', effortLogger.PrintInDetail)
-			self.AddButton('Daily Log', effortLogger.PrintActualTime)
+		self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
+		self.AddButton('Effort Log', effortLogger.PrintInDetail)
+		self.AddButton('Daily Log', effortLogger.PrintActualTime)
 
 	def CreateColumnFrame(self, parent):
 		self.ColFrame = UIFactory.AddFrame(parent, 0, self.Col, sticky='n')
@@ -418,9 +415,10 @@ class UISettings:
 		self.Row += 1
 
 	def CreateUI(self, parent):
-		frame = UIFactory.AddFrame(parent, 0, 0)
+		frame = UIFactory.AddFrame(parent, 0, 0, 0, 0, 2)
 		UIFactory.AddButton(frame, 'Add Source', 0, 0, self.AddSource, None, 19)
 		UIFactory.AddButton(frame, 'Add Test', 0, 1, self.AddTest, None, 19)
+		UIFactory.AddButton(frame, 'Update Kla Runner', 0, 2, self.UpdateKlaRunner, None, 19)
 		self.AddSelectPathRow(parent, 'DevEnv.com', 'DevEnvCom')
 		self.AddSelectFileRow(parent, 'DevEnv.exe', 'DevEnvExe')
 		self.AddSelectPathRow(parent, 'Git Bin', 'GitBin')
@@ -480,6 +478,9 @@ class UISettings:
 			testName = filename[len(dir) + 1: -10]
 			self.model.AutoTests.AddTest(testName, [])
 			print 'Test Added   : {}'.format(testName)
+
+	def UpdateKlaRunner(self):
+		Git.FetchPull('.', False)
 
 class Menu:
 	def __init__(self, klaRunner, model):
@@ -590,16 +591,27 @@ class KlaRunner:
 				selItem[1](selItem[2])
 
 	def OpenPython(self):
-		FileOperations.Delete('{}/libs/testing/myconfig.py'.format(self.model.Source))
+		#FileOperations.Delete('{}/libs/testing/myconfig.py'.format(self.model.Source))
 		fileName = os.path.abspath(self.model.Source + '/libs/testing/my.py')
 		par = 'start python -i ' + fileName
 		OsOperations.System(par, 'Starting my.py')
 
+	def GetTestPath(self):
+		return os.path.abspath(self.model.Source + '/handler/tests/' + self.model.TestName)
+
 	def OpenTestFolder(self):
-		dirPath = os.path.abspath(self.model.Source + '/handler/tests/' + self.model.TestName)
+		dirPath = self.GetTestPath()
 		subprocess.Popen(['Explorer', dirPath])
 		print 'Open directory : ' + dirPath
 		OsOperations.Pause(self.model.ClearHistory)
+
+	def CompareMmiReports(self):
+		if not os.path.isfile(self.model.BCompare):
+			print 'Beyond compare does not exist in the given path : ' + self.model.BCompare
+			return
+		leftFolder = self.GetTestPath() + '/GoldenReports'
+		rightFolder = self.GetTestPath() + '~/_results'
+		subprocess.Popen([self.model.BCompare, leftFolder, rightFolder])
 
 	def PrintMissingIds(self):
 		fileName = os.path.abspath(self.model.Source + '/mmi/mmi/mmi_lang/mmi.h')
@@ -873,13 +885,13 @@ class AutoTestRunner:
 		#FileOperations.Copy(self.model.StartPath + '/Profiles', 'C:/icos/Profiles', 8, 3)
 		os.chdir(self.model.StartPath)
 
-		FileOperations.Delete('{}/libs/testing/myconfig.py'.format(self.model.Source))
+		#FileOperations.Delete('{}/libs/testing/myconfig.py'.format(self.model.Source))
 		libsPath = AutoTestRunner.UpdateLibsTestingPath(self.model.Source)
 		tests = AutoTestRunner.SearchInTests(libsPath, self.model.TestName)
 		if len(tests) == 0:
 			return
 		import my
-		print 'Module location of my : ' + my.__file__
+		#print 'Module location of my : ' + my.__file__
 		my.c.startup = startUp
 		my.c.debugvision = self.model.DebugVision
 		my.c.copymmi = self.model.CopyMmi
@@ -1231,7 +1243,7 @@ class OsOperations:
 	@classmethod
 	def System(cls, params, message = None):
 		if message is None:
-			print 'params : ' + params
+			print params
 		else:
 			print message
 		os.system(params)
@@ -1508,6 +1520,14 @@ class Git:
 	def OpenGitBash(cls, model):
 		par = 'start {}sh.exe --cd={}'.format(model.GitBin, model.Source)
 		OsOperations.System(par, 'Staring Git Bash')
+		OsOperations.Pause()
+
+	@classmethod
+	def FetchPull(cls, source, submoduleUpdate=True):
+		git = 'git -C ' + source
+		OsOperations.System(git + ' pull')
+		if submoduleUpdate:
+			OsOperations.System(git + ' submodule update --init --recursive')
 		OsOperations.Pause()
 
 	@classmethod
@@ -1931,6 +1951,7 @@ class ConfigInfo:
 		model.GitBin = _model['GitBin']
 		model.VMwareWS = _model['VMwareWS']
 		model.EffortLogFile = _model['EffortLogFile']
+		model.BCompare = _model['BCompare']
 		model.DateFormat = _model['DateFormat']
 		model.MMiConfigPath = _model['MMiConfigPath']
 		model.MMiSetupsPath = _model['MMiSetupsPath']
@@ -1941,7 +1962,6 @@ class ConfigInfo:
 		model.MenuColCnt = _model['MenuColCnt']
 		model.MaxSlots = _model['MaxSlots']
 		model.ClearHistory = _model['ClearHistory']
-		model.ShowAllCommands = _model['ShowAllCommands']
 
 		model.MMiConfigPath = model.MMiConfigPath.replace('/', '\\')
 
@@ -1957,6 +1977,7 @@ class ConfigInfo:
 		_model['GitBin'] = model.GitBin
 		_model['VMwareWS'] = model.VMwareWS
 		_model['EffortLogFile'] = model.EffortLogFile
+		_model['BCompare'] = model.BCompare
 		_model['DateFormat'] = model.DateFormat
 		_model['MMiConfigPath'] = model.MMiConfigPath
 		_model['MMiSetupsPath'] = model.MMiSetupsPath
@@ -1967,7 +1988,6 @@ class ConfigInfo:
 		_model['MenuColCnt'] = model.MenuColCnt
 		_model['MaxSlots'] = model.MaxSlots
 		_model['ClearHistory'] = model.ClearHistory
-		_model['ShowAllCommands'] = model.ShowAllCommands
 
 		with open(self.FileName, 'w') as f:
 			json.dump(_model, f, indent=3)
@@ -2044,6 +2064,7 @@ class Model:
 		self.GitBin = 'C:/Progra~1/Git/bin/'
 		self.VMwareWS = 'C:/Program Files (x86)/VMware/VMware Workstation/'
 		self.EffortLogFile = 'D:/QuEST/Tools/EffortCapture_2013/timeline.log'
+		self.BCompare = 'C:/Program Files (x86)/Beyond Compare 4/BCompare.exe'
 		self.DateFormat = '%d-%b-%Y'
 		self.MMiConfigPath = 'D:/'
 		self.MMiSetupsPath = 'D:/MmiSetups'
@@ -2054,7 +2075,6 @@ class Model:
 		self.MenuColCnt = 4
 		self.MaxSlots = 8
 		self.ClearHistory = False
-		self.ShowAllCommands = False
 
 	def ReadConfigFile(self):
 		self.ConfigInfo.Read(self)

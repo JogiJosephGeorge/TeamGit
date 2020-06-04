@@ -29,6 +29,7 @@
    "GitBin": "C:/Progra~1/Git/bin/", 
    "VMwareWS": "C:/Program Files (x86)/VMware/VMware Workstation/", 
    "EffortLogFile": "D:/QuEST/Tools/EffortCapture_2013/timeline.log", 
+   "BCompare": "C:/Program Files (x86)/Beyond Compare 4/BCompare.exe", 
    "DateFormat": "%d-%b-%Y", 
    "MMiConfigPath": "D:\\", 
    "MMiSetupsPath": "D:/MmiSetups", 
@@ -38,6 +39,5 @@
    "LogFileName": "bin/Log.txt", 
    "MenuColCnt": 4, 
    "MaxSlots": 8, 
-   "ClearHistory": false, 
-   "ShowAllCommands": false
+   "ClearHistory": false
 }
