@@ -1,30 +1,105 @@
-Functionalities of Each Control
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Functionalities
+~~~~~~~~~~~~~~~
+
+Row 1
+~~~~~
 Source
 	Combo box allows to select source.
-	After changing source the application will be restarted automatically.
-	New source can be added from Settings -> Add Source.
-Branch
-	Displays the git branch of current source.
-Test
-	Combo box selects test for python auto test.
-	New test can be added from Settings -> Add Test.
-Slots
-	Slots required for the current auto test.
-	This will be associated with test.
-	Default number of slots is 8. Can be edited in the .ini file.
+	After changing source, the application will be restarted automatically.
+	This is to unload all python modules used for auto tests.
+	New source can be added in Settings.
 Active Srcs
 	These check boxes used to select sources for batch cleaning / building.
 	The combo boxes will be generated dynamically based on the number of sources.
+
+Row 2
+~~~~~
+Branch
+	Displays the git branch of current source.
 Config
 	Configuration of the current source.
 	This is associated with current source.
 	This value will be used for building source and running auto test.
+Attach MMi
+	This check box decides to attach debugger for MMi while running auto test
+
+Row 3
+~~~~~
+Test
+	Combo box selects test for python auto test.
+	Slots will be remembered for each test.
+	New test can be added in Settings.
 Platform
 	Platform of the current source.
 	This is associated with current source.
 	This value will be used for building source and running auto test.
-Attach MMi
-	This check box decides to attach debugger for MMi while running auto test
 Copy MMi to Icos
 	This check box decides to copy MMI DLLs from source to C:\Icos while running auto test
+
+Row 4
+~~~~~
+Slots
+	VM ware will be restarted for the selected slots.
+	The selected slots are associated with test.
+	Default number of slots is 8. Can be edited in the .ini file.
+
+Column 1
+~~~~~~~~
+Stop All KLA Apps
+	Stops all applications (MMI, Handler, etc..) in single click
+Run Test
+	Run the selected test in current source
+	This considers the Config and Platform.
+	This also considers Attach MMi and 'Copy MMI to Icos'.
+Start Test
+	Start up the selected test in current source
+	This considers the Config and Platform.
+	This also considers Attach MMi and 'Copy MMI to Icos'.
+Run Handler and MMi
+	Run handler and MMi from source.
+	Temporary test folder must exists before running this.
+Run Handler alone
+	Run handler from source
+	Temporary test folder must exists before running this.
+Run MMi from Source
+	Run MMi from source.
+	Temporary test folder must exists before running this.
+Run MMi from C:Icos
+	Run MMi from C:\Icos.
+
+Column 2
+~~~~~~~~
+Open CIT100      : Open the corresponding solutions as Admin. (Kla Runner must run as Admin)
+Open Simulator   : Open the corresponding solutions as Admin. (Kla Runner must run as Admin)
+Open Mmi         : Open the corresponding solutions as Admin. (Kla Runner must run as Admin)
+Open MockLicense : Open the corresponding solutions as Admin. (Kla Runner must run as Admin)
+Open Converters  : Open the corresponding solutions as Admin. (Kla Runner must run as Admin)
+	
+Column 3
+~~~~~~~~
+Open Python          : Open Python for the current source
+Open Test Folder     : Open the test folder for the current source and test
+Compare Test Results : Compare golder reports in Beyond compare
+Open Local Diff      : Open local difference in Tortoise diff
+Open Git GUI         : Open Git GUI for the current source
+Open Git Bash        : Open Git Bash for the current source
+Git Fetch Pull       : Fetch, pull and submodule update for the current source
+
+Column 4
+~~~~~~~~
+Run Slots            : Start / Restart the VM Ware slots based on the selection
+Comment VisionSystem : Comment the VisionSystem.py
+Run ToolLink Host    : Run the Host Command Send with hard coded properties
+Copy Mock License    : Copy mock license from source to C:\Icos
+Copy xPort xml       : Copy xPort_IllumReference.xml to C:\Icos\xPort
+Copy MmiSaveLogs.exe : Copy the MmiSaveLogs.exe to the temporary test folder
+
+Column 5
+~~~~~~~~
+Settings	       : Open Settings dialog
+Clear Output    : Clear output of console window
+Clean Source    : Clear Source based on 'Active Srcs'. Type 'Yes' on console.
+Build Source    : Build Source based on 'Active Srcs'. Type 'Yes' on console.
+Print mmi.h IDs : Print all remaining IDs of mmi.h on console.
+Effort Log      : Shows the detailed Effort log. For this the log file must exist.
+Daily Log       : Shows the consolidated Effort log. For this the log file must exist.
