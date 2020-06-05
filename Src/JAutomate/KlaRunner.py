@@ -115,7 +115,7 @@ class UI:
 			print 'Please run this application with Administrator privilates'
 			os.system('PAUSE')
 			return
-		title = 'KLA Application Runner 0.9.' + Git.GetHash()
+		title = 'KLA Application Runner 1.0.' + Git.GetHash()
 		self.window = UIFactory.CreateWindow(None, title, self.model.StartPath)
 		UIHeader(self.window, 0, 0, self.model)
 		UIMainMenu(self.window, 1, 0, self.klaRunner)
@@ -366,8 +366,8 @@ class UIMainMenu:
 		effortLogger = EffortLogger(self.model)
 		self.AddButton('Settings', self.UISettings.Show)
 		self.AddButton('Clear Output', OsOperations.Cls)
-		self.AddParallelButton('Clean Source', self.klaSourceBuilder.CleanSource)
-		self.AddParallelButton('Build Source', self.klaSourceBuilder.BuildSource)
+		self.AddParallelButton('Clean Active Srcs', self.klaSourceBuilder.CleanSource)
+		self.AddParallelButton('Build Active Srcs', self.klaSourceBuilder.BuildSource)
 		self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
 		self.AddButton('Effort Log', effortLogger.PrintInDetail)
 		self.AddButton('Daily Log', effortLogger.PrintActualTime)

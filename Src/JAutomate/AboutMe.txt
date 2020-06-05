@@ -4,7 +4,7 @@ Functionalities
 Row 1
 ~~~~~
 Source
-	Combo box allows to select source.
+	Combo box allows to switch between sources.
 	After changing source, the application will be restarted automatically.
 	This is to unload all python modules used for auto tests.
 	New source can be added in Settings.
@@ -21,14 +21,14 @@ Config
 	This is associated with current source.
 	This value will be used for building source and running auto test.
 Attach MMi
-	This check box decides to attach debugger for MMi while running auto test
+	This check box decides to attach debugger for MMi while running/starting auto test.
 
 Row 3
 ~~~~~
 Test
 	Combo box selects test for python auto test.
-	Slots will be remembered for each test.
 	New test can be added in Settings.
+	Slots will be remembered for each test.
 Platform
 	Platform of the current source.
 	This is associated with current source.
@@ -39,27 +39,27 @@ Copy MMi to Icos
 Row 4
 ~~~~~
 Slots
-	VM ware will be restarted for the selected slots.
+	These check boxes decides which VM ware slots has to be (re)started.
 	The selected slots are associated with test.
 	Default number of slots is 8. Can be edited in the .ini file.
 
 Column 1
 ~~~~~~~~
 Stop All KLA Apps
-	Stops all applications (MMI, Handler, etc..) in single click
+	Stops all applications (MMI, Handler, etc..) in single click.
 Run Test
-	Run the selected test in current source
+	Run the selected test in current source.
 	This considers the Config and Platform.
-	This also considers Attach MMi and 'Copy MMI to Icos'.
+	This also considers 'Attach MMi' and 'Copy MMI to Icos'.
 Start Test
-	Start up the selected test in current source
+	Start up the selected test in current source.
 	This considers the Config and Platform.
-	This also considers Attach MMi and 'Copy MMI to Icos'.
+	This also considers 'Attach MMi' and 'Copy MMI to Icos'.
 Run Handler and MMi
-	Run handler and MMi from source.
+	Run handler console and MMi from source.
 	Temporary test folder must exists before running this.
 Run Handler alone
-	Run handler from source
+	Run handler console from source.
 	Temporary test folder must exists before running this.
 Run MMi from Source
 	Run MMi from source.
@@ -69,11 +69,11 @@ Run MMi from C:Icos
 
 Column 2
 ~~~~~~~~
-Open CIT100      : Open the corresponding solutions as Admin. (Kla Runner must run as Admin)
-Open Simulator   : Open the corresponding solutions as Admin. (Kla Runner must run as Admin)
-Open Mmi         : Open the corresponding solutions as Admin. (Kla Runner must run as Admin)
-Open MockLicense : Open the corresponding solutions as Admin. (Kla Runner must run as Admin)
-Open Converters  : Open the corresponding solutions as Admin. (Kla Runner must run as Admin)
+Open CIT100      : Open the corresponding solution as Admin. (Kla Runner must run as Admin)
+Open Simulator   : Open the corresponding solution as Admin. (Kla Runner must run as Admin)
+Open Mmi         : Open the corresponding solution as Admin. (Kla Runner must run as Admin)
+Open MockLicense : Open the corresponding solution as Admin. (Kla Runner must run as Admin)
+Open Converters  : Open the corresponding solution as Admin. (Kla Runner must run as Admin)
 	
 Column 3
 ~~~~~~~~
@@ -96,10 +96,10 @@ Copy MmiSaveLogs.exe : Copy the MmiSaveLogs.exe to the temporary test folder
 
 Column 5
 ~~~~~~~~
-Settings	       : Open Settings dialog
-Clear Output    : Clear output of console window
-Clean Source    : Clear Source based on 'Active Srcs'. Type 'Yes' on console.
-Build Source    : Build Source based on 'Active Srcs'. Type 'Yes' on console.
-Print mmi.h IDs : Print all remaining IDs of mmi.h on console.
-Effort Log      : Shows the detailed Effort log. For this the log file must exist.
-Daily Log       : Shows the consolidated Effort log. For this the log file must exist.
+Settings	         : Open Settings dialog
+Clear Output      : Clear console window
+Clean Active Srcs : Clear Source based on 'Active Srcs'. Type 'Yes' on console.
+Build Active Srcs : Build Source based on 'Active Srcs'. Type 'Yes' on console.
+Print mmi.h IDs   : Print all remaining IDs of mmi.h on console.
+Effort Log        : Shows the detailed Effort log. For this the log file must exist.
+Daily Log         : Shows the consolidated Effort log. For this the log file must exist.
