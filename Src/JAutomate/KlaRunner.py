@@ -280,7 +280,10 @@ class ThreadHandler:
 		self.threads = {}
 		self.Buttons = {}
 
-	def Start(self, name, funPnt, args = None):
+	def Start(self, name, funPnt, args = None, InitFunPnt = None):
+		if InitFunPnt is not None:
+			if not InitFunPnt():
+				return
 		if args is None:
 			self.threads[name] = threading.Thread(target=funPnt)
 		else:
@@ -335,8 +338,9 @@ class UIMainMenu:
 	def AddColumn1(self, parent):
 		self.CreateColumnFrame(parent)
 		self.AddButton('Stop All KLA Apps', TaskMan.StopTasks, (False,))
-		self.AddParallelButton('Run test', self.testRunner.RunAutoTest, (False,))
-		self.AddParallelButton('Start test', self.testRunner.RunAutoTest, (True,))
+		tr = self.testRunner
+		self.AddParallelButton('Run test', tr.RunAutoTest, (False,False), tr.InitAutoTest)
+		self.AddParallelButton('Start test', tr.RunAutoTest, (True,False), tr.InitAutoTest)
 		self.AddButton('Run Handler and MMi', self.appRunner.RunHandlerMMi)
 		self.AddButton('Run Handler alone', self.appRunner.RunHandler)
 		self.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True,False))
@@ -386,15 +390,15 @@ class UIMainMenu:
 		self.Col += 1
 		self.ColInx = 0
 
-	def AddParallelButton(self, label, funPnt, arg = None):
-		args = (label, funPnt, arg)
+	def AddParallelButton(self, label, FunPnt, arg = None, InitFunPnt = None):
+		args = (label, FunPnt, arg, InitFunPnt)
 		but = UIFactory.AddButton(self.ColFrame, label, self.ColInx, 0,
 			self.threadHandler.Start, args, 19)
 		self.threadHandler.AddButton(but)
 		self.ColInx += 1
 
-	def AddButton(self, label, funPnt, args = None):
-		but = UIFactory.AddButton(self.ColFrame, label, self.ColInx, 0, funPnt, args, 19)
+	def AddButton(self, label, FunPnt, args = None):
+		but = UIFactory.AddButton(self.ColFrame, label, self.ColInx, 0, FunPnt, args, 19)
 		self.ColInx += 1
 
 	def ShowSettings(self):
@@ -833,9 +837,12 @@ class VMWareRunner:
 				subprocess.Popen([vmRunExe, '-vp', '1', 'reset', vmxPath])
 			else:
 				subprocess.Popen([vmWareExe, vmxPath])
-				message = 'Please start ' + slotName
-				print message
-				os.system('PAUSE')
+				msg = 'Please start ' + slotName
+				if KlaRunner.RunFromUI:
+					messagebox.showinfo('KLA Runner', msg)
+				else:
+					print msg
+					os.system('PAUSE')
 				print slotName + ' : Started.'
 
 class PreTestActions:
@@ -893,14 +900,23 @@ class AutoTestRunner:
 		self.model = model
 		self.lastSrc = None
 
-	def RunAutoTest(self, startUp):
+	def InitAutoTest(self):
 		if self.lastSrc is None:
 			self.lastSrc = self.model.Source
 		elif self.lastSrc != self.model.Source:
-			print 'Please restart application'
-			return
+			msg = 'Test has already executed with different source. So please restart KLA Runner.'
+			if KlaRunner.RunFromUI:
+				messagebox.showinfo('KLA Runner', msg)
+			else:
+				print msg
+			return False
 		TaskMan.StopTasks(False)
 		VMWareRunner.RunSlots(self.model)
+		return True
+
+	def RunAutoTest(self, startUp, callInit = True):
+		if callInit:
+			self.InitAutoTest()
 		PreTestActions.ModifyVisionSystem(self.model, False)
 		PreTestActions.CopyxPortIllumRef(self.model, False, True)
 		#FileOperations.Copy(self.model.StartPath + '/Profiles', 'C:/icos/Profiles', 8, 3)
