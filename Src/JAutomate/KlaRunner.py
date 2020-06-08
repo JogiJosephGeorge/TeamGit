@@ -117,14 +117,15 @@ class UI:
 			return
 		title = 'KLA Application Runner 1.0.' + Git.GetHash()
 		self.window = UIFactory.CreateWindow(None, title, self.model.StartPath)
-		UIHeader(self.window, 0, 0, self.model)
-		UIMainMenu(self.window, 1, 0, self.klaRunner)
+		VM = UIViewModel(self.model)
+		UIHeader(self.window, 0, 0, self.model, VM)
+		UIMainMenu(self.window, 1, 0, self.klaRunner, VM)
 		self.window.mainloop()
 
 class UIHeader:
-	def __init__(self, parent, r, c, model):
+	def __init__(self, parent, r, c, model, VM):
 		self.model = model
-		self.VM = UIViewModel(model)
+		self.VM = VM
 		frame = UIFactory.AddFrame(parent, r, c, 20, 0)
 		self.Row = 0
 		self.CreateUI(frame)
@@ -155,7 +156,7 @@ class UIHeader:
 
 	def AddSource(self, parent, c):
 		UIFactory.AddLabel(parent, 'Source', self.Row, c)
-		srcs = [src[0] for src in self.model.Sources]
+		srcs = self.VM.GetSourceComboItems()
 		self.VM.cmbSource = UIFactory.AddCombo(parent, srcs, self.model.SrcIndex, self.Row, c+1, self.VM.OnSrcChanged, 70)
 
 	def AddConfig(self, parent, c):
@@ -214,7 +215,7 @@ class UIViewModel:
 			self.cmbConfig[1].set(self.model.Config)
 			self.cmbPltfm[1].set(self.model.Platform)
 			print 'Source Changed to : ' + self.model.Source
-			UIViewModel.RestartApp(self.model)
+			#UIViewModel.RestartApp(self.model)
 
 	@classmethod
 	def RestartApp(cls, model):
@@ -267,6 +268,13 @@ class UIViewModel:
 			print 'Disabled the source : ' + str(self.model.Sources[index][0])
 		self.model.WriteConfigFile()
 
+	def GetSourceComboItems(self):
+		return [src[0] for src in self.model.Sources]
+
+	def UpdateCombo(self):
+		self.cmbSource[0]['values'] = self.GetSourceComboItems()
+		self.cmbTest[0]['values'] = self.model.AutoTests.GetNames()
+
 class ThreadHandler:
 	def __init__(self):
 		self.threads = {}
@@ -306,13 +314,14 @@ class ThreadHandler:
 		self.Buttons[name].config(background='SystemButtonFace')
 
 class UIMainMenu:
-	def __init__(self, parent, r, c, klaRunner):
+	def __init__(self, parent, r, c, klaRunner, VM):
+		self.parent = parent
 		self.model = klaRunner.model
-		self.frame = UIFactory.AddFrame(parent, r, c, 20, 20)
+		self.frame = UIFactory.AddFrame(self.parent, r, c, 20, 20)
 		self.klaRunner = klaRunner
+		self.VM = VM
 		self.testRunner = AutoTestRunner(self.model)
 		self.settings = Settings(self.model, self.klaRunner)
-		self.UISettings = UISettings(parent, self.model)
 		self.appRunner = AppRunner(self.model, self.testRunner)
 		self.klaSourceBuilder = KlaSourceBuilder(self.model, self.klaRunner)
 		self.threadHandler = ThreadHandler()
@@ -364,7 +373,7 @@ class UIMainMenu:
 	def AddColumn5(self, parent):
 		self.CreateColumnFrame(parent)
 		effortLogger = EffortLogger(self.model)
-		self.AddButton('Settings', self.UISettings.Show)
+		self.AddButton('Settings', self.ShowSettings)
 		self.AddButton('Clear Output', OsOperations.Cls)
 		self.AddParallelButton('Clean Active Srcs', self.klaSourceBuilder.CleanSource)
 		self.AddParallelButton('Build Active Srcs', self.klaSourceBuilder.BuildSource)
@@ -388,10 +397,15 @@ class UIMainMenu:
 		but = UIFactory.AddButton(self.ColFrame, label, self.ColInx, 0, funPnt, args, 19)
 		self.ColInx += 1
 
+	def ShowSettings(self):
+		uiSettings = UISettings(self.parent, self.model, self.VM)
+		uiSettings.Show()
+
 class UISettings:
-	def __init__(self, parent, model):
+	def __init__(self, parent, model, VM):
 		self.Parent = parent
 		self.model = model
+		self.VM = VM
 
 	def Show(self):
 		title = 'Settings'
@@ -405,11 +419,12 @@ class UISettings:
 
 	def OnClosing(self):
 		self.model.WriteConfigFile()
-		#if self.Parent is not None:
-		#	self.Parent.deiconify()
-		#	self.Parent = None
-		#self.window.destroy()
-		UIViewModel.RestartApp(self.model)
+		#UIViewModel.RestartApp(self.model)
+		if self.Parent is not None:
+			self.Parent.deiconify()
+			self.Parent = None
+			self.VM.UpdateCombo()
+		self.window.destroy()
 
 	def AddRow(self):
 		self.Row += 1
@@ -419,7 +434,7 @@ class UISettings:
 		UIFactory.AddButton(frame, 'Add Source', 0, 0, self.AddSource, None, 19)
 		UIFactory.AddButton(frame, 'Add Test', 0, 1, self.AddTest, None, 19)
 		UIFactory.AddButton(frame, 'Update Kla Runner', 0, 2, self.UpdateKlaRunner, None, 19)
-		self.AddSelectPathRow(parent, 'DevEnv.com', 'DevEnvCom')
+		self.AddSelectFileRow(parent, 'DevEnv.com', 'DevEnvCom')
 		self.AddSelectFileRow(parent, 'DevEnv.exe', 'DevEnvExe')
 		self.AddSelectPathRow(parent, 'Git Bin', 'GitBin')
 		self.AddSelectPathRow(parent, 'VM ware WS', 'VMwareWS')
@@ -876,8 +891,14 @@ class PreTestActions:
 class AutoTestRunner:
 	def __init__(self, model):
 		self.model = model
+		self.lastSrc = None
 
 	def RunAutoTest(self, startUp):
+		if self.lastSrc is None:
+			self.lastSrc = self.model.Source
+		elif self.lastSrc != self.model.Source:
+			print 'Please restart application'
+			return
 		TaskMan.StopTasks(False)
 		VMWareRunner.RunSlots(self.model)
 		PreTestActions.ModifyVisionSystem(self.model, False)
@@ -885,7 +906,9 @@ class AutoTestRunner:
 		#FileOperations.Copy(self.model.StartPath + '/Profiles', 'C:/icos/Profiles', 8, 3)
 		os.chdir(self.model.StartPath)
 
-		#FileOperations.Delete('{}/libs/testing/myconfig.py'.format(self.model.Source))
+		# After swtiching sources with different configurations, we have to remove myconfig.py
+		FileOperations.Delete('{}/libs/testing/myconfig.py'.format(self.model.Source))
+
 		libsPath = AutoTestRunner.UpdateLibsTestingPath(self.model.Source)
 		tests = AutoTestRunner.SearchInTests(libsPath, self.model.TestName)
 		if len(tests) == 0:
@@ -901,7 +924,7 @@ class AutoTestRunner:
 		my.c.mmiConfigurationsPath = self.model.MMiConfigPath
 		my.c.mmiSetupsPath = self.model.MMiSetupsPath
 		my.run(tests[0][0])
-		print 'Completed Auto Test : ' + tests[0][1]
+		print 'Completed Auto Test : {} : {}'.format(tests[0][0], tests[0][1])
 
 	@classmethod
 	def SearchInTests(cls, libsPath, text):
@@ -2135,7 +2158,7 @@ def main():
 	elif (__name__ == '__main__'):
 		model = Model()
 		model.ReadConfigFile()
-		KlaRunner().Run(model)
+		KlaRunner(model).Run()
 
 main()
 print 'Have a nice day...'
