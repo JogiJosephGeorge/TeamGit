@@ -7,6 +7,7 @@ import time
 import inspect
 import itertools
 import json
+import msvcrt
 import os
 import re
 import subprocess
@@ -904,7 +905,7 @@ class AutoTestRunner:
 		if self.lastSrc is None:
 			self.lastSrc = self.model.Source
 		elif self.lastSrc != self.model.Source:
-			msg = 'Test has already executed with different source. So please restart KLA Runner.'
+			msg = 'Test has already been executed with different source. So please restart KLA Runner.'
 			if KlaRunner.RunFromUI:
 				messagebox.showinfo('KLA Runner', msg)
 			else:
@@ -993,7 +994,7 @@ class Settings:
 		if self.model.AutoTests.Contains(testName):
 			print 'The given test ({}) already exists'.format(testName)
 			return
-		slots = raw_input('Enter slots : ')
+		slots = OsOperations.Input('Enter slots : ')
 		index = self.model.AutoTests.AddTest(testName, slots)
 		self.model.UpdateTest(index, True)
 		OsOperations.Pause(self.model.ClearHistory)
@@ -1051,7 +1052,7 @@ class KlaSourceBuilder:
 		print 'The following source{} ready for {}.'.format(isAre, message)
 		sources = self.klaRunner.PrintBranches(self.model.ActiveSrcs)
 		question = 'Please type "Yes" to continue {} : '.format(message)
-		if raw_input(question) == 'Yes':
+		if OsOperations.Input(question) == 'Yes':
 			print 'Started {}...'.format(message)
 		else:
 			print 'Cancelled {}.'.format(message)
@@ -1066,20 +1067,25 @@ class KlaSourceBuilder:
 			'/Handler/FabLink/cpp/bin',
 			'/Handler/FabLink/FabLinkLib/System32',
 			]
-		gitIgnore = '.gitignore'
 		for srcSet in self.VerifySources('cleaning'):
 			src = srcSet[0]
+			Git.Commit(self.model, 'Temp')
 			print 'Cleaning files in ' + src
-			FileOperations.DeleteAllInTree(src, gitIgnore)
-			with open(src + '/' + gitIgnore, 'w') as f:
+			self.DeleteAllGitIgnoreFiles(src)
+			with open(src + '/.gitignore', 'w') as f:
 				f.writelines(str.join('\n', excludeDirs))
 			Git.Clean(src, '-fd')
-			#print 'Reseting files in ' + src
-			#Git.ResetHard(src)
-			#print 'Submodule Update'
-			#Git.SubmoduleUpdate(src)
+			print 'Reseting files in ' + src
+			Git.ResetHard(src)
+			Git.RevertLastCommit(self.model)
 			print 'Cleaning completed for ' + src
 		OsOperations.Pause(self.model.ClearHistory)
+
+	def DeleteAllGitIgnoreFiles(self, dirName):
+		os.remove('{}/.gitignore'.format(dirName))
+		for root, dirs, files in os.walk(dirName):
+			if '.gitignore' in files and '.git' not in files:
+				os.remove('{}/.gitignore'.format(root))
 
 	def BuildSource(self):
 		logFileName = self.model.StartPath + '/' + self.model.LogFileName
@@ -1208,12 +1214,6 @@ class FileOperations:
 			 f.write((message + '\n').encode('utf8'))
 
 	@classmethod
-	def DeleteAllInTree(cls, dirName, fileName):
-		for root, dirs, files in os.walk(dirName):
-			if fileName in files:
-				os.remove('{}/{}'.format(root, fileName))
-
-	@classmethod
 	def Delete(cls, fileName):
 		if os.path.isfile(fileName):
 			os.remove(fileName)
@@ -1312,11 +1312,21 @@ class OsOperations:
 
 	@classmethod
 	def InputNumber(cls, message):
-		userIn = raw_input(message)
+		userIn = cls.Input(message)
 		while True:
 			if userIn != '':
 				return int(userIn)
 			userIn = raw_input()
+
+	@classmethod
+	def FlushInput(cls):
+		while msvcrt.kbhit():
+			msvcrt.getch(),
+
+	@classmethod
+	def Input(cls, message):
+		cls.FlushInput()
+		return raw_input(message)
 
 	@classmethod
 	def Popen(cls, params, callPrint = None):
@@ -1535,18 +1545,21 @@ class Git:
 				isCurrent = True
 
 	@classmethod
+	def Git(cls, source, cmd):
+		OsOperations.Call('git -C {} {}'.format(source, cmd))
+
+	@classmethod
 	def Clean(cls, source, options):
-		OsOperations.Popen(['git', '-C', source, 'clean', options])
+		cls.Git(source, 'clean ' + options)
 
 	@classmethod
 	def ResetHard(cls, source):
-		OsOperations.Popen(['git', '-C', source, 'reset', '--hard'])
+		cls.Git(source, 'reset --hard')
 
 	@classmethod
-	def SubmoduleUpdate(cls, source):
-		gitSubModule = ['git', '-C', source, 'submodule']
-		OsOperations.Call(gitSubModule + ['update', '--init', '--recursive'])
-		OsOperations.Call(gitSubModule + ['foreach', 'git', 'reset', '--hard'])
+	def SubmoduleUpdate(cls, model):
+		cls.Git(model.Source, 'submodule update --init --recursive')
+		cls.Git(model.Source, 'submodule foreach git reset --hard') # It seems this is not working
 
 	@classmethod
 	def OpenGitGui(cls, model):
@@ -1562,17 +1575,26 @@ class Git:
 		OsOperations.Pause()
 
 	@classmethod
-	def FetchPull(cls, source, submoduleUpdate=True):
-		git = 'git -C ' + source
-		OsOperations.System(git + ' pull')
+	def FetchPull(cls, model, submoduleUpdate=True):
+		cls.Git(model.Source, 'pull')
 		if submoduleUpdate:
-			OsOperations.System(git + ' submodule update --init --recursive')
+			Git.SubmoduleUpdate(model)
+		print 'Git fetch and pull completed.'
 		OsOperations.Pause()
 
 	@classmethod
 	def GetHash(cls):
-		str = OsOperations.ProcessOpen(['git', 'describe', '--always'])
+		str = OsOperations.ProcessOpen('git describe --always')
 		return re.sub('\W+', '', str)
+
+	@classmethod
+	def Commit(cls, model, msg):
+		cls.Git(model.Source, 'add -A')
+		cls.Git(model.Source, 'commit -m "' + msg + '"')
+
+	@classmethod
+	def RevertLastCommit(cls, model):
+		cls.Git(model.Source, 'reset --mixed HEAD~1')
 
 class StdOutRedirect(object):
 	def __init__(self):
