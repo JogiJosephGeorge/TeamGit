@@ -1069,7 +1069,9 @@ class KlaSourceBuilder:
 			]
 		for srcSet in self.VerifySources('cleaning'):
 			src = srcSet[0]
-			Git.Commit(self.model, 'Temp')
+			cnt = len(Git.ModifiedFiles(self.model.Source))
+			if cnt > 0:
+				Git.Commit(self.model, 'Temp')
 			print 'Cleaning files in ' + src
 			self.DeleteAllGitIgnoreFiles(src)
 			with open(src + '/.gitignore', 'w') as f:
@@ -1077,7 +1079,8 @@ class KlaSourceBuilder:
 			Git.Clean(src, '-fd')
 			print 'Reseting files in ' + src
 			Git.ResetHard(src)
-			Git.RevertLastCommit(self.model)
+			if cnt > 0:
+				Git.RevertLastCommit(self.model)
 			print 'Cleaning completed for ' + src
 		OsOperations.Pause(self.model.ClearHistory)
 
@@ -1547,6 +1550,11 @@ class Git:
 	@classmethod
 	def Git(cls, source, cmd):
 		OsOperations.Call('git -C {} {}'.format(source, cmd))
+
+	@classmethod
+	def ModifiedFiles(cls, source):
+		params = ['git', '-C', source, 'status', '-s']
+		return OsOperations.ProcessOpen(params).split('\n')[:-1]
 
 	@classmethod
 	def Clean(cls, source, options):
