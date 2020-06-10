@@ -23,7 +23,4 @@ Src/JAutomate/SimulatorLog
 Src/JAutomate/TestReport.txt
 Src/JAutomate/PsiIcShiftLog.log
 Src/JAutomate/TaperPosLog.log
-Src/JAutomate/handler/log/SecsGem/HostSimulator.log
-Src/JAutomate/handler/log/SecsGem/Host_Alarms_20200512.log
-Src/JAutomate/handler/log/SecsGem/Host_Events_20200512.log
-Src/JAutomate/handler/log/SecsGem/Host_SECS_20200512.log
+Src/JAutomate/handler/log/
