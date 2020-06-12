@@ -383,8 +383,8 @@ class UIMainMenu:
 		self.AddParallelButton('Clean Active Srcs', self.klaSourceBuilder.CleanSource)
 		self.AddParallelButton('Build Active Srcs', self.klaSourceBuilder.BuildSource)
 		self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
-		self.AddButton('Effort Log', effortLogger.PrintInDetail)
-		self.AddButton('Daily Log', effortLogger.PrintActualTime)
+		self.AddButton('Effort Log', effortLogger.PrintEffortLogInDetail)
+		self.AddButton('Daily Log', effortLogger.PrintDailyLog)
 
 	def CreateColumnFrame(self, parent):
 		self.ColFrame = UIFactory.AddFrame(parent, 0, self.Col, sticky='n')
@@ -560,7 +560,7 @@ class Menu:
 			[94, ['Change Test', settings.ChangeTest]],
 			[95, ['Change Source', settings.ChangeSource]],
 			[96, ['Change MMI Attach', settings.ChangeDebugVision]],
-			[97, ['Effort Log', effortLogger.PrintInDetail]],
+			[97, ['Effort Log', effortLogger.PrintEffortLogInDetail]],
 			[98, ['Clear Output', OsOperations.Cls]],
 			[99, ['Stop All KLA Apps', TaskMan.StopTasks, True]],
 			[0, 'EXIT']
@@ -621,6 +621,11 @@ class KlaRunner:
 
 	def OpenTestFolder(self):
 		dirPath = self.GetTestPath()
+		if not os.path.isdir(dirPath):
+			msg = 'Test folder does not exists : ' + dirPath
+			print msg
+			messagebox.showinfo('KLA Runner', msg)
+			return
 		subprocess.Popen(['Explorer', dirPath])
 		print 'Open directory : ' + dirPath
 		OsOperations.Pause(self.model.ClearHistory)
@@ -848,9 +853,9 @@ class VMWareRunner:
 
 class PreTestActions:
 	@classmethod
-	def CopyMockLicense(cls, model, fromSrc = True, doPause = True):
+	def CopyMockLicense(cls, model, toSrc = True, doPause = True):
 		args = (model.Source, model.Platform, model.Config)
-		if fromSrc:
+		if toSrc:
 			mmiPath = os.path.abspath('{}/mmi/mmi/Bin/{}/{}'.format(*args))
 		else:
 			mmiPath = 'C:/icos'
@@ -1761,9 +1766,9 @@ class EffortReader:
 
 	def CheckApplication(self):
 		if len(OsOperations.GetProcessIds('EffortCapture_2013.exe')) > 0:
-			print 'Effort logger is running'
+			print 'Effort logger is running.'
 		else:
-			print 'Effort logger is not running'
+			print 'Effort logger is not running !'
 
 class EffortLogger:
 	def __init__(self, model):
@@ -1773,7 +1778,7 @@ class EffortLogger:
 		self.MinTime = timedelta(minutes=self.MinMinutes)
 		self.ShowPrevDaysLogs = 1
 
-	def PrintInDetail(self):
+	def PrintEffortLogInDetail(self):
 		reader = EffortReader(self.model)
 		reader.ReadFile()
 		for i in range(self.ShowPrevDaysLogs, 0, -1):
@@ -1810,7 +1815,7 @@ class EffortLogger:
 		#FileOperations.Append(logFile + '.txt', table)
 		print table,
 
-	def PrintActualTime(self):
+	def PrintDailyLog(self):
 		reader = EffortReader(self.model)
 		reader.ReadFile()
 		data = reader.GetConsolidatedTime()
@@ -1819,6 +1824,7 @@ class EffortLogger:
 		effortData = [['Date', 'Actual Time'], ['-']] + data
 		table = PrettyTable(TableFormat().SetSingleLine()).ToString(effortData)
 		print table,
+		reader.CheckApplication()
 
 	def Trim(self, message, width):
 		if len(message) > width:
