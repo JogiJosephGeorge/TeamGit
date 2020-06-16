@@ -105,8 +105,9 @@ class UI:
 
 	def Run(self):
 		self.model = Model()
+		VM = UIViewModel(self.model)
 		if not os.path.exists(self.model.ConfigInfo.FileName):
-			UISettings(None, self.model).Show()
+			UISettings(None, self.model, VM).Show()
 			return
 		else:
 			self.model.ReadConfigFile()
@@ -118,7 +119,6 @@ class UI:
 			return
 		title = 'KLA Application Runner 1.0.' + Git.GetHash()
 		self.window = UIFactory.CreateWindow(None, title, self.model.StartPath)
-		VM = UIViewModel(self.model)
 		UIHeader(self.window, 0, 0, self.model, VM)
 		UIMainMenu(self.window, 1, 0, self.klaRunner, VM)
 		self.window.mainloop()
@@ -270,7 +270,12 @@ class UIViewModel:
 		self.model.WriteConfigFile()
 
 	def GetSourceComboItems(self):
-		return [src[0] for src in self.model.Sources]
+		#return [src[0] for src in self.model.Sources]
+		srcCmb = []
+		for src in self.model.Sources:
+			branch = Git.GetBranch(src[0])
+			srcCmb.append('{} ({})'.format(src[0], branch))
+		return srcCmb
 
 	def UpdateCombo(self):
 		self.cmbSource[0]['values'] = self.GetSourceComboItems()
@@ -924,7 +929,7 @@ class AutoTestRunner:
 		if callInit:
 			self.InitAutoTest()
 		PreTestActions.ModifyVisionSystem(self.model, False)
-		PreTestActions.CopyxPortIllumRef(self.model, False, True)
+		#PreTestActions.CopyxPortIllumRef(self.model, False, True)
 		#FileOperations.Copy(self.model.StartPath + '/Profiles', 'C:/icos/Profiles', 8, 3)
 		os.chdir(self.model.StartPath)
 
@@ -1543,6 +1548,7 @@ ICOS,12345,False
 class Git:
 	@classmethod
 	def GetBranch(cls, source):
+		#print 'Git.GetBranch : ' + source
 		params = ['git', '-C', source, 'branch']
 		output = OsOperations.ProcessOpen(params)
 		isCurrent = False
