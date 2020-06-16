@@ -150,7 +150,8 @@ class UIHeader:
 		self.AddRow()
 		self.AddTest(parent, 0)
 		self.AddPlatform(parent, 3)
-		self.AddCopyMmi(parent, 6)
+		if self.model.ShowAllButtons:
+			self.AddCopyMmi(parent, 6)
 
 		self.AddRow()
 		self.AddSlots(parent, 0)
@@ -347,10 +348,11 @@ class UIMainMenu:
 		tr = self.testRunner
 		self.AddParallelButton('Run test', tr.RunAutoTest, (False,False), tr.InitAutoTest)
 		self.AddParallelButton('Start test', tr.RunAutoTest, (True,False), tr.InitAutoTest)
-		self.AddButton('Run Handler and MMi', self.appRunner.RunHandlerMMi)
-		self.AddButton('Run Handler alone', self.appRunner.RunHandler)
-		self.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True,False))
-		self.AddButton('Run MMi from C:Icos', self.appRunner.RunMMi, (False,False))
+		if self.model.ShowAllButtons:
+			self.AddButton('Run Handler and MMi', self.appRunner.RunHandlerMMi)
+			self.AddButton('Run Handler alone', self.appRunner.RunHandler)
+			self.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True,False))
+			self.AddButton('Run MMi from C:Icos', self.appRunner.RunMMi, (False,False))
 
 	def AddColumn2(self, parent):
 		sourceBuilder = self.klaSourceBuilder
@@ -367,29 +369,33 @@ class UIMainMenu:
 		self.AddButton('Open Test Folder', self.klaRunner.OpenTestFolder)
 		self.AddButton('Compare Test Results', self.klaRunner.CompareMmiReports)
 		self.AddButton('Open Local Diff', AppRunner.OpenLocalDif, (self.model,))
-		self.AddButton('Open Git GUI', Git.OpenGitGui, (self.model,))
-		self.AddButton('Open Git Bash', Git.OpenGitBash, (self.model,))
+		if self.model.ShowAllButtons:
+			self.AddButton('Open Git GUI', Git.OpenGitGui, (self.model,))
+			self.AddButton('Open Git Bash', Git.OpenGitBash, (self.model,))
 		self.AddButton('Git Fetch Pull', Git.FetchPull, (self.model,))
 
 	def AddColumn4(self, parent):
 		self.CreateColumnFrame(parent)
 		self.AddButton('Run Slots', VMWareRunner.RunSlots, (self.model,))
-		self.AddButton('Comment VisionSystem', PreTestActions.ModifyVisionSystem, (self.model,))
-		self.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
-		self.AddButton('Copy Mock License', PreTestActions.CopyMockLicense, (self.model,))
-		self.AddButton('Copy xPort xml', PreTestActions.CopyxPortIllumRef, (self.model,))
-		self.AddButton('Copy MmiSaveLogs.exe', PreTestActions.CopyMmiSaveLogExe, (self.model,))
+		if self.model.ShowAllButtons:
+			self.AddButton('Comment VisionSystem', PreTestActions.ModifyVisionSystem, (self.model,))
+			self.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
+			self.AddButton('Copy Mock License', PreTestActions.CopyMockLicense, (self.model,))
+			self.AddButton('Copy xPort xml', PreTestActions.CopyxPortIllumRef, (self.model,))
+			self.AddButton('Copy MmiSaveLogs.exe', PreTestActions.CopyMmiSaveLogExe, (self.model,))
 
 	def AddColumn5(self, parent):
 		self.CreateColumnFrame(parent)
 		effortLogger = EffortLogger(self.model)
 		self.AddButton('Settings', self.ShowSettings)
-		self.AddButton('Clear Output', OsOperations.Cls)
+		if self.model.ShowAllButtons:
+			self.AddButton('Clear Output', OsOperations.Cls)
 		self.AddParallelButton('Clean Active Srcs', self.klaSourceBuilder.CleanSource)
 		self.AddParallelButton('Build Active Srcs', self.klaSourceBuilder.BuildSource)
-		self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
-		self.AddButton('Effort Log', effortLogger.PrintEffortLogInDetail)
-		self.AddButton('Daily Log', effortLogger.PrintDailyLog)
+		if self.model.ShowAllButtons:
+			self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
+			self.AddButton('Effort Log', effortLogger.PrintEffortLogInDetail)
+			self.AddButton('Daily Log', effortLogger.PrintDailyLog)
 
 	def CreateColumnFrame(self, parent):
 		self.ColFrame = UIFactory.AddFrame(parent, 0, self.Col, sticky='n')
@@ -451,6 +457,7 @@ class UISettings:
 		self.AddSelectFileRow(parent, 'Effort Log File', 'EffortLogFile')
 		self.AddSelectPathRow(parent, 'MMi Config Path', 'MMiConfigPath')
 		self.AddSelectPathRow(parent, 'MMi Setups Path', 'MMiSetupsPath')
+		self.AddShowAllCheck(parent)
 
 	def AddSelectPathRow(self, parent, label, attrName):
 		self.AddSelectItemRow(parent, label, attrName, False)
@@ -487,6 +494,15 @@ class UISettings:
 			textVar.set(filename)
 			setattr(self.model, attrName, filename)
 			print '{} Path changed : {}'.format(attrName, filename)
+
+	def AddShowAllCheck(self, parent):
+		UIFactory.AddLabel(parent, 'Show All Commands', self.Row, 0)
+		isChecked = self.model.ShowAllButtons
+		self.ChkShowAll = UIFactory.AddCheckBox(parent, isChecked, self.Row, 1, self.OnShowAll)
+		self.AddRow()
+
+	def OnShowAll(self):
+		self.model.ShowAllButtons = self.ChkShowAll.get()
 
 	def AddSource(self):
 		folderSelected = tkFileDialog.askdirectory()
@@ -2021,28 +2037,32 @@ class ConfigInfo:
 		with open(self.FileName) as f:
 			_model = json.load(f)
 
-		model.Sources = [ConfigEncoder.DecodeSource(item) for item in _model['Sources']]
-		model.SrcCnf.UpdateSource(_model['SrcIndex'], False)
-		model.AutoTests.Read(_model['Tests'])
-		if not model.UpdateTest(_model['TestIndex'], False):
-			model.TestIndex = 0
-		model.ActiveSrcs = _model['ActiveSrcs']
-		model.DevEnvCom = _model['DevEnvCom']
-		model.DevEnvExe = _model['DevEnvExe']
-		model.GitBin = _model['GitBin']
-		model.VMwareWS = _model['VMwareWS']
-		model.EffortLogFile = _model['EffortLogFile']
-		model.BCompare = _model['BCompare']
-		model.DateFormat = _model['DateFormat']
-		model.MMiConfigPath = _model['MMiConfigPath']
-		model.MMiSetupsPath = _model['MMiSetupsPath']
-		model.DebugVision = _model['DebugVision']
-		model.CopyMmi = _model['CopyMmi']
-		model.TempDir = _model['TempDir']
-		model.LogFileName = _model['LogFileName']
-		model.MenuColCnt = _model['MenuColCnt']
-		model.MaxSlots = _model['MaxSlots']
-		model.ClearHistory = _model['ClearHistory']
+		try:
+			model.Sources = [ConfigEncoder.DecodeSource(item) for item in _model['Sources']]
+			model.SrcCnf.UpdateSource(_model['SrcIndex'], False)
+			model.AutoTests.Read(_model['Tests'])
+			if not model.UpdateTest(_model['TestIndex'], False):
+				model.TestIndex = 0
+			model.ActiveSrcs = _model['ActiveSrcs']
+			model.DevEnvCom = _model['DevEnvCom']
+			model.DevEnvExe = _model['DevEnvExe']
+			model.GitBin = _model['GitBin']
+			model.VMwareWS = _model['VMwareWS']
+			model.EffortLogFile = _model['EffortLogFile']
+			model.BCompare = _model['BCompare']
+			model.DateFormat = _model['DateFormat']
+			model.MMiConfigPath = _model['MMiConfigPath']
+			model.MMiSetupsPath = _model['MMiSetupsPath']
+			model.DebugVision = _model['DebugVision']
+			model.CopyMmi = _model['CopyMmi']
+			model.TempDir = _model['TempDir']
+			model.LogFileName = _model['LogFileName']
+			model.MenuColCnt = _model['MenuColCnt']
+			model.MaxSlots = _model['MaxSlots']
+			model.ClearHistory = _model['ClearHistory']
+			model.ShowAllButtons = _model['ShowAllButtons']
+		except:
+			print("Unexpected error:", sys.exc_info()[0])
 
 		model.MMiConfigPath = model.MMiConfigPath.replace('/', '\\')
 
@@ -2069,6 +2089,7 @@ class ConfigInfo:
 		_model['MenuColCnt'] = model.MenuColCnt
 		_model['MaxSlots'] = model.MaxSlots
 		_model['ClearHistory'] = model.ClearHistory
+		_model['ShowAllButtons'] = model.ShowAllButtons
 
 		with open(self.FileName, 'w') as f:
 			json.dump(_model, f, indent=3)
@@ -2156,6 +2177,7 @@ class Model:
 		self.MenuColCnt = 4
 		self.MaxSlots = 8
 		self.ClearHistory = False
+		self.ShowAllButtons = False
 
 	def ReadConfigFile(self):
 		self.ConfigInfo.Read(self)
