@@ -844,6 +844,9 @@ class VMWareRunner:
 	def RunSlots(cls, model):
 		vMwareWS = model.VMwareWS
 		slots = model.slots
+		if len(slots) == 0:
+			cls.ShowMessage('Please select necessary slot(s).')
+			return False
 		vmRunExe = vMwareWS + "vmrun.exe"
 		vmWareExe = vMwareWS + "vmware.exe"
 		vmxGenericPath = r'C:\\MVS8000\\slot{}\\MVS8000_stage2.vmx'
@@ -865,12 +868,17 @@ class VMWareRunner:
 			else:
 				subprocess.Popen([vmWareExe, vmxPath])
 				msg = 'Please start ' + slotName
-				if KlaRunner.RunFromUI:
-					messagebox.showinfo('KLA Runner', msg)
-				else:
-					print msg
-					os.system('PAUSE')
+				cls.ShowMessage(msg)
 				print slotName + ' : Started.'
+		return True
+
+	@classmethod
+	def ShowMessage(cls, msg):
+		print msg
+		if KlaRunner.RunFromUI:
+			messagebox.showinfo('KLA Runner', msg)
+		else:
+			os.system('PAUSE')
 
 class PreTestActions:
 	@classmethod
@@ -938,8 +946,7 @@ class AutoTestRunner:
 				print msg
 			return False
 		TaskMan.StopTasks(False)
-		VMWareRunner.RunSlots(self.model)
-		return True
+		return VMWareRunner.RunSlots(self.model)
 
 	def RunAutoTest(self, startUp, callInit = True):
 		if callInit:
