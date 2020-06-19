@@ -3,6 +3,7 @@ from collections import OrderedDict
 import ctypes
 from datetime import datetime, timedelta
 from functools import partial
+from xml.dom import minidom
 import time
 import inspect
 import itertools
@@ -242,8 +243,11 @@ class UIViewModel:
 	def OnTestChanged(self, event):
 		if self.model.UpdateTest(self.cmbTest[0].current(), True):
 			print 'Test Changed to : ' + self.model.TestName
-			for i in range(self.model.MaxSlots):
-				self.chkSlots[i].set((i+1) in self.model.slots)
+			self.UpdateSlotsChk()
+
+	def UpdateSlotsChk(self):
+		for i in range(self.model.MaxSlots):
+			self.chkSlots[i].set((i+1) in self.model.slots)
 
 	def OnAttach(self):
 		self.model.DebugVision = self.chkAttachMmi.get()
@@ -256,7 +260,7 @@ class UIViewModel:
 		print 'Copy MMI to ICOS : ' + str(self.chkCopyMmi.get())
 
 	def OnSlotChn(self, index):
-		self.model.UpdateSlots(index, self.chkSlots[index].get())
+		self.model.UpdateSlot(index, self.chkSlots[index].get())
 		self.model.WriteConfigFile()
 		print 'Slots for the current test : ' + str(self.model.slots)
 
@@ -281,6 +285,11 @@ class UIViewModel:
 	def UpdateCombo(self):
 		self.cmbSource[0]['values'] = self.GetSourceComboItems()
 		self.cmbTest[0]['values'] = self.model.AutoTests.GetNames()
+
+	def UpdateSlots(self):
+		if VMWareRunner.SelectSlots(self.model):
+			print 'Slots Updated : ' + str(self.model.slots)
+			self.UpdateSlotsChk()
 
 class ThreadHandler:
 	def __init__(self):
@@ -348,6 +357,7 @@ class UIMainMenu:
 		tr = self.testRunner
 		self.AddParallelButton('Run test', tr.RunAutoTest, (False,False), tr.InitAutoTest)
 		self.AddParallelButton('Start test', tr.RunAutoTest, (True,False), tr.InitAutoTest)
+		self.AddButton('Update Slots', self.VM.UpdateSlots)
 		if self.model.ShowAllButtons:
 			self.AddButton('Run Handler and MMi', self.appRunner.RunHandlerMMi)
 			self.AddButton('Run Handler alone', self.appRunner.RunHandler)
@@ -840,6 +850,21 @@ class TaskMan:
 			cls.copyIllumTimer = None
 
 class VMWareRunner:
+	@classmethod
+	def SelectSlots(cls, model):
+		fileName = 'C:/Icos/Mmi_Cnf.xml'
+		if not os.path.isfile(fileName):
+			messagebox.showinfo('KLA Runner', 'File does not exist: ' + fileName)
+			return False
+		mydoc = minidom.parse(fileName)
+		devices = mydoc.getElementsByTagName('Device')
+		slots = []
+		for device in devices:
+			deviceName = device.firstChild.data
+			slots.append(int(deviceName.split('_')[0][3:]))
+		model.SelectSlots(slots)
+		return True
+
 	@classmethod
 	def RunSlots(cls, model):
 		vMwareWS = model.VMwareWS
@@ -2223,13 +2248,18 @@ class Model:
 		self.Sources[self.SrcIndex] = self.Source, self.Config, self.Platform
 		return True
 
-	def UpdateSlots(self, index, isSelected):
+	def UpdateSlot(self, index, isSelected):
 		slotNum = index + 1
 		if isSelected:
 			self.slots.append(slotNum)
 			self.slots.sort()
 		else:
 			self.slots.remove(slotNum)
+		self.AutoTests.SetNameSlots(self.TestIndex, self.TestName, self.slots)
+
+	def SelectSlots(self, slots):
+		self.slots = slots
+		self.slots.sort()
 		self.AutoTests.SetNameSlots(self.TestIndex, self.TestName, self.slots)
 
 	def GetLibsTestPath(self):
