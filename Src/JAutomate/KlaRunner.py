@@ -241,13 +241,15 @@ class UIViewModel:
 			print 'Platform Changed to : ' + self.model.Platform
 
 	def OnTestChanged(self, event):
-		if self.model.UpdateTest(self.cmbTest[0].current(), True):
+		if self.model.UpdateTest(self.cmbTest[0].current(), False):
 			print 'Test Changed to : ' + self.model.TestName
-			self.UpdateSlotsChk()
+			self.UpdateSlotsChk(True)
 
-	def UpdateSlotsChk(self):
+	def UpdateSlotsChk(self, writeToFile):
 		for i in range(self.model.MaxSlots):
 			self.chkSlots[i].set((i+1) in self.model.slots)
+		if writeToFile:
+			self.model.WriteConfigFile()
 
 	def OnAttach(self):
 		self.model.DebugVision = self.chkAttachMmi.get()
@@ -289,7 +291,7 @@ class UIViewModel:
 	def UpdateSlots(self):
 		if VMWareRunner.SelectSlots(self.model):
 			print 'Slots Updated : ' + str(self.model.slots)
-			self.UpdateSlotsChk()
+			self.UpdateSlotsChk(True)
 
 class ThreadHandler:
 	def __init__(self):
