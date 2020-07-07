@@ -775,7 +775,8 @@ class AppRunner:
 		mmiPath = PreTestActions.CopyMockLicense(self.model, fromSrc, False)
 		PreTestActions.CopyxPortIllumRef(self.model)
 
-		OsOperations.Timeout(8)
+		if self.model.RestartSlotsForMMiAlone:
+			OsOperations.Timeout(8)
 
 		mmiExe = os.path.abspath(mmiPath + '/Mmi.exe')
 		if not os.path.exists(mmiExe):
