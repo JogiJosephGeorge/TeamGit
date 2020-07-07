@@ -8,7 +8,6 @@
    "SrcIndex": 0, 
    "ActiveSrcs": [], 
    "Tests": [
-      "MMI/autommi/SurfaceNewUI 1_2", 
       "MMI/autommi/RecipeOverview 1_2", 
       "MMI/autommi/SurfaceNewUIMfovStitching 1_2", 
       "MMI/autommi/frm17046_mfovstitching_surface 1", 
@@ -20,8 +19,8 @@
       "MMI/autommi/frm17046_mfovcombobox_surface 1", 
       "CDA/Mmi/Intel/CDA-163_Bga3D_with_reflow 1_2", 
       "CDA/Mmi/SurfaceReportItemResults 1", 
-      "MMI/autommi/mci-23903_teach_on_next_reject_cr_lead2d 1", 
-      "MMI/autommi/frm17046_package_mfov_teach_panes 1"
+      "MMI/autommi/SidePadEA_cr_leadless_package 1_2", 
+      "CDA/Mmi/ColorReview 1"
    ], 
    "TestIndex": 0, 
    "DevEnvCom": "C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com", 
@@ -40,5 +39,6 @@
    "MenuColCnt": 4, 
    "MaxSlots": 8, 
    "ClearHistory": false, 
-   "ShowAllButtons": false
+   "ShowAllButtons": false, 
+   "RestartSlotsForMMiAlone": false
 }

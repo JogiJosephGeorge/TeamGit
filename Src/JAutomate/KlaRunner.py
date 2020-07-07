@@ -363,6 +363,7 @@ class UIMainMenu:
 		if self.model.ShowAllButtons:
 			self.AddButton('Run Handler and MMi', self.appRunner.RunHandlerMMi)
 			self.AddButton('Run Handler alone', self.appRunner.RunHandler)
+			self.AddButton('Stop MMi alone', self.appRunner.StopMMi)
 			self.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True,False))
 			self.AddButton('Run MMi from C:Icos', self.appRunner.RunMMi, (False,False))
 
@@ -513,8 +514,17 @@ class UISettings:
 		self.ChkShowAll = UIFactory.AddCheckBox(parent, isChecked, self.Row, 1, self.OnShowAll)
 		self.AddRow()
 
+	def AddRestartSlotsForMMiAloneCheck(self, parent):
+		UIFactory.AddLabel(parent, 'Restart Slots for MMi', self.Row, 0)
+		isChecked = self.model.RestartSlotsForMMiAlone
+		self.ChkRestartSlotsForMMiAlone = UIFactory.AddCheckBox(parent, isChecked, self.Row, 1, self.OnShowAll)
+		self.AddRow()
+
 	def OnShowAll(self):
 		self.model.ShowAllButtons = self.ChkShowAll.get()
+
+	def OnShowAll(self):
+		self.model.RestartSlotsForMMiAlone = self.ChkRestartSlotsForMMiAlone.get()
 
 	def AddSource(self):
 		folderSelected = tkFileDialog.askdirectory()
@@ -751,9 +761,13 @@ class AppRunner:
 		OsOperations.System('start {} {} {}'.format(simulatorExe, testTempDir, handlerPath))
 		OsOperations.Pause(doPause and self.model.ClearHistory)
 
-	def RunMMi(self, fromSrc, doPause = True):
+	def StopMMi(self):
 		TaskMan.StopTask('MMi.exe')
 		VMWareRunner.RunSlots(self.model)
+
+	def RunMMi(self, fromSrc, doPause = True):
+		if self.model.RestartSlotsForMMiAlone:
+			self.StopMMi()
 
 		if fromSrc:
 			PreTestActions.CopyMockLicense(self.model, False, False) # Do we need this
@@ -2095,6 +2109,7 @@ class ConfigInfo:
 			model.MaxSlots = _model['MaxSlots']
 			model.ClearHistory = _model['ClearHistory']
 			model.ShowAllButtons = _model['ShowAllButtons']
+			model.RestartSlotsForMMiAlone = _model['RestartSlotsForMMiAlone']
 		except:
 			print("Unexpected error:", sys.exc_info()[0])
 
@@ -2124,6 +2139,7 @@ class ConfigInfo:
 		_model['MaxSlots'] = model.MaxSlots
 		_model['ClearHistory'] = model.ClearHistory
 		_model['ShowAllButtons'] = model.ShowAllButtons
+		_model['RestartSlotsForMMiAlone'] = model.RestartSlotsForMMiAlone
 
 		with open(self.FileName, 'w') as f:
 			json.dump(_model, f, indent=3)
@@ -2212,6 +2228,7 @@ class Model:
 		self.MaxSlots = 8
 		self.ClearHistory = False
 		self.ShowAllButtons = False
+		self.RestartSlotsForMMiAlone = False
 
 	def ReadConfigFile(self):
 		self.ConfigInfo.Read(self)
