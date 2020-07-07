@@ -40,5 +40,5 @@
    "MaxSlots": 8, 
    "ClearHistory": false, 
    "ShowAllButtons": false, 
-   "RestartSlotsForMMiAlone": false
+   "RestartSlotsForMMiAlone": true
 }

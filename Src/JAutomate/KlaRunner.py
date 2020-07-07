@@ -471,6 +471,7 @@ class UISettings:
 		self.AddSelectPathRow(parent, 'MMi Config Path', 'MMiConfigPath')
 		self.AddSelectPathRow(parent, 'MMi Setups Path', 'MMiSetupsPath')
 		self.AddShowAllCheck(parent)
+		self.AddRestartSlotsForMMiCheck(parent)
 
 	def AddSelectPathRow(self, parent, label, attrName):
 		self.AddSelectItemRow(parent, label, attrName, False)
@@ -514,17 +515,17 @@ class UISettings:
 		self.ChkShowAll = UIFactory.AddCheckBox(parent, isChecked, self.Row, 1, self.OnShowAll)
 		self.AddRow()
 
-	def AddRestartSlotsForMMiAloneCheck(self, parent):
+	def AddRestartSlotsForMMiCheck(self, parent):
 		UIFactory.AddLabel(parent, 'Restart Slots for MMi', self.Row, 0)
 		isChecked = self.model.RestartSlotsForMMiAlone
-		self.ChkRestartSlotsForMMiAlone = UIFactory.AddCheckBox(parent, isChecked, self.Row, 1, self.OnShowAll)
+		self.ChkRestartSlotsForMMi = UIFactory.AddCheckBox(parent, isChecked, self.Row, 1, self.OnRestartSlotsForMMi)
 		self.AddRow()
 
 	def OnShowAll(self):
 		self.model.ShowAllButtons = self.ChkShowAll.get()
 
-	def OnShowAll(self):
-		self.model.RestartSlotsForMMiAlone = self.ChkRestartSlotsForMMiAlone.get()
+	def OnRestartSlotsForMMi(self):
+		self.model.RestartSlotsForMMiAlone = self.ChkRestartSlotsForMMi.get()
 
 	def AddSource(self):
 		folderSelected = tkFileDialog.askdirectory()
