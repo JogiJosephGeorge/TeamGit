@@ -982,7 +982,7 @@ class AutoTestRunner:
 		if self.lastSrc is None:
 			self.lastSrc = self.model.Source
 		elif self.lastSrc != self.model.Source:
-			msg = 'Test has already been executed with different source. So please restart KLA Runner.'
+			msg = 'Test has already been executed with {}. So please restart KLA Runner.'.format(self.lastSrc)
 			if KlaRunner.RunFromUI:
 				messagebox.showinfo('KLA Runner', msg)
 			else:
@@ -1761,7 +1761,7 @@ class EffortReader:
 	def __init__(self, model):
 		self.model = model
 		self.LogFileEncode = 'UTF-16'
-		self.DTFormat = self.model.DateFormat + ' %H:%M:%S'
+		self.DTFormat = '%d-%b-%Y %H:%M:%S'
 		self.DayStarts = timedelta(hours=4) # 4am
 
 	def ReadFile(self):
@@ -1793,7 +1793,7 @@ class EffortReader:
 			totalTime += ts
 		return dictAppNameToTime, totalTime
 
-	def GetConsolidatedTime(self):
+	def GetDailyLog(self):
 		if len(self.content) is 0:
 			return
 		lastDt = None
@@ -1813,7 +1813,7 @@ class EffortReader:
 				if date is not None:
 					AddRow(formattedDay, actualTime)
 				date = dt
-				formattedDay = dt.strftime(self.model.DateFormat)
+				formattedDay = dt.strftime('%d-%b-%Y %H:%M')
 				actualTime = timedelta()
 			lastDt = dt
 		AddRow(formattedDay, actualTime)
@@ -1853,9 +1853,10 @@ class EffortLogger:
 	def PrintEffortLogInDetail(self):
 		reader = EffortReader(self.model)
 		reader.ReadFile()
+		dateFormat = '%d-%b-%Y'
 		for i in range(self.ShowPrevDaysLogs, 0, -1):
 			prevDay = datetime.now() - timedelta(days=i)
-			formattedDay = prevDay.strftime(self.model.DateFormat)
+			formattedDay = prevDay.strftime(dateFormat)
 			self.PrintEffortTable(prevDay, formattedDay, reader)
 		today = datetime.now()
 		self.PrintEffortTable(today, 'Today', reader)
@@ -1890,7 +1891,7 @@ class EffortLogger:
 	def PrintDailyLog(self):
 		reader = EffortReader(self.model)
 		reader.ReadFile()
-		data = reader.GetConsolidatedTime()
+		data = reader.GetDailyLog()
 		if data is None:
 			return
 		effortData = [['Date', 'Actual Time'], ['-']] + data
@@ -1906,7 +1907,6 @@ class EffortLogger:
 class TestEffortLogger:
 	def __init__(self):
 		model = Model()
-		model.DateFormat = '%d-%b-%Y'
 		self.EL = EffortLogger(model)
 		self.TestTrim()
 
@@ -2100,7 +2100,6 @@ class ConfigInfo:
 			model.VMwareWS = _model['VMwareWS']
 			model.EffortLogFile = _model['EffortLogFile']
 			model.BCompare = _model['BCompare']
-			model.DateFormat = _model['DateFormat']
 			model.MMiConfigPath = _model['MMiConfigPath']
 			model.MMiSetupsPath = _model['MMiSetupsPath']
 			model.DebugVision = _model['DebugVision']
@@ -2130,7 +2129,6 @@ class ConfigInfo:
 		_model['VMwareWS'] = model.VMwareWS
 		_model['EffortLogFile'] = model.EffortLogFile
 		_model['BCompare'] = model.BCompare
-		_model['DateFormat'] = model.DateFormat
 		_model['MMiConfigPath'] = model.MMiConfigPath
 		_model['MMiSetupsPath'] = model.MMiSetupsPath
 		_model['DebugVision'] = model.DebugVision
@@ -2219,7 +2217,6 @@ class Model:
 		self.VMwareWS = 'C:/Program Files (x86)/VMware/VMware Workstation/'
 		self.EffortLogFile = 'D:/QuEST/Tools/EffortCapture_2013/timeline.log'
 		self.BCompare = 'C:/Program Files (x86)/Beyond Compare 4/BCompare.exe'
-		self.DateFormat = '%d-%b-%Y'
 		self.MMiConfigPath = 'D:/'
 		self.MMiSetupsPath = 'D:/MmiSetups'
 		self.DebugVision = False
