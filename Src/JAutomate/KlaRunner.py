@@ -59,10 +59,11 @@ class UIFactory:
 		return (label, labelVar)
 
 	@classmethod
-	def AddText(cls, parent, r, c, width = 0):
-		textBox = tk.Text(parent, width=width)
-		textBox.grid(row=r, column=c, sticky='w')
-		return textBox
+	def AddEntry(cls, parent, cmd, r, c, width = 0):
+		entry = tk.Entry(parent, width=width)
+		entry.grid(row=r, column=c, sticky='w')
+		reg = parent.register(cmd)
+		entry.config(validate='key', validatecommand=(reg, '%P'))
 
 	@classmethod
 	def AddCombo(cls, parent, values, inx, r, c, cmd, width = 0):
@@ -459,10 +460,8 @@ class UISettings:
 		self.Row += 1
 
 	def CreateUI(self, parent):
-		frame = UIFactory.AddFrame(parent, 0, 0, 0, 0, 2)
-		UIFactory.AddButton(frame, 'Add Source', 0, 0, self.AddSource, None, 19)
-		UIFactory.AddButton(frame, 'Add Test', 0, 1, self.AddTest, None, 19)
-		UIFactory.AddButton(frame, 'Update Kla Runner', 0, 2, self.UpdateKlaRunner, None, 19)
+		self.AddFirstRow(parent)
+		self.AddSecondRow(parent)
 		self.AddSelectFileRow(parent, 'DevEnv.com', 'DevEnvCom')
 		self.AddSelectFileRow(parent, 'DevEnv.exe', 'DevEnvExe')
 		self.AddSelectPathRow(parent, 'Git Bin', 'GitBin')
@@ -533,6 +532,12 @@ class UISettings:
 			ConfigEncoder.AddSrc(self.model, folderSelected)
 			print 'New source added : ' + folderSelected
 
+	def AddFirstRow(self, parent):
+		frame = UIFactory.AddFrame(parent, 0, 0, 0, 0, 2)
+		UIFactory.AddButton(frame, 'Add Source', 0, 0, self.AddSource, None, 19)
+		UIFactory.AddButton(frame, 'Add Test', 0, 1, self.AddTest, None, 19)
+		UIFactory.AddButton(frame, 'Update Kla Runner', 0, 2, self.UpdateKlaRunner, None, 19)
+
 	def AddTest(self):
 		dir = self.model.Source + '/handler/tests'
 		ftypes=[('Script Files', 'Script.py')]
@@ -542,6 +547,45 @@ class UISettings:
 			testName = filename[len(dir) + 1: -10]
 			self.model.AutoTests.AddTest(testName, [])
 			print 'Test Added   : {}'.format(testName)
+
+	def AddSecondRow(self, parent):
+		frame = UIFactory.AddFrame(parent, 1, 0, 0, 0, 2)
+		UIFactory.AddEntry(frame, self.OnSearchTextChanged, 0, 0, 20)
+		self.AddTestCombo(frame, 1)
+		UIFactory.AddButton(frame, 'Add Selected Test', 0, 2, self.OnAddSelectedTest, None)
+
+	def AddTestCombo(self, parent, c):
+		self.AllTests = self.GetAllTests()
+		self.TestCmb = UIFactory.AddCombo(parent, self.AllTests, 0, 0, c, self.OnChangeTestCmb, 70)[0]
+		self.TestCmb.current(0)
+
+	def OnSearchTextChanged(self, input):
+		input = input.lower()
+		filteredTests = []
+		for testName in self.AllTests:
+			if input in testName.lower():
+				filteredTests.append(testName)
+		self.TestCmb['values'] = filteredTests
+		if len(filteredTests) > 0:
+			self.TestCmb.current(0)
+		return True
+
+	def GetAllTests(self):
+		allFiles = []
+		dir = self.model.Source + '/handler/tests'
+		dirLen = len(dir) + 1
+		for root, dirs, files in os.walk(dir):
+			if 'script.py' in files and not root[-1:] == '~':
+				allFiles.append(root[dirLen:].replace('\\', '/'))
+		return allFiles
+
+	def OnChangeTestCmb(self, event):
+		print 'Combo item changed to : ' + self.AllTests[self.TestCmb.current()]
+
+	def OnAddSelectedTest(self):
+		testName = self.AllTests[self.TestCmb.current()]
+		self.model.AutoTests.AddTest(testName, [])
+		print 'Test Added : ' + testName
 
 	def UpdateKlaRunner(self):
 		Git.FetchPull('.', False)
