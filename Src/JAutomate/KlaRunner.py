@@ -461,7 +461,8 @@ class UISettings:
 
 	def CreateUI(self, parent):
 		self.AddFirstRow(parent)
-		self.AddSecondRow(parent)
+		self.FilterTestSelector = FilterTestSelector()
+		self.FilterTestSelector.AddUI(parent, self.model, 1, 0)
 		self.AddSelectFileRow(parent, 'DevEnv.com', 'DevEnvCom')
 		self.AddSelectFileRow(parent, 'DevEnv.exe', 'DevEnvExe')
 		self.AddSelectPathRow(parent, 'Git Bin', 'GitBin')
@@ -548,27 +549,21 @@ class UISettings:
 			self.model.AutoTests.AddTest(testName, [])
 			print 'Test Added   : {}'.format(testName)
 
-	def AddSecondRow(self, parent):
-		frame = UIFactory.AddFrame(parent, 1, 0, 0, 0, 2)
+	def UpdateKlaRunner(self):
+		Git.FetchPull('.', False)
+
+class FilterTestSelector:
+	def AddUI(self, parent, model, r, c):
+		self.model = model
+		frame = UIFactory.AddFrame(parent, r, c, 0, 0, 2)
 		UIFactory.AddEntry(frame, self.OnSearchTextChanged, 0, 0, 20)
 		self.AddTestCombo(frame, 1)
 		UIFactory.AddButton(frame, 'Add Selected Test', 0, 2, self.OnAddSelectedTest, None)
 
 	def AddTestCombo(self, parent, c):
-		self.AllTests = self.GetAllTests()
+		self.FilteredTests = self.AllTests = self.GetAllTests()
 		self.TestCmb = UIFactory.AddCombo(parent, self.AllTests, 0, 0, c, self.OnChangeTestCmb, 70)[0]
 		self.TestCmb.current(0)
-
-	def OnSearchTextChanged(self, input):
-		input = input.lower()
-		filteredTests = []
-		for testName in self.AllTests:
-			if input in testName.lower():
-				filteredTests.append(testName)
-		self.TestCmb['values'] = filteredTests
-		if len(filteredTests) > 0:
-			self.TestCmb.current(0)
-		return True
 
 	def GetAllTests(self):
 		allFiles = []
@@ -580,15 +575,29 @@ class UISettings:
 		return allFiles
 
 	def OnChangeTestCmb(self, event):
-		print 'Combo item changed to : ' + self.AllTests[self.TestCmb.current()]
+		if len(self.FilteredTests) > 0:
+			print 'Combo item changed to : ' + self.FilteredTests[self.TestCmb.current()]
+		else:
+			print 'Combo is empty'
+
+	def OnSearchTextChanged(self, input):
+		input = input.lower()
+		self.FilteredTests = []
+		for testName in self.AllTests:
+			if input in testName.lower():
+				self.FilteredTests.append(testName)
+		self.TestCmb['values'] = self.FilteredTests
+		if len(self.FilteredTests) > 0:
+			self.TestCmb.current(0)
+		return True
 
 	def OnAddSelectedTest(self):
-		testName = self.AllTests[self.TestCmb.current()]
-		self.model.AutoTests.AddTest(testName, [])
-		print 'Test Added : ' + testName
-
-	def UpdateKlaRunner(self):
-		Git.FetchPull('.', False)
+		if len(self.FilteredTests) > 0:
+			testName = self.FilteredTests[self.TestCmb.current()]
+			self.model.AutoTests.AddTest(testName, [])
+			print 'Test Added : ' + testName
+		else:
+			print 'No tests selected'
 
 class Menu:
 	def __init__(self, klaRunner, model):
