@@ -440,7 +440,6 @@ class UISettings:
 	def Show(self):
 		title = 'Settings'
 		self.window = UIFactory.CreateWindow(self.Parent, title, self.model.StartPath)
-		self.Row = 2
 		self.frame = UIFactory.AddFrame(self.window, 0, 0, 20, 20)
 		self.CreateUI(self.frame)
 		self.window.protocol('WM_DELETE_WINDOW', self.OnClosing)
@@ -463,6 +462,9 @@ class UISettings:
 		self.AddFirstRow(parent)
 		self.FilterTestSelector = FilterTestSelector()
 		self.FilterTestSelector.AddUI(parent, self.model, 1, 0)
+		self.RemoveTestMan = RemoveTestMan()
+		self.RemoveTestMan.AddUI(parent, self.model, 2, 0)
+		self.Row = 3
 		self.AddSelectFileRow(parent, 'DevEnv.com', 'DevEnvCom')
 		self.AddSelectFileRow(parent, 'DevEnv.exe', 'DevEnvExe')
 		self.AddSelectPathRow(parent, 'Git Bin', 'GitBin')
@@ -595,7 +597,40 @@ class FilterTestSelector:
 		if len(self.FilteredTests) > 0:
 			testName = self.FilteredTests[self.TestCmb.current()]
 			self.model.AutoTests.AddTest(testName, [])
+			self.model.TestIndex = len(self.model.AutoTests.Tests) - 1
 			print 'Test Added : ' + testName
+		else:
+			print 'No tests selected'
+
+class RemoveTestMan:
+	def AddUI(self, parent, model, r, c):
+		self.model = model
+		frame = UIFactory.AddFrame(parent, r, c, 0, 0, 2)
+		self.Tests = self.model.AutoTests.GetNames()
+		self.TestCmb = UIFactory.AddCombo(frame, self.Tests, 0, 0, c, self.OnChangeTestCmb, 70)[0]
+		if len(self.Tests) > 0:
+			self.TestCmb.current(0)
+		UIFactory.AddButton(frame, 'Remove Selected Test', 0, 1, self.OnRemoveSelectedTest, None)
+
+	def OnChangeTestCmb(self, event):
+		if len(self.Tests) > 0:
+			print 'Combo item changed to : ' + self.Tests[self.TestCmb.current()]
+		else:
+			print 'Combo is empty'
+
+	def OnRemoveSelectedTest(self):
+		if len(self.Tests) > 0:
+			index = self.TestCmb.current()
+			testName = self.Tests[index]
+			del self.model.AutoTests.Tests[index]
+			del self.Tests[index]
+			print 'Test Removed : ' + testName
+			self.TestCmb['values'] = self.Tests
+			if index >= len(self.Tests):
+				index = len(self.Tests) - 1
+			self.TestCmb.current(index)
+			if self.model.TestIndex >= len(self.Tests):
+				self.model.TestIndex = len(self.Tests) - 1
 		else:
 			print 'No tests selected'
 
