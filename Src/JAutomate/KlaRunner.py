@@ -1009,8 +1009,8 @@ class VMWareRunner:
 		if len(slots) == 0:
 			cls.ShowMessage('Please select necessary slot(s).')
 			return False
-		vmRunExe = vMwareWS + "vmrun.exe"
-		vmWareExe = vMwareWS + "vmware.exe"
+		vmRunExe = vMwareWS + '/vmrun.exe'
+		vmWareExe = vMwareWS + '/vmware.exe'
 		vmxGenericPath = r'C:\\MVS8000\\slot{}\\MVS8000_stage2.vmx'
 		par = [vmRunExe, '-vp', '1', 'list']
 		output = OsOperations.ProcessOpen(par)
@@ -1774,7 +1774,7 @@ class Git:
 
 	@classmethod
 	def OpenGitBash(cls, model):
-		par = 'start {}sh.exe --cd={}'.format(model.GitBin, model.Source)
+		par = 'start "{}/sh.exe" --cd={}'.format(model.GitBin, model.Source)
 		OsOperations.System(par, 'Staring Git Bash')
 		OsOperations.Pause()
 
@@ -2336,8 +2336,8 @@ class Model:
 		
 		self.DevEnvCom = 'C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com'
 		self.DevEnvExe = 'C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/Common7/IDE/devenv.exe'
-		self.GitBin = 'C:/Progra~1/Git/bin/'
-		self.VMwareWS = 'C:/Program Files (x86)/VMware/VMware Workstation/'
+		self.GitBin = 'C:/Program Files/Git/bin'
+		self.VMwareWS = 'C:/Program Files (x86)/VMware/VMware Workstation'
 		self.EffortLogFile = 'D:/QuEST/Tools/EffortCapture_2013/timeline.log'
 		self.BCompare = 'C:/Program Files (x86)/Beyond Compare 4/BCompare.exe'
 		self.MMiConfigPath = 'D:/'
