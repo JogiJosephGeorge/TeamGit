@@ -286,8 +286,15 @@ class UIViewModel:
 		return srcCmb
 
 	def UpdateCombo(self):
-		self.cmbSource[0]['values'] = self.GetSourceComboItems()
-		self.cmbTest[0]['values'] = self.model.AutoTests.GetNames()
+		sources = self.GetSourceComboItems()
+		self.cmbSource[0]['values'] = sources
+		if self.model.SrcIndex >= 0 and len(sources) > self.model.SrcIndex:
+			self.cmbSource[0].current(self.model.SrcIndex)
+
+		tests = self.model.AutoTests.GetNames()
+		self.cmbTest[0]['values'] = tests
+		if self.model.TestIndex >= 0 and len(tests) > self.model.TestIndex:
+			self.cmbTest[0].current(self.model.TestIndex)
 
 	def UpdateSlots(self):
 		if VMWareRunner.SelectSlots(self.model):
@@ -430,6 +437,7 @@ class UIMainMenu:
 	def ShowSettings(self):
 		uiSettings = UISettings(self.parent, self.model, self.VM)
 		uiSettings.Show()
+		self.VM.UpdateCombo()
 
 class UISettings:
 	def __init__(self, parent, model, VM):
@@ -460,9 +468,9 @@ class UISettings:
 
 	def CreateUI(self, parent):
 		self.AddFirstRow(parent)
-		self.FilterTestSelector = FilterTestSelector()
+		self.filterTestSelector = FilterTestSelector()
 		self.RemoveTestMan = RemoveTestMan()
-		self.FilterTestSelector.AddUI(parent, self.model, 1, 0, self.RemoveTestMan.UpdateCombo)
+		self.filterTestSelector.AddUI(parent, self.model, 1, 0, self.RemoveTestMan.UpdateCombo)
 		self.RemoveTestMan.AddUI(parent, self.model, 2, 0)
 		self.Row = 3
 		self.AddSelectFileRow(parent, 'DevEnv.com', 'DevEnvCom')
@@ -525,6 +533,7 @@ class UISettings:
 
 	def OnShowAll(self):
 		self.model.ShowAllButtons = self.ChkShowAll.get()
+		print 'You need to restart the application to update the UI.'
 
 	def OnRestartSlotsForMMi(self):
 		self.model.RestartSlotsForMMiAlone = self.ChkRestartSlotsForMMi.get()
@@ -534,6 +543,7 @@ class UISettings:
 		if len(folderSelected) > 0:
 			ConfigEncoder.AddSrc(self.model, folderSelected)
 			print 'New source added : ' + folderSelected
+			self.filterTestSelector.UpdateUI()
 
 	def AddFirstRow(self, parent):
 		frame = UIFactory.AddFrame(parent, 0, 0, 0, 0, 2)
@@ -548,9 +558,10 @@ class UISettings:
 		filename = tkFileDialog.askopenfilename(initialdir=dir, filetypes=ftypes, title=title)
 		if len(filename) > 10:
 			testName = filename[len(dir) + 1: -10]
-			self.model.AutoTests.AddTest(testName, [])
-			print 'Test Added   : {}'.format(testName)
-			self.RemoveTestMan.UpdateCombo()
+			self.filterTestSelector.AddTestToModel(testName)
+			if self.model.AutoTests.AddTest(testName, []) >= 0:
+				print 'Test Added   : {}'.format(testName)
+				self.RemoveTestMan.UpdateCombo()
 
 	def UpdateKlaRunner(self):
 		Git.FetchPull('.', False)
@@ -567,7 +578,8 @@ class FilterTestSelector:
 	def AddTestCombo(self, parent, c):
 		self.FilteredTests = self.AllTests = self.GetAllTests()
 		self.TestCmb = UIFactory.AddCombo(parent, self.AllTests, 0, 0, c, self.OnChangeTestCmb, 70)[0]
-		self.TestCmb.current(0)
+		if len(self.FilteredTests) > 0:
+			self.TestCmb.current(0)
 
 	def GetAllTests(self):
 		allFiles = []
@@ -598,12 +610,24 @@ class FilterTestSelector:
 	def OnAddSelectedTest(self):
 		if len(self.FilteredTests) > 0:
 			testName = self.FilteredTests[self.TestCmb.current()]
-			self.model.AutoTests.AddTest(testName, [])
-			self.model.TestIndex = len(self.model.AutoTests.Tests) - 1
+			self.AddTestToModel(testName)
+		else:
+			print 'No tests selected'
+
+	def AddTestToModel(self, testName):
+		index = self.model.AutoTests.AddTest(testName, [])
+		if index >= 0:
+			self.model.TestIndex = index
 			print 'Test Added : ' + testName
 			self.UpdateCombo()
 		else:
-			print 'No tests selected'
+			print 'Test is already Added : ' + testName
+
+	def UpdateUI(self):
+		self.FilteredTests = self.AllTests = self.GetAllTests()
+		self.TestCmb['values'] = self.FilteredTests
+		if len(self.FilteredTests) > 0:
+			self.TestCmb.current(0)
 
 class RemoveTestMan:
 	def AddUI(self, parent, model, r, c):
@@ -2119,6 +2143,7 @@ class ConfigEncoder:
 			if newSrcPath == srcSet[0]:
 				return
 		model.Sources.append((newSrcPath, cls.Configs[0], cls.Platforms[0]))
+		model.Source = newSrcPath
 		if model.SrcIndex < 0:
 			model.SrcIndex = 0
 
@@ -2291,7 +2316,10 @@ class TestKlaRunnerIni:
 class Model:
 	def __init__(self):
 		self.StartPath = os.path.dirname(os.path.abspath(__file__))
-		self.ConfigInfo = ConfigInfo(self.StartPath + '\\KlaRunner.ini')
+		filePath = self.StartPath + '\\KlaRunner.ini'
+		if not os.path.exists(filePath):
+			OsOperations.System('COPY /Y "' + self.StartPath + '\\Sample.ini.txt" "' + filePath + '"')
+		self.ConfigInfo = ConfigInfo(filePath)
 		self.AutoTests = AutoTestModel()
 		self.SrcCnf = SourceConfig(self)
 

@@ -1,27 +1,8 @@
 {
-   "Sources": [
-      "D32 D:/CI/Src1", 
-      "D32 D:/CI/Src2", 
-      "D32 D:/CI/Src3", 
-      "R32 D:/CI/Src4"
-   ], 
+   "Sources": [], 
    "SrcIndex": 0, 
    "ActiveSrcs": [], 
-   "Tests": [
-      "MMI/autommi/RecipeOverview 1_2", 
-      "MMI/autommi/SurfaceNewUIMfovStitching 1_2", 
-      "MMI/autommi/frm17046_mfovstitching_surface 1", 
-      "CDA/Mmi/WithLead3D2sided 1_2_3_4", 
-      "CDA/Mmi/WithLeadless 1", 
-      "CDA/Mmi/RunSecsGemBatch 1", 
-      "CDA/Mmi/PackageGenericMeasurement 1", 
-      "CDA/Mmi/WithDatamatrixInspection 1", 
-      "MMI/autommi/frm17046_mfovcombobox_surface 1", 
-      "CDA/Mmi/Intel/CDA-163_Bga3D_with_reflow 1_2", 
-      "CDA/Mmi/SurfaceReportItemResults 1", 
-      "MMI/autommi/SidePadEA_cr_leadless_package 1_2", 
-      "CDA/Mmi/ColorReview 1"
-   ], 
+   "Tests": [], 
    "TestIndex": 0, 
    "DevEnvCom": "C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com", 
    "DevEnvExe": "C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/Common7/IDE/devenv.exe", 
