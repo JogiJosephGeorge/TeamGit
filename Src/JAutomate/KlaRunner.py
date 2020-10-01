@@ -1788,8 +1788,11 @@ class Git:
 
 	@classmethod
 	def GetHash(cls):
+		str = OsOperations.ProcessOpen('git rev-list --all --count')
+		commitCnt = re.sub('\W+', '', str)
 		str = OsOperations.ProcessOpen('git describe --always')
-		return re.sub('\W+', '', str)
+		hash = re.sub('\W+', '', str)
+		return commitCnt + '.' + hash
 
 	@classmethod
 	def Commit(cls, model, msg):
