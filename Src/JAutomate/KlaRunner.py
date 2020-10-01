@@ -461,8 +461,8 @@ class UISettings:
 	def CreateUI(self, parent):
 		self.AddFirstRow(parent)
 		self.FilterTestSelector = FilterTestSelector()
-		self.FilterTestSelector.AddUI(parent, self.model, 1, 0)
 		self.RemoveTestMan = RemoveTestMan()
+		self.FilterTestSelector.AddUI(parent, self.model, 1, 0, self.RemoveTestMan.UpdateCombo)
 		self.RemoveTestMan.AddUI(parent, self.model, 2, 0)
 		self.Row = 3
 		self.AddSelectFileRow(parent, 'DevEnv.com', 'DevEnvCom')
@@ -550,15 +550,17 @@ class UISettings:
 			testName = filename[len(dir) + 1: -10]
 			self.model.AutoTests.AddTest(testName, [])
 			print 'Test Added   : {}'.format(testName)
+			self.RemoveTestMan.UpdateCombo()
 
 	def UpdateKlaRunner(self):
 		Git.FetchPull('.', False)
 
 class FilterTestSelector:
-	def AddUI(self, parent, model, r, c):
+	def AddUI(self, parent, model, r, c, updateCombo):
 		self.model = model
+		self.UpdateCombo = updateCombo
 		frame = UIFactory.AddFrame(parent, r, c, 0, 0, 2)
-		UIFactory.AddEntry(frame, self.OnSearchTextChanged, 0, 0, 20)
+		UIFactory.AddEntry(frame, self.OnSearchTextChanged, 0, 0, 25)
 		self.AddTestCombo(frame, 1)
 		UIFactory.AddButton(frame, 'Add Selected Test', 0, 2, self.OnAddSelectedTest, None)
 
@@ -599,6 +601,7 @@ class FilterTestSelector:
 			self.model.AutoTests.AddTest(testName, [])
 			self.model.TestIndex = len(self.model.AutoTests.Tests) - 1
 			print 'Test Added : ' + testName
+			self.UpdateCombo()
 		else:
 			print 'No tests selected'
 
@@ -633,6 +636,10 @@ class RemoveTestMan:
 				self.model.TestIndex = len(self.Tests) - 1
 		else:
 			print 'No tests selected'
+
+	def UpdateCombo(self):
+		self.Tests = self.model.AutoTests.GetNames()
+		self.TestCmb['values'] = self.Tests
 
 class Menu:
 	def __init__(self, klaRunner, model):
