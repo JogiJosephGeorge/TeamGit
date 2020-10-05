@@ -1762,6 +1762,7 @@ class Git:
 
 	@classmethod
 	def SubmoduleUpdate(cls, model):
+		cls.Git(model.Source, 'submodule sync --recursive')
 		cls.Git(model.Source, 'submodule update --init --recursive')
 		cls.Git(model.Source, 'submodule foreach git reset --hard') # It seems this is not working
 
@@ -1774,7 +1775,9 @@ class Git:
 
 	@classmethod
 	def OpenGitBash(cls, model):
-		par = 'start "{}/sh.exe" --cd={}'.format(model.GitBin, model.Source)
+		gitBin = model.GitBin.replace('Program Files (x86)', 'PROGRA~2')
+		gitBin = gitBin.replace('Program Files', 'PROGRA~1')
+		par = 'start {}/sh.exe --cd={}'.format(gitBin, model.Source)
 		OsOperations.System(par, 'Staring Git Bash')
 		OsOperations.Pause()
 
