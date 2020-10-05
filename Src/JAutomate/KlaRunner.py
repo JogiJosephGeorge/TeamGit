@@ -618,6 +618,7 @@ class FilterTestSelector:
 		index = self.model.AutoTests.AddTest(testName, [])
 		if index >= 0:
 			self.model.TestIndex = index
+			self.model.TestName = testName
 			print 'Test Added : ' + testName
 			self.UpdateCombo()
 		else:
