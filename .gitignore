@@ -23,4 +23,5 @@ Src/JAutomate/SimulatorLog
 Src/JAutomate/TestReport.txt
 Src/JAutomate/PsiIcShiftLog.log
 Src/JAutomate/TaperPosLog.log
+Src/JAutomate/LicMgrConfig.xml
 Src/JAutomate/handler/log/
