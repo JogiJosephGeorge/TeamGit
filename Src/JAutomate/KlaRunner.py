@@ -403,6 +403,7 @@ class UIMainMenu:
 			self.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
 			self.AddButton('Copy Mock License', PreTestActions.CopyMockLicense, (self.model,))
 			self.AddButton('Copy xPort xml', PreTestActions.CopyxPortIllumRef, (self.model,))
+			self.AddButton('Copy LicMgrConfig', PreTestActions.CopyLicMgrConfig, (self.model,))
 			self.AddButton('Copy MmiSaveLogs.exe', PreTestActions.CopyMmiSaveLogExe, (self.model,))
 
 	def AddColumn5(self, parent):
@@ -715,8 +716,9 @@ class Menu:
 			[24, ['Comment VisionSystem', PreTestActions.ModifyVisionSystem, model]],
 			[25, ['Copy Mock License', PreTestActions.CopyMockLicense, model]],
 			[26, ['Copy xPort xml', PreTestActions.CopyxPortIllumRef, model]],
-			[27, ['Print mmi.h IDs', self.klaRunner.PrintMissingIds]],
-			[28, ['Copy MmiSaveLogs.exe', PreTestActions.CopyMmiSaveLogExe, model]],
+			[27, ['Copy LicMgrConfig', PreTestActions.CopyLicMgrConfig, model]],
+			[28, ['Print mmi.h IDs', self.klaRunner.PrintMissingIds]],
+			[29, ['Copy MmiSaveLogs.exe', PreTestActions.CopyMmiSaveLogExe, model]],
 		],[
 			[91, ['Build Source ' + activeSrcs, sourceBuilder.BuildSource]],
 			[92, ['Clean Source ' + activeSrcs, sourceBuilder.CleanSource]],
@@ -893,7 +895,8 @@ class AppRunner:
 		if fromSrc:
 			PreTestActions.CopyMockLicense(self.model, False, False) # Do we need this
 		mmiPath = PreTestActions.CopyMockLicense(self.model, fromSrc, False)
-		PreTestActions.CopyxPortIllumRef(self.model)
+		PreTestActions.CopyLicMgrConfig(self.model, False)
+		PreTestActions.CopyxPortIllumRef(self.model, False, False)
 
 		if self.model.RestartSlotsForMMiAlone:
 			OsOperations.Timeout(8)
@@ -945,7 +948,7 @@ class AppRunner:
 		OsOperations.Pause()
 
 class TaskMan:
-	copyIllumTimer = None
+	namedTimers = {}
 
 	@classmethod
 	def StopTasks(cls, doPause):
@@ -982,10 +985,21 @@ class TaskMan:
 				OsOperations.Popen([ 'TASKKILL', '/PID', str(proId), '/T', '/F' ])
 
 	@classmethod
+	def AddTimer(cls, name, timer):
+		if name in cls.namedTimers:
+			cls.StopTimer(name)
+		cls.namedTimers[name] = timer
+
+	@classmethod
+	def StopTimer(cls, name):
+		if cls.namedTimers[name] is not None:
+			cls.namedTimers[name].stop()
+			cls.namedTimers[name] = None
+
+	@classmethod
 	def StopTimers(cls):
-		if cls.copyIllumTimer is not None:
-			cls.copyIllumTimer.stop()
-			cls.copyIllumTimer = None
+		for name in cls.namedTimers:
+			cls.StopTimer(name)
 
 class VMWareRunner:
 	@classmethod
@@ -1062,11 +1076,23 @@ class PreTestActions:
 		src = model.StartPath + '\\xPort_IllumReference.xml'
 		des = 'C:/icos/xPort/'
 		if delay:
-			TaskMan.StopTimers()
-			TaskMan.copyIllumTimer = FileOperations.Copy(src, des, 8, 3)
+			TaskMan.AddTimer('xport', FileOperations.Copy(src, des, 8, 3))
 		else:
 			FileOperations.Copy(src, des)
 		OsOperations.Pause(doPause)
+
+	@classmethod
+	def GetTestPath(cls, model):
+		return os.path.abspath(model.Source + '/handler/tests/' + model.TestName)
+
+	@classmethod
+	def CopyLicMgrConfig(cls, model, delay = False):
+		src = model.StartPath + '\\LicMgrConfig.xml'
+		des = cls.GetTestPath(model) + '~/'
+		if delay:
+			TaskMan.AddTimer('LicMgr', FileOperations.Copy(src, des, 9, 3))
+		else:
+			FileOperations.Copy(src, des)
 
 	@classmethod
 	def CopyMmiSaveLogExe(cls, model):
@@ -1115,7 +1141,8 @@ class AutoTestRunner:
 		if callInit:
 			self.InitAutoTest()
 		PreTestActions.ModifyVisionSystem(self.model, False)
-		#PreTestActions.CopyxPortIllumRef(self.model, False, True)
+		PreTestActions.CopyxPortIllumRef(self.model, False, True)
+		PreTestActions.CopyLicMgrConfig(self.model, True)
 		#FileOperations.Copy(self.model.StartPath + '/Profiles', 'C:/icos/Profiles', 8, 3)
 		os.chdir(self.model.StartPath)
 

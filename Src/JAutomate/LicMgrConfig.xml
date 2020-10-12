@@ -2,7 +2,39 @@
 <LicMgr xmlns="http://schemas.icos.be/global/LicMgrConfigFile-1.0">
 	<Department name="Component Inspector MMI">
 		<Modules>
+			<Add name="3D_PVI" id="{647D4158-497A-46AA-BADC-2012E800D334}" />
+			<Add name="Advanced Generic Measurement" id="{109C8C97-019A-41B3-81F7-6411F64CB790}" />
+			<Add name="Advanced QFN2D/5S Parameters" id="{7FCCBB2E-7F87-4EDE-8FB8-08C343D6F0E6}" />
+			<Add name="Automatic Light Control" id="{A6A985E0-9A46-401E-AC7D-72605DF048E1}" />
+			<Add name="Automatic calibration and light degradation check" id="{C6097AD5-5F50-4818-B8C7-7ED346D6178D}" />
+			<Add name="Available MVS Channels" id="{2ba3c6b1-f3c5-4b15-af4c-667dcc477154}" />
+			<Add name="Ball and Land Grid Autoteach" id="{CA405D13-1F23-42CC-9604-9FCF6E92E8AC}" />
+			<Add name="Brushing" id="{47AF368C-0D81-41F3-8DC2-9FE8EFD89246}" />
+			<Add name="CI-T2x0u" id="{996EB19B-4CAA-4E1C-AF47-B8AE825A141C}" />
+			<Add name="Combined Surface Inspection" id="{6F6498D2-45FF-4e4e-8F89-59CA86D9EAB0}" />
+			<Add name="Deep Learning" id="{A88D5A0D-C7E6-42CD-B397-48A18BF15BF3}" />
+			<Add name="Detaping" id="{6DA6994E-3D1B-41ED-8F5B-B22BE89396A3}" />
+			<Add name="Directional Grouping" id="{9c8c10a1-0351-4b21-b43f-1a7b575a145d}" />
+			<Add name="Edge Tracking" id="{67A53591-D081-4572-A912-2431259AB8D7}" />
+			<Add name="Extended PVI" id="{98C2B801-ADD1-4875-A5C1-F279D1D2230F}" />
+			<Add name="Extended Surface Criteria" id="{98C2B801-ADD1-4875-A5C1-F279D1D2230F}" />
+			<Add name="Extreme Overlapping Holes" id="{CA18AC21-C99B-491d-9F2A-4AED4750E273}" />
+			<Add name="Handler Library Tool" id="{8C38AFC3-5E5C-4703-B0F6-B53D5DAF8DA0}" />
+			<Add name="Lead3d with pads" id="{5AE03427-8BE1-4170-96E6-FF843A778DA1}" />
+			<Add name="MMI SPC Review tool" id="{54C86CD4-1D00-47be-A720-D21FB9A64EA9}" />
+			<Add name="Medium ID Inspection" id="{2F57CA03-7D25-4B2F-A318-FF37EFA10177}" />
+			<Add name="Multi-pitch PoP" id="{D2D86202-482A-4CF9-BBE2-F70A388AC016}" />
+			<Add name="OCR Based Text Code Reading" id="{23bf3abf-9c3a-4a35-8905-9418c2aaf310}" />
+			<Add name="Surface Generic Shape Areas" id="{798CE692-4CE0-4181-88FF-91FAD86FC05C}" />
+			<Add name="Tray jobs with partial tray, empty pockets from X1" id="{E64C3CFE-B8BD-450C-A4EA-285A35004357}" />
 			<Add name="UI Upgrade" id="{1D115E58-36A1-43E5-8601-BA145FAF2EE2}" />
+			<Add name="Waffle Pack Handling" id="{D77735BE-A1BF-455D-83F8-50EA54CA2231}" />
+			<Add name="Recipe Illumination Equalization" id="{71B821AF-55CA-457a-A8DD-524051C781CF}" />
+			<Add name="Custom Pad Shapes" id="{BA494962-4B7B-43CB-B987-EB8F7FB3C51A}" />
+			<Add name="Topology" id="{28354A20-87E0-4FC6-BAE8-AD384758B2BA}" />
+			<Add name="TH4" id="{CBD5BF4B-9482-46D0-A065-0C3C9D545A95}" />
+			<Add name="Qr Code" id="{33EC3169-D880-427C-9EB8-64D30C3DF776}" />
+			<Add name="Color Enhancement Filter" id="{E0ECEE7C-1CF1-4AD2-8F19-E25824E66206}" />
 		</Modules>
 	</Department>
 </LicMgr>
