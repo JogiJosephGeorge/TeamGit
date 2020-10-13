@@ -1354,7 +1354,8 @@ class KlaSourceBuilder:
 		print 'The following source{} ready for {}.'.format(isAre, message)
 		sources = self.klaRunner.PrintBranches(self.model.ActiveSrcs)
 		question = 'Please type "Yes" to continue {} : '.format(message)
-		if OsOperations.Input(question) == 'Yes':
+		answer = OsOperations.Input(question).lower()
+		if answer == 'yes' or answer == 'y':
 			print 'Started {}...'.format(message)
 		else:
 			print 'Cancelled {}.'.format(message)
