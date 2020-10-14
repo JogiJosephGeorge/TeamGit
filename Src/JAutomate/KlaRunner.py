@@ -415,6 +415,7 @@ class UIMainMenu:
 		self.AddParallelButton('Clean Active Srcs', self.klaSourceBuilder.CleanSource)
 		self.AddParallelButton('Build Active Srcs', self.klaSourceBuilder.BuildSource)
 		if self.model.ShowAllButtons:
+			self.AddParallelButton('Reset Srcs', self.klaSourceBuilder.ResetSource)
 			self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
 			self.AddButton('Effort Log', effortLogger.PrintEffortLogInDetail)
 			self.AddButton('Daily Log', effortLogger.PrintDailyLog)
@@ -1362,7 +1363,7 @@ class KlaSourceBuilder:
 			sources = []
 		return sources
 
-	def CleanSource(self):
+	def ResetSource(self):
 		excludeDirs = [
 			'/mmi/mmi/.vs',
 			'/mmi/mmi/packages',
@@ -1393,10 +1394,22 @@ class KlaSourceBuilder:
 			if '.gitignore' in files and '.git' not in files:
 				os.remove('{}/.gitignore'.format(root))
 
+	def CleanSource(self):
+		self.CallDevEnv(True)
+
 	def BuildSource(self):
+		self.CallDevEnv(False)
+
+	def CallDevEnv(self, ForCleaning):
+		if ForCleaning:
+			message = 'cleaning'
+			buildOption = '/Clean'
+		else:
+			message = 'building'
+			buildOption = '/build'
 		logFileName = self.model.StartPath + '/' + self.model.LogFileName
-		buildLoger = BuildLoger(logFileName)
-		for source, branch, config, srcPlatform in self.VerifySources('building'):
+		buildLoger = BuildLoger(logFileName, ForCleaning)
+		for source, branch, config, srcPlatform in self.VerifySources(message):
 			buildLoger.StartSource(source, branch)
 			for inx,sln in enumerate(self.Solutions):
 				slnFile = os.path.abspath(source + '/' + sln)
@@ -1409,7 +1422,7 @@ class KlaSourceBuilder:
 				outFile = os.path.abspath(source + '/Out_' + self.SlnNames[inx]) + '.txt'
 
 				buildLoger.StartSolution(sln, self.SlnNames[inx], config, platform)
-				params = [self.model.DevEnvCom, slnFile, '/build', BuildConf, '/out', outFile]
+				params = [self.model.DevEnvCom, slnFile, buildOption, BuildConf, '/out', outFile]
 				OsOperations.Popen(params, buildLoger.PrintMsg)
 				buildLoger.EndSolution()
 			buildLoger.EndSource(source)
@@ -1438,8 +1451,13 @@ class KlaSourceBuilder:
 			OsOperations.Pause(doPause)
 
 class BuildLoger:
-	def __init__(self, fileName):
+	def __init__(self, fileName, ForCleaning):
 		self.fileName = fileName
+		self.ForCleaning = ForCleaning
+		self.message = 'cleaning' if ForCleaning else 'building'
+		if not os.path.exists(fileName):
+			print "File created : " + fileName
+			FileOperations.Write(self.fileName, '')
 
 	def StartSource(self, src, branch):
 		self.srcStartTime = datetime.now()
@@ -1452,13 +1470,14 @@ class BuildLoger:
 
 	def EndSource(self, src):
 		timeDelta = self.TimeDeltaToStr(datetime.now() - self.srcStartTime)
-		self.Log('Completed building : {} in {}'.format(src, timeDelta))
-		table = PrettyTable(TableFormat().SetSingleLine()).ToString(self.logDataTable)
-		print table
-		FileOperations.Append(self.fileName, table)
+		self.Log('Completed {} : {} in {}'.format(self.message, src, timeDelta))
+		if not self.ForCleaning:
+			table = PrettyTable(TableFormat().SetSingleLine()).ToString(self.logDataTable)
+			print table
+			FileOperations.Append(self.fileName, table)
 
 	def StartSolution(self, slnFile, name, config, platform):
-		self.Log('Start building : ' + slnFile)
+		self.Log('Start {} : {}'.format(self.message, slnFile))
 		self.slnStartTime = datetime.now()
 		self.logDataRow = [name, config, platform]
 
