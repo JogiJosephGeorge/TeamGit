@@ -1671,7 +1671,7 @@ class OsOperations:
 
 	@classmethod
 	def ProcessOpen(cls, params):
-		return subprocess.Popen(params, stdout=subprocess.PIPE).communicate()[0]
+		return subprocess.Popen(params, stdout=subprocess.PIPE, shell=True).communicate()[0]
 
 	@classmethod
 	def Call(cls, params):
