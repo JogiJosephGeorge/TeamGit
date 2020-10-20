@@ -106,6 +106,10 @@ class UI:
 		KlaRunner.RunFromUI = True
 
 	def Run(self):
+		if not ctypes.windll.shell32.IsUserAnAdmin():
+			raw_input('Please run this application with Administrator privilates')
+			#os.system('PAUSE')
+			return
 		self.model = Model()
 		VM = UIViewModel(self.model)
 		if not os.path.exists(self.model.ConfigInfo.FileName):
@@ -115,10 +119,6 @@ class UI:
 			self.model.ReadConfigFile()
 		self.klaRunner = KlaRunner(self.model)
 
-		if not ctypes.windll.shell32.IsUserAnAdmin():
-			print 'Please run this application with Administrator privilates'
-			os.system('PAUSE')
-			return
 		title = 'KLA Application Runner 1.0.' + Git.GetHash()
 		self.window = UIFactory.CreateWindow(None, title, self.model.StartPath)
 		UIHeader(self.window, 0, 0, self.model, VM)
@@ -552,7 +552,6 @@ class UISettings:
 		frame = UIFactory.AddFrame(parent, 0, 0, 0, 0, 2)
 		UIFactory.AddButton(frame, 'Add Source', 0, 0, self.AddSource, None, 19)
 		UIFactory.AddButton(frame, 'Add Test', 0, 1, self.AddTest, None, 19)
-		UIFactory.AddButton(frame, 'Update Kla Runner', 0, 2, self.UpdateKlaRunner, None, 19)
 
 	def AddTest(self):
 		dir = self.model.Source + '/handler/tests'
@@ -565,9 +564,6 @@ class UISettings:
 			if self.model.AutoTests.AddTest(testName, []) >= 0:
 				print 'Test Added   : {}'.format(testName)
 				self.RemoveTestMan.UpdateCombo()
-
-	def UpdateKlaRunner(self):
-		Git.FetchPull('.', False)
 
 class FilterTestSelector:
 	def AddUI(self, parent, model, r, c, updateCombo):
@@ -1935,7 +1931,7 @@ class Git:
 
 	@classmethod
 	def FetchPull(cls, model, submoduleUpdate=True):
-		cls.Git(model.Source, 'pull')
+		Git.Git(model.Source, 'pull')
 		if submoduleUpdate:
 			Git.SubmoduleUpdate(model)
 		print 'Git fetch and pull completed.'
@@ -2569,12 +2565,13 @@ def main():
 		param1 = sys.argv[1].lower()
 		if param1 == 'test':
 			UnitTestsRunner().Run()
-		elif param1 == 'ui':
-			UI().Run()
+		elif param1 == 'cmd':
+			model = Model()
+			model.ReadConfigFile()
+			KlaRunner(model).Run()
 	elif (__name__ == '__main__'):
-		model = Model()
-		model.ReadConfigFile()
-		KlaRunner(model).Run()
+		UI().Run()
+		print 'Have a nice day...'
+		Git.Git('.', 'pull')
 
 main()
-print 'Have a nice day...'
