@@ -973,7 +973,7 @@ class TaskMan:
 		if exceptProcId > 0:
 			processIds.remove(exceptProcId)
 		if len(processIds) == 0:
-			return
+			return False
 		'''
 		wmic process where name="mmi.exe" call terminate
 		wmic process where "name='mmi.exe'" delete
@@ -985,6 +985,7 @@ class TaskMan:
 		else:
 			for proId in processIds:
 				OsOperations.Popen([ 'TASKKILL', '/PID', str(proId), '/T', '/F' ])
+		return True
 
 	@classmethod
 	def AddTimer(cls, name, timer):
@@ -1058,6 +1059,8 @@ class VMWareRunner:
 			cls.ShowMessage('Please select necessary slot(s).')
 			return
 
+		if TaskMan.StopTask('MvxCmd.exe'):
+			OsOperations.Timeout(5)
 		cd1 = os.getcwd()
 		OsOperations.ChDir('C:/MVS7000/slot1/')
 		# Bug : only first slot is working.
