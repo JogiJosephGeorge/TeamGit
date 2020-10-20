@@ -398,6 +398,7 @@ class UIMainMenu:
 	def AddColumn4(self, parent):
 		self.CreateColumnFrame(parent)
 		self.AddButton('Run Slots', VMWareRunner.RunSlots, (self.model,))
+		self.AddButton('Test First Slot', VMWareRunner.TestSlots, (self.model,))
 		if self.model.ShowAllButtons:
 			self.AddButton('Comment VisionSystem', PreTestActions.ModifyVisionSystem, (self.model,))
 			self.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
@@ -1051,6 +1052,22 @@ class VMWareRunner:
 		return True
 
 	@classmethod
+	def TestSlots(cls, model):
+		slots = model.slots
+		if len(slots) == 0:
+			cls.ShowMessage('Please select necessary slot(s).')
+			return
+
+		cd1 = os.getcwd()
+		OsOperations.ChDir('C:/MVS7000/slot1/')
+		# Bug : only first slot is working.
+		for slot in slots:
+			os.chdir('../slot{}'.format(slot))
+			cmd = 'slot{}.bat'.format(slot)
+			OsOperations.System(cmd)
+		OsOperations.ChDir(cd1)
+
+	@classmethod
 	def ShowMessage(cls, msg):
 		print msg
 		if KlaRunner.RunFromUI:
@@ -1677,6 +1694,11 @@ class OsOperations:
 	def Call(cls, params):
 		print params
 		subprocess.call(params)
+
+	@classmethod
+	def ChDir(cls, path):
+		os.chdir(path[:2])
+		os.chdir(path)
 
 class TableLineRow:
 	def __init__(self, left, mid, fill, right):
