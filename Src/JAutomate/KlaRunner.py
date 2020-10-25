@@ -1910,9 +1910,10 @@ class Git:
 
 	@classmethod
 	def SubmoduleUpdate(cls, model):
-		cls.Git(model.Source, 'submodule sync --recursive')
-		cls.Git(model.Source, 'submodule update --init --recursive')
 		cls.Git(model.Source, 'submodule foreach git reset --hard') # It seems this is not working
+		cls.Git(model.Source, 'submodule update --init --recursive')
+		cls.Git(model.Source, 'submodule sync --recursive')
+		cls.Git(model.Source, 'submodule update')
 
 	@classmethod
 	def OpenGitGui(cls, model):
