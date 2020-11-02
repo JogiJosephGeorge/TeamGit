@@ -112,11 +112,10 @@ class UI:
 			return
 		self.model = Model()
 		VM = UIViewModel(self.model)
+		self.model.ReadConfigFile()
 		if not os.path.exists(self.model.ConfigInfo.FileName):
 			UISettings(None, self.model, VM).Show()
 			return
-		else:
-			self.model.ReadConfigFile()
 		self.klaRunner = KlaRunner(self.model)
 
 		title = 'KLA Application Runner 1.0.' + Git.GetHash()
@@ -485,6 +484,8 @@ class UISettings:
 		self.AddSelectPathRow(parent, 'MMi Setups Path', 'MMiSetupsPath')
 		self.AddShowAllCheck(parent)
 		self.AddRestartSlotsForMMiCheck(parent)
+		self.AddCopyMockLicenseOnTestCheck(parent)
+		self.AddCopyExportIllumRefOnTestCheck(parent)
 
 	def AddSelectPathRow(self, parent, label, attrName):
 		self.AddSelectItemRow(parent, label, attrName, False)
@@ -523,23 +524,41 @@ class UISettings:
 			print '{} Path changed : {}'.format(attrName, filename)
 
 	def AddShowAllCheck(self, parent):
-		UIFactory.AddLabel(parent, 'Show All Commands', self.Row, 0)
+		UIFactory.AddLabel(parent, 'Show All Commands in KlaRunner', self.Row, 0)
 		isChecked = self.model.ShowAllButtons
 		self.ChkShowAll = UIFactory.AddCheckBox(parent, isChecked, self.Row, 1, self.OnShowAll)
-		self.AddRow()
-
-	def AddRestartSlotsForMMiCheck(self, parent):
-		UIFactory.AddLabel(parent, 'Restart Slots for MMi', self.Row, 0)
-		isChecked = self.model.RestartSlotsForMMiAlone
-		self.ChkRestartSlotsForMMi = UIFactory.AddCheckBox(parent, isChecked, self.Row, 1, self.OnRestartSlotsForMMi)
 		self.AddRow()
 
 	def OnShowAll(self):
 		self.model.ShowAllButtons = self.ChkShowAll.get()
 		print 'You need to restart the application to update the UI.'
 
+	def AddRestartSlotsForMMiCheck(self, parent):
+		UIFactory.AddLabel(parent, 'Restart Slots while running MMi alone', self.Row, 0)
+		isChecked = self.model.RestartSlotsForMMiAlone
+		self.ChkRestartSlotsForMMi = UIFactory.AddCheckBox(parent, isChecked, self.Row, 1, self.OnRestartSlotsForMMi)
+		self.AddRow()
+
 	def OnRestartSlotsForMMi(self):
 		self.model.RestartSlotsForMMiAlone = self.ChkRestartSlotsForMMi.get()
+
+	def AddCopyMockLicenseOnTestCheck(self, parent):
+		UIFactory.AddLabel(parent, 'Copy Mock License On AutoTest', self.Row, 0)
+		isChecked = self.model.CopyMockLicenseOnTest
+		self.ChkCopyMockLicenseOnTest = UIFactory.AddCheckBox(parent, isChecked, self.Row, 1, self.OnCopyMockLicenseOnTest)
+		self.AddRow()
+
+	def OnCopyMockLicenseOnTest(self):
+		self.model.CopyMockLicenseOnTest = self.ChkCopyMockLicenseOnTest.get()
+
+	def AddCopyExportIllumRefOnTestCheck(self, parent):
+		UIFactory.AddLabel(parent, 'Copy xPort_IllumReference.xml on AutoTest', self.Row, 0)
+		isChecked = self.model.CopyExportIllumRefOnTest
+		self.ChkCopyExportIllumRefOnTest = UIFactory.AddCheckBox(parent, isChecked, self.Row, 1, self.OnCopyExportIllumRefOnTest)
+		self.AddRow()
+
+	def OnCopyExportIllumRefOnTest(self):
+		self.model.CopyExportIllumRefOnTest = self.ChkCopyExportIllumRefOnTest.get()
 
 	def AddSource(self):
 		folderSelected = tkFileDialog.askdirectory()
@@ -890,12 +909,9 @@ class AppRunner:
 		if self.model.RestartSlotsForMMiAlone:
 			self.StopMMi()
 
-		if fromSrc:
-			PreTestActions.CopyMockLicense(self.model, False, False) # Do we need this
 		mmiPath = PreTestActions.CopyMockLicense(self.model, fromSrc, False)
 		PreTestActions.CopyLicMgrConfig(self.model, False)
 		PreTestActions.CopyxPortIllumRef(self.model, False, False)
-
 		if self.model.RestartSlotsForMMiAlone:
 			OsOperations.Timeout(8)
 
@@ -1078,14 +1094,20 @@ class PreTestActions:
 	@classmethod
 	def CopyMockLicense(cls, model, toSrc = True, doPause = True):
 		args = (model.Source, model.Platform, model.Config)
+		licencePath = '{}/mmi/mmi/mmi_stat/integration/code/MockLicenseDll/{}/{}/License.dll'
+		licenseFile = os.path.abspath(licencePath.format(*args))
+		mmiPath = PreTestActions.GetMmiPath(model, toSrc)
+		FileOperations.Copy(licenseFile, mmiPath)
+		OsOperations.Pause(doPause and model.ClearHistory)
+		return mmiPath
+
+	@classmethod
+	def GetMmiPath(cls, model, toSrc = True):
+		args = (model.Source, model.Platform, model.Config)
 		if toSrc:
 			mmiPath = os.path.abspath('{}/mmi/mmi/Bin/{}/{}'.format(*args))
 		else:
 			mmiPath = 'C:/icos'
-		licencePath = '{}/mmi/mmi/mmi_stat/integration/code/MockLicenseDll/{}/{}/License.dll'
-		licenseFile = os.path.abspath(licencePath.format(*args))
-		FileOperations.Copy(licenseFile, mmiPath)
-		OsOperations.Pause(doPause and model.ClearHistory)
 		return mmiPath
 
 	@classmethod
@@ -1237,8 +1259,12 @@ class AutoTestRunner:
 		if callInit:
 			self.InitAutoTest()
 		PreTestActions.ModifyVisionSystem(self.model, False)
-		PreTestActions.CopyxPortIllumRef(self.model, False, True)
-		PreTestActions.CopyLicMgrConfig(self.model, True)
+
+		if self.model.CopyMockLicenseOnTest:
+			PreTestActions.CopyLicMgrConfig(self.model, True)
+		if self.model.CopyExportIllumRefOnTest:
+			PreTestActions.CopyxPortIllumRef(self.model, False, True)
+
 		#FileOperations.Copy(self.model.StartPath + '/Profiles', 'C:/icos/Profiles', 8, 3)
 		os.chdir(self.model.StartPath)
 
@@ -2356,40 +2382,53 @@ class ConfigInfo:
 		self.FileName = fileName
 
 	def Read(self, model):
-		if not os.path.exists(self.FileName):
-			print "File doesn't exist : " + self.FileName
-			return
-		with open(self.FileName) as f:
-			_model = json.load(f)
+		if os.path.exists(self.FileName):
+			with open(self.FileName) as f:
+				_model = json.load(f)
+		else:
+			_model = {}
 
-		try:
-			model.Sources = [ConfigEncoder.DecodeSource(item) for item in _model['Sources']]
-			model.SrcCnf.UpdateSource(_model['SrcIndex'], False)
-			model.AutoTests.Read(_model['Tests'])
-			if not model.UpdateTest(_model['TestIndex'], False):
-				model.TestIndex = 0
-			model.ActiveSrcs = _model['ActiveSrcs']
-			model.DevEnvCom = _model['DevEnvCom']
-			model.DevEnvExe = _model['DevEnvExe']
-			model.GitBin = _model['GitBin']
-			model.VMwareWS = _model['VMwareWS']
-			model.EffortLogFile = _model['EffortLogFile']
-			model.BCompare = _model['BCompare']
-			model.MMiConfigPath = _model['MMiConfigPath']
-			model.MMiSetupsPath = _model['MMiSetupsPath']
-			model.DebugVision = _model['DebugVision']
-			model.CopyMmi = _model['CopyMmi']
-			model.TempDir = _model['TempDir']
-			model.LogFileName = _model['LogFileName']
-			model.MenuColCnt = _model['MenuColCnt']
-			model.MaxSlots = _model['MaxSlots']
-			model.ClearHistory = _model['ClearHistory']
-			model.ShowAllButtons = _model['ShowAllButtons']
-			model.RestartSlotsForMMiAlone = _model['RestartSlotsForMMiAlone']
-		except:
-			print("Unexpected error:", sys.exc_info()[0])
+		model.Source = ''
+		model.Branch = ''
+		model.slots = []
+		model.SrcIndex = -1
+		model.TestIndex = -1
+		Sources = self.ReadField(_model, 'Sources', [])
+		model.Sources = [ConfigEncoder.DecodeSource(item) for item in Sources]
+		SrcIndex = self.ReadField(_model, 'SrcIndex', -1)
+		model.SrcCnf.UpdateSource(SrcIndex, False)
+		Tests = self.ReadField(_model, 'Tests', [])
+		model.AutoTests.Read(Tests)
+		TestIndex = self.ReadField(_model, 'TestIndex', -1)
+		if not model.UpdateTest(TestIndex, False):
+			model.TestIndex = 0
+		model.ActiveSrcs = self.ReadField(_model, 'ActiveSrcs', [])
+		model.DevEnvCom = self.ReadField(_model, 'DevEnvCom', 'C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com')
+		model.DevEnvExe = self.ReadField(_model, 'DevEnvExe', 'C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/Common7/IDE/devenv.exe')
+		model.GitBin = self.ReadField(_model, 'GitBin', 'C:/Program Files/Git/bin')
+		model.VMwareWS = self.ReadField(_model, 'VMwareWS', 'C:/Program Files (x86)/VMware/VMware Workstation')
+		model.EffortLogFile = self.ReadField(_model, 'EffortLogFile', 'D:/QuEST/Tools/EffortCapture_2013/timeline.log')
+		model.BCompare = self.ReadField(_model, 'BCompare', 'C:/Program Files (x86)/Beyond Compare 4/BCompare.exe')
+		model.MMiConfigPath = self.ReadField(_model, 'MMiConfigPath', 'D:\\')
+		model.MMiSetupsPath = self.ReadField(_model, 'MMiSetupsPath', 'D:/MmiSetups')
+		model.DebugVision = self.ReadField(_model, 'DebugVision', False)
+		model.CopyMmi = self.ReadField(_model, 'CopyMmi', True)
+		model.TempDir = self.ReadField(_model, 'TempDir', 'bin')
+		model.LogFileName = self.ReadField(_model, 'LogFileName', 'bin/Log.txt')
+		model.MenuColCnt = self.ReadField(_model, 'MenuColCnt', 4)
+		model.MaxSlots = self.ReadField(_model, 'MaxSlots', 8)
+		model.ClearHistory = self.ReadField(_model, 'ClearHistory', False)
+		model.ShowAllButtons = self.ReadField(_model, 'ShowAllButtons', False)
+		model.RestartSlotsForMMiAlone = self.ReadField(_model, 'RestartSlotsForMMiAlone', False)
+		model.CopyMockLicenseOnTest = self.ReadField(_model, 'CopyMockLicenseOnTest', False)
+		model.CopyExportIllumRefOnTest = self.ReadField(_model, 'CopyExportIllumRefOnTest', False)
 
 		model.MMiConfigPath = model.MMiConfigPath.replace('/', '\\')
+
+	def ReadField(self, model, key, defValue):
+		if key in model:
+			return model[key]
+		return defValue
 
 	def Write(self, model):
 		_model = OrderedDict()
@@ -2415,6 +2454,8 @@ class ConfigInfo:
 		_model['ClearHistory'] = model.ClearHistory
 		_model['ShowAllButtons'] = model.ShowAllButtons
 		_model['RestartSlotsForMMiAlone'] = model.RestartSlotsForMMiAlone
+		_model['CopyMockLicenseOnTest'] = model.CopyMockLicenseOnTest
+		_model['CopyExportIllumRefOnTest'] = model.CopyExportIllumRefOnTest
 
 		with open(self.FileName, 'w') as f:
 			json.dump(_model, f, indent=3)
@@ -2472,40 +2513,11 @@ class Model:
 	def __init__(self):
 		self.StartPath = os.path.dirname(os.path.abspath(__file__))
 		filePath = self.StartPath + '\\KlaRunner.ini'
-		if not os.path.exists(filePath):
-			OsOperations.System('COPY /Y "' + self.StartPath + '\\Sample.ini.txt" "' + filePath + '"')
 		self.ConfigInfo = ConfigInfo(filePath)
 		self.AutoTests = AutoTestModel()
 		self.SrcCnf = SourceConfig(self)
-
-		self.SrcIndex = -1
-		self.TestIndex = -1
-		self.Sources = []
-		self.ActiveSrcs = []
-		self.Source = ''
-		self.Branch = ''
-		self.TestName = ''
-		self.slots = []
 		self.Config = ConfigEncoder.Configs[0]
 		self.Platform = ConfigEncoder.Platforms[0]
-		
-		self.DevEnvCom = 'C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com'
-		self.DevEnvExe = 'C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/Common7/IDE/devenv.exe'
-		self.GitBin = 'C:/Program Files/Git/bin'
-		self.VMwareWS = 'C:/Program Files (x86)/VMware/VMware Workstation'
-		self.EffortLogFile = 'D:/QuEST/Tools/EffortCapture_2013/timeline.log'
-		self.BCompare = 'C:/Program Files (x86)/Beyond Compare 4/BCompare.exe'
-		self.MMiConfigPath = 'D:/'
-		self.MMiSetupsPath = 'D:/MmiSetups'
-		self.DebugVision = False
-		self.CopyMmi = True
-		self.TempDir = 'bin'
-		self.LogFileName = 'bin/Log.txt'
-		self.MenuColCnt = 4
-		self.MaxSlots = 8
-		self.ClearHistory = False
-		self.ShowAllButtons = False
-		self.RestartSlotsForMMiAlone = False
 
 	def ReadConfigFile(self):
 		self.ConfigInfo.Read(self)
