@@ -149,7 +149,7 @@ class UIHeader:
 		self.AddAttachMmi(parent, 6)
 
 		self.AddRow()
-		self.AddTest(parent, 0)
+		self.AddTestUI(parent, 0)
 		self.AddPlatform(parent, 3)
 		if self.model.ShowAllButtons:
 			self.AddCopyMmi(parent, 6)
@@ -176,7 +176,7 @@ class UIHeader:
 		UIFactory.AddLabel(parent, 'Platform', self.Row, c)
 		self.VM.cmbPltfm = UIFactory.AddCombo(parent, ConfigEncoder.Platforms, platformInx, self.Row, c+1, self.VM.OnPlatformChanged, 10)
 
-	def AddTest(self, parent, c):
+	def AddTestUI(self, parent, c):
 		UIFactory.AddLabel(parent, 'Test', self.Row, c)
 		testNames = self.model.AutoTests.GetNames()
 		self.VM.cmbTest = UIFactory.AddCombo(parent, testNames, self.model.TestIndex, self.Row, c+1, self.VM.OnTestChanged, 70)
@@ -222,6 +222,8 @@ class UIViewModel:
 
 	@classmethod
 	def RestartApp(cls, model):
+		# This won't work when we execute the application using shortcut link
+		# This works only when running from command prompt
 		print 'Application Restarted.'
 		argv = sys.argv
 		if not os.path.exists(argv[0]):
@@ -348,7 +350,7 @@ class UIMainMenu:
 		self.frame = UIFactory.AddFrame(self.parent, r, c, 20, 20)
 		self.klaRunner = klaRunner
 		self.VM = VM
-		self.testRunner = AutoTestRunner(self.model)
+		self.testRunner = AutoTestRunner(self.model, VM)
 		self.settings = Settings(self.model, self.klaRunner)
 		self.appRunner = AppRunner(self.model, self.testRunner)
 		self.klaSourceBuilder = KlaSourceBuilder(self.model, self.klaRunner)
@@ -458,11 +460,13 @@ class UISettings:
 
 	def OnClosing(self):
 		self.model.WriteConfigFile()
-		#UIViewModel.RestartApp(self.model)
+		self.RestartNeeded()
+		# UIViewModel.RestartApp(self.model) TODO: This is not working
 		if self.Parent is not None:
 			self.Parent.deiconify()
 			self.Parent = None
 			self.VM.UpdateCombo()
+			self.VM.UpdateSlotsChk(True)
 		self.window.destroy()
 
 	def AddRow(self):
@@ -530,8 +534,9 @@ class UISettings:
 		self.AddRow()
 
 	def OnShowAll(self):
-		self.model.ShowAllButtons = self.ChkShowAll.get()
-		print 'You need to restart the application to update the UI.'
+		#self.model.ShowAllButtons = self.ChkShowAll.get()
+		#print 'You need to restart the application to update the UI.'
+		VMWareRunner.ShowMessage('You need to restart the application to update the UI.')
 
 	def AddRestartSlotsForMMiCheck(self, parent):
 		UIFactory.AddLabel(parent, 'Restart Slots while running MMi alone', self.Row, 0)
@@ -570,19 +575,22 @@ class UISettings:
 	def AddFirstRow(self, parent):
 		frame = UIFactory.AddFrame(parent, 0, 0, 0, 0, 2)
 		UIFactory.AddButton(frame, 'Add Source', 0, 0, self.AddSource, None, 19)
-		UIFactory.AddButton(frame, 'Add Test', 0, 1, self.AddTest, None, 19)
+		UIFactory.AddButton(frame, 'Add Test', 0, 1, self.AddTestUI, None, 19)
 
-	def AddTest(self):
+	def AddTestUI(self):
 		dir = self.model.Source + '/handler/tests'
 		ftypes=[('Script Files', 'Script.py')]
 		title = "Select Script file"
 		filename = tkFileDialog.askopenfilename(initialdir=dir, filetypes=ftypes, title=title)
 		if len(filename) > 10:
 			testName = filename[len(dir) + 1: -10]
-			self.filterTestSelector.AddTestToModel(testName)
-			if self.model.AutoTests.AddTest(testName, []) >= 0:
-				print 'Test Added   : {}'.format(testName)
-				self.RemoveTestMan.UpdateCombo()
+			self.filterTestSelector.AddSelectedTest(testName)
+
+	def RestartNeeded(self):
+		if not self.model.ShowAllButtons == self.ChkShowAll.get():
+			self.model.ShowAllButtons = self.ChkShowAll.get()
+			return True
+		return False
 
 class FilterTestSelector:
 	def AddUI(self, parent, model, r, c, updateCombo):
@@ -628,15 +636,13 @@ class FilterTestSelector:
 	def OnAddSelectedTest(self):
 		if len(self.FilteredTests) > 0:
 			testName = self.FilteredTests[self.TestCmb.current()]
-			self.AddTestToModel(testName)
+			self.AddSelectedTest(testName)
 		else:
 			print 'No tests selected'
 
-	def AddTestToModel(self, testName):
-		index = self.model.AutoTests.AddTest(testName, [])
-		if index >= 0:
-			self.model.TestIndex = index
-			self.model.TestName = testName
+	def AddSelectedTest(self, testName):
+		index = self.model.AutoTests.AddTestToModel(testName)
+		if self.model.UpdateTest(index, False):
 			print 'Test Added : ' + testName
 			self.UpdateCombo()
 		else:
@@ -687,7 +693,7 @@ class RemoveTestMan:
 class Menu:
 	def __init__(self, klaRunner, model):
 		self.klaRunner = klaRunner
-		self.testRunner = AutoTestRunner(model)
+		self.testRunner = AutoTestRunner(model, None)
 		self.settings = Settings(model, klaRunner)
 		self.appRunner = AppRunner(model, self.testRunner)
 		self.klaSourceBuilder = KlaSourceBuilder(model, klaRunner)
@@ -1238,8 +1244,9 @@ class LicenseConfigWriter:
 			f.write('\n'.join(strArr))
 
 class AutoTestRunner:
-	def __init__(self, model):
+	def __init__(self, model, VM):
 		self.model = model
+		self.VM = VM
 		self.lastSrc = None
 
 	def InitAutoTest(self):
@@ -1286,6 +1293,8 @@ class AutoTestRunner:
 		my.c.mmiConfigurationsPath = self.model.MMiConfigPath
 		my.c.mmiSetupsPath = self.model.MMiSetupsPath
 		my.run(tests[0][0])
+		if self.VM is not None:
+			self.VM.UpdateSlots()
 		print 'Completed Auto Test : {} : {}'.format(tests[0][0], tests[0][1])
 
 	@classmethod
@@ -1320,7 +1329,7 @@ class AutoTestRunner:
 		return newPath
 		OsOperations.Pause(self.model.ClearHistory)
 
-class Settings:
+class Settings: # Obsolete Class
 	def __init__(self, model, klaRunner):
 		self.model = model
 		self.klaRunner = klaRunner
@@ -1340,7 +1349,7 @@ class Settings:
 			print 'The given test ({}) already exists'.format(testName)
 			return
 		slots = OsOperations.Input('Enter slots : ')
-		index = self.model.AutoTests.AddTest(testName, slots)
+		index = self.model.AutoTests.AddTestToModel(testName, slots)
 		self.model.UpdateTest(index, True)
 		OsOperations.Pause(self.model.ClearHistory)
 
@@ -2359,7 +2368,8 @@ class AutoTestModel:
 			if testName in item[0]:
 				return inx
 
-	def AddTest(self, testName, slots):
+	def AddTestToModel(self, testName):
+		slots = [1, 2, 3, 4]
 		for item in self.Tests:
 			if item[0] == testName:
 				return -1
