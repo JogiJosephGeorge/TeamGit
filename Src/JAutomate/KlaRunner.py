@@ -388,17 +388,19 @@ class UIMainMenu:
 	def AddColumn3(self, parent):
 		self.CreateColumnFrame(parent)
 		self.AddButton('Open Python', self.klaRunner.OpenPython)
+		if self.model.ShowAllButtons:
+			self.AddButton('Run Mmi SPC Tests', self.klaRunner.RunMmiSpcTests)
 		self.AddButton('Open Test Folder', self.klaRunner.OpenTestFolder)
 		self.AddButton('Compare Test Results', self.klaRunner.CompareMmiReports)
-		self.AddButton('Open Local Diff', AppRunner.OpenLocalDif, (self.model,))
+		self.AddButton('Tortoise Git Diff', AppRunner.OpenLocalDif, (self.model,))
 		if self.model.ShowAllButtons:
-			self.AddButton('Open Git GUI', Git.OpenGitGui, (self.model,))
-			self.AddButton('Open Git Bash', Git.OpenGitBash, (self.model,))
+			self.AddButton('Git GUI', Git.OpenGitGui, (self.model,))
+			self.AddButton('Git Bash Console', Git.OpenGitBash, (self.model,))
 		self.AddButton('Git Fetch Pull', Git.FetchPull, (self.model,))
 
 	def AddColumn4(self, parent):
 		self.CreateColumnFrame(parent)
-		self.AddButton('Run Slots', VMWareRunner.RunSlots, (self.model,))
+		self.AddButton('Run Selected Slots', VMWareRunner.RunSlots, (self.model,))
 		self.AddButton('Test First Slot', VMWareRunner.TestSlots, (self.model,))
 		if self.model.ShowAllButtons:
 			self.AddButton('Comment VisionSystem', PreTestActions.ModifyVisionSystem, (self.model,))
@@ -804,6 +806,11 @@ class KlaRunner:
 		fileName = os.path.abspath(self.model.Source + '/libs/testing/my.py')
 		par = 'start python -i ' + fileName
 		OsOperations.System(par, 'Starting my.py')
+
+	def RunMmiSpcTests(self):
+		fileName = os.path.abspath(self.model.Source + '/mmi/mmi/mmi_stat/integration/mmiSpcTests.py')
+		par = 'start python -i ' + fileName
+		OsOperations.System(par, 'Starting mmiSpcTests.py')
 
 	def GetTestPath(self):
 		return os.path.abspath(self.model.Source + '/handler/tests/' + self.model.TestName)
