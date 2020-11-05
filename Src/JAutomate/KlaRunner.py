@@ -368,7 +368,6 @@ class UIMainMenu:
 		tr = self.testRunner
 		self.AddParallelButton('Run test', tr.RunAutoTest, (False,False), tr.InitAutoTest)
 		self.AddParallelButton('Start test', tr.RunAutoTest, (True,False), tr.InitAutoTest)
-		self.AddButton('Update Slots', self.VM.UpdateSlots)
 		if self.model.ShowAllButtons:
 			self.AddButton('Run Handler and MMi', self.appRunner.RunHandlerMMi)
 			self.AddButton('Run Handler alone', self.appRunner.RunHandler)
@@ -1442,7 +1441,8 @@ class KlaSourceBuilder:
 			print 'Reseting files in ' + src
 			Git.ResetHard(src)
 			if cnt > 0:
-				Git.RevertLastCommit(self.model)
+				Git.RevertLastCommit(src)
+			Git.SubmoduleUpdate(src)
 			print 'Cleaning completed for ' + src
 		OsOperations.Pause(self.model.ClearHistory)
 
@@ -1951,11 +1951,11 @@ class Git:
 		cls.Git(source, 'reset --hard')
 
 	@classmethod
-	def SubmoduleUpdate(cls, model):
-		cls.Git(model.Source, 'submodule foreach git reset --hard') # It seems this is not working
-		cls.Git(model.Source, 'submodule update --init --recursive')
-		cls.Git(model.Source, 'submodule sync --recursive')
-		cls.Git(model.Source, 'submodule update')
+	def SubmoduleUpdate(cls, source):
+		cls.Git(source, 'submodule update --init --recursive')
+		cls.Git(source, 'submodule foreach git reset --hard') # It seems this is not working
+		cls.Git(source, 'submodule sync --recursive')
+		cls.Git(source, 'submodule update')
 
 	@classmethod
 	def OpenGitGui(cls, model):
@@ -1976,7 +1976,7 @@ class Git:
 	def FetchPull(cls, model, submoduleUpdate=True):
 		Git.Git(model.Source, 'pull')
 		if submoduleUpdate:
-			Git.SubmoduleUpdate(model)
+			Git.SubmoduleUpdate(model.Source)
 		print 'Git fetch and pull completed.'
 		OsOperations.Pause()
 
@@ -1994,8 +1994,8 @@ class Git:
 		cls.Git(model.Source, 'commit -m "' + msg + '"')
 
 	@classmethod
-	def RevertLastCommit(cls, model):
-		cls.Git(model.Source, 'reset --mixed HEAD~1')
+	def RevertLastCommit(cls, source):
+		cls.Git(source, 'reset --mixed HEAD~1')
 
 class StdOutRedirect(object):
 	def __init__(self):
