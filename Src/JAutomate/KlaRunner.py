@@ -369,11 +369,11 @@ class UIMainMenu:
 		self.AddParallelButton('Run test', tr.RunAutoTest, (False,False), tr.InitAutoTest)
 		self.AddParallelButton('Start test', tr.RunAutoTest, (True,False), tr.InitAutoTest)
 		if self.model.ShowAllButtons:
-			self.AddButton('Run Handler and MMi', self.appRunner.RunHandlerMMi)
-			self.AddButton('Run Handler alone', self.appRunner.RunHandler)
+			#self.AddButton('Run Handler and MMi', self.appRunner.RunHandlerMMi)
+			self.AddButton('Run Handler', self.appRunner.RunHandler)
 			self.AddButton('Stop MMi alone', self.appRunner.StopMMi)
 			self.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True,False))
-			self.AddButton('Run MMi from C:Icos', self.appRunner.RunMMi, (False,False))
+			self.AddButton('Run MMi from C:/Icos', self.appRunner.RunMMi, (False,False))
 
 	def AddColumn2(self, parent):
 		sourceBuilder = self.klaSourceBuilder
@@ -932,10 +932,11 @@ class AppRunner:
 		if self.model.RestartSlotsForMMiAlone:
 			self.StopMMi()
 
-		mmiPath = PreTestActions.CopyMockLicense(self.model, fromSrc, False)
+		mmiPath = PreTestActions.GetMmiPath(model, fromSrc)
 		if self.model.CopyMockLicenseOnTest:
 			PreTestActions.GenerateLicMgrConfig(self.model)
 		if self.model.CopyMockLicenseOnTest:
+			PreTestActions.CopyMockLicense(self.model, fromSrc, False)
 			PreTestActions.CopyLicMgrConfig(self.model, False)
 		if self.model.CopyExportIllumRefOnTest:
 			PreTestActions.CopyxPortIllumRef(self.model, False, False)
@@ -1126,7 +1127,6 @@ class PreTestActions:
 		mmiPath = PreTestActions.GetMmiPath(model, toSrc)
 		FileOperations.Copy(licenseFile, mmiPath)
 		OsOperations.Pause(doPause and model.ClearHistory)
-		return mmiPath
 
 	@classmethod
 	def GetMmiPath(cls, model, toSrc = True):
@@ -1154,13 +1154,14 @@ class PreTestActions:
 	@classmethod
 	def GenerateLicMgrConfig(cls, model):
 		src = model.StartPath + '\\LicMgrConfig.xml'
-		des = cls.GetTestPath(model) + '~/'
 		LicenseConfigWriter(model, src)
+		print 'LicMgrConfig.xml has been created from source and placed on ' + src
 
 	@classmethod
 	def CopyLicMgrConfig(cls, model, delay = False):
 		src = model.StartPath + '\\LicMgrConfig.xml'
-		des = cls.GetTestPath(model) + '~/'
+		#des = cls.GetTestPath(model) + '~/'
+		des = 'C:/Icos'
 		if delay:
 			TaskMan.AddTimer('LicMgr', FileOperations.Copy(src, des, 9, 3))
 		else:
@@ -1168,7 +1169,7 @@ class PreTestActions:
 
 	@classmethod
 	def CopyMmiSaveLogExe(cls, model):
-		destin = os.path.abspath("{}/handler/tests/{}~\Icos".format(
+		destin = os.path.abspath("{}/handler/tests/{}~/Icos".format(
 			model.Source, model.TestName))
 		src = os.path.abspath('{}/mmi/mmi/Bin/{}/{}/MmiSaveLogs.exe'.format(
 			model.Source, model.Platform, model.Config))
@@ -1296,6 +1297,7 @@ class AutoTestRunner:
 		if self.model.GenerateLicMgrConfigOnTest:
 			PreTestActions.GenerateLicMgrConfig(self.model)
 		if self.model.CopyMockLicenseOnTest:
+			#PreTestActions.CopyMockLicense(self.model, False, False)
 			PreTestActions.CopyLicMgrConfig(self.model, True)
 		if self.model.CopyExportIllumRefOnTest:
 			PreTestActions.CopyxPortIllumRef(self.model, False, True)
