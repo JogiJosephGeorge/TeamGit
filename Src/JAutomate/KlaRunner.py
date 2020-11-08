@@ -66,17 +66,21 @@ class UIFactory:
 		entry.config(validate='key', validatecommand=(reg, '%P'))
 
 	@classmethod
-	def AddCombo(cls, parent, values, inx, r, c, cmd, width = 0):
+	def AddCombo(cls, parent, values, inx, r, c, cmd, arg = None, width = 0):
 		var = tk.StringVar()
 		combo = ttk.Combobox(parent, textvariable=var)
 		combo['state'] = 'readonly'
 		combo['values'] = values
 		if inx >= 0 and inx < len(values):
 			combo.current(inx)
+		if arg is None:
+			action = cmd
+		else:
+			action = lambda _ : cmd(arg)
 		if width > 0:
 			combo['width'] = width
 		combo.grid(row=r, column=c)
-		combo.bind("<<ComboboxSelected>>", cmd)
+		combo.bind("<<ComboboxSelected>>", action)
 		return (combo,var)
 
 	@classmethod
@@ -101,6 +105,15 @@ class UIFactory:
 	def GetTextValue(cls, textBox):
 		return textBox.get('1.0', 'end-1c')
 
+class PerformanceTester:
+	lastTime = datetime.now()
+
+	@classmethod
+	def Print(cls, msg):
+		t = datetime.now()
+		print '{} {}> {}'.format(t.time(), (t - cls.lastTime), msg)
+		cls.lastTime = t
+
 class UI:
 	def __init__(self):
 		KlaRunner.RunFromUI = True
@@ -114,7 +127,7 @@ class UI:
 		VM = UIViewModel(self.model)
 		self.model.ReadConfigFile()
 		if not os.path.exists(self.model.ConfigInfo.FileName):
-			UISettings(None, self.model, VM).Show()
+			UISourceSelector(None, self.model, None).Show()
 			return
 		self.klaRunner = KlaRunner(self.model)
 
@@ -126,6 +139,7 @@ class UI:
 
 class UIHeader:
 	def __init__(self, parent, r, c, model, VM):
+		self.window = parent
 		self.model = model
 		self.VM = VM
 		frame = UIFactory.AddFrame(parent, r, c, 20, 0)
@@ -145,12 +159,10 @@ class UIHeader:
 
 		self.AddRow()
 		self.AddBranch(parent, 0)
-		self.AddConfig(parent, 3)
 		self.AddAttachMmi(parent, 6)
 
 		self.AddRow()
 		self.AddTestUI(parent, 0)
-		self.AddPlatform(parent, 3)
 		if self.model.ShowAllButtons:
 			self.AddCopyMmi(parent, 6)
 
@@ -159,27 +171,22 @@ class UIHeader:
 
 	def AddSource(self, parent, c):
 		UIFactory.AddLabel(parent, 'Source', self.Row, c)
-		srcs = self.VM.GetSourceComboItems()
-		self.VM.cmbSource = UIFactory.AddCombo(parent, srcs, self.model.SrcIndex, self.Row, c+1, self.VM.OnSrcChanged, 70)
+		frameSource = UIFactory.AddFrame(parent, self.Row, c+1)
+		source = self.VM.GetSource()
+		self.VM.lblSource = UIFactory.AddLabel(frameSource, source, 0, 0)
+		UIFactory.AddButton(frameSource, ' ... ', 0, 1, self.OnSelectSource, None)
 
-	def AddConfig(self, parent, c):
-		configInx = ConfigEncoder.Configs.index(self.model.Config)
-		UIFactory.AddLabel(parent, 'Config', self.Row, c)
-		self.VM.cmbConfig = UIFactory.AddCombo(parent, ConfigEncoder.Configs, configInx, self.Row, c+1, self.VM.OnConfigChanged, 10)
+	def OnSelectSource(self):
+		UISourceSelector(self.window, self.model, self.VM).Show()
 
 	def AddBranch(self, parent, c):
 		UIFactory.AddLabel(parent, 'Branch', self.Row, c)
 		self.VM.lblBranch = UIFactory.AddLabel(parent, self.model.Branch, self.Row, c+1)
 
-	def AddPlatform(self, parent, c):
-		platformInx = ConfigEncoder.Platforms.index(self.model.Platform)
-		UIFactory.AddLabel(parent, 'Platform', self.Row, c)
-		self.VM.cmbPltfm = UIFactory.AddCombo(parent, ConfigEncoder.Platforms, platformInx, self.Row, c+1, self.VM.OnPlatformChanged, 10)
-
 	def AddTestUI(self, parent, c):
 		UIFactory.AddLabel(parent, 'Test', self.Row, c)
 		testNames = self.model.AutoTests.GetNames()
-		self.VM.cmbTest = UIFactory.AddCombo(parent, testNames, self.model.TestIndex, self.Row, c+1, self.VM.OnTestChanged, 70)
+		self.VM.cmbTest = UIFactory.AddCombo(parent, testNames, self.model.TestIndex, self.Row, c+1, self.VM.OnTestChanged, None, 70)
 
 	def AddAttachMmi(self, parent, c):
 		UIFactory.AddLabel(parent, 'Attach MMi', self.Row, c)
@@ -212,13 +219,13 @@ class UIViewModel:
 	def __init__(self, model):
 		self.model = model
 
-	def OnSrcChanged(self, event):
-		if self.model.SrcCnf.UpdateSource(self.cmbSource[0].current(), True):
-			self.lblBranch[1].set(self.model.Branch)
-			self.cmbConfig[1].set(self.model.Config)
-			self.cmbPltfm[1].set(self.model.Platform)
-			print 'Source Changed to : ' + self.model.Source
-			#UIViewModel.RestartApp(self.model)
+	def GetSource(self):
+		return '{}    ({} | {})'.format(self.model.Source, self.model.Config, self.model.Platform)
+
+	def UpdateSourceBranch(self):
+		source = self.GetSource()
+		self.lblSource[1].set(source)
+		self.lblBranch[1].set(self.model.Branch)
 
 	@classmethod
 	def RestartApp(cls, model):
@@ -231,16 +238,6 @@ class UIViewModel:
 			#argv[0] = model.StartPath + '\\StartKLARunner.lnk'
 		python = sys.executable
 		os.execl(python, python, * argv)
-
-	def OnConfigChanged(self, event):
-		if self.model.UpdateConfig(self.cmbConfig[0].current()):
-			self.model.WriteConfigFile()
-			print 'Config Changed to : ' + self.model.Config
-
-	def OnPlatformChanged(self, event):
-		if self.model.UpdatePlatform(self.cmbPltfm[0].current()):
-			self.model.WriteConfigFile()
-			print 'Platform Changed to : ' + self.model.Platform
 
 	def OnTestChanged(self, event):
 		if self.model.UpdateTest(self.cmbTest[0].current(), False):
@@ -278,20 +275,7 @@ class UIViewModel:
 			print 'Disabled the source : ' + str(self.model.Sources[index][0])
 		self.model.WriteConfigFile()
 
-	def GetSourceComboItems(self):
-		#return [src[0] for src in self.model.Sources]
-		srcCmb = []
-		for src in self.model.Sources:
-			branch = Git.GetBranch(src[0])
-			srcCmb.append('{} ({})'.format(src[0], branch))
-		return srcCmb
-
 	def UpdateCombo(self):
-		sources = self.GetSourceComboItems()
-		self.cmbSource[0]['values'] = sources
-		if self.model.SrcIndex >= 0 and len(sources) > self.model.SrcIndex:
-			self.cmbSource[0].current(self.model.SrcIndex)
-
 		tests = self.model.AutoTests.GetNames()
 		self.cmbTest[0]['values'] = tests
 		if self.model.TestIndex >= 0 and len(tests) > self.model.TestIndex:
@@ -577,16 +561,8 @@ class UISettings:
 	def OnCopyExportIllumRefOnTest(self):
 		self.model.CopyExportIllumRefOnTest = self.ChkCopyExportIllumRefOnTest.get()
 
-	def AddSource(self):
-		folderSelected = tkFileDialog.askdirectory()
-		if len(folderSelected) > 0:
-			ConfigEncoder.AddSrc(self.model, folderSelected)
-			print 'New source added : ' + folderSelected
-			self.filterTestSelector.UpdateUI()
-
 	def AddFirstRow(self, parent):
 		frame = UIFactory.AddFrame(parent, 0, 0, 0, 0, 2)
-		UIFactory.AddButton(frame, 'Add Source', 0, 0, self.AddSource, None, 19)
 		UIFactory.AddButton(frame, 'Add Test', 0, 1, self.AddTestUI, None, 19)
 
 	def AddTestUI(self):
@@ -604,6 +580,104 @@ class UISettings:
 			return True
 		return False
 
+class UISourceSelector:
+	def __init__(self, parent, model, VM):
+		self.Parent = parent
+		self.model = model
+		self.VM = VM
+
+	def Show(self):
+		title = 'Select Source'
+		self.window = UIFactory.CreateWindow(self.Parent, title, self.model.StartPath)
+		self.frame = UIFactory.AddFrame(self.window, 0, 0, 20, 20)
+		self.CreateUI(self.frame)
+		self.window.protocol('WM_DELETE_WINDOW', self.OnClosing)
+		if self.Parent is None:
+			self.window.mainloop()
+
+	def CreateUI(self, parent):
+		row = 0
+		self.SelectedSrc = tk.IntVar()
+		self.SelectedSrc.set(self.model.SrcIndex)
+		self.cboConfig = []
+		self.cboPlatform = []
+		self.frameGrid = UIFactory.AddFrame(parent, 0, 0, 20, 20)
+		for srcTuple in self.model.Sources:
+			self.AddRow(row, srcTuple)
+			row += 1
+		frameRow2 = UIFactory.AddFrame(parent, 1, 0, 20, 20)
+		UIFactory.AddButton(frameRow2, 'Add Source', 0, 0, self.OnAddSource, None, 19)
+		UIFactory.AddButton(frameRow2, 'Remove Source', 0, 1, self.OnRemoveSource, None, 19)
+
+	def AddRow(self, row, srcTuple):
+		self.AddSource(self.frameGrid, row, 0, srcTuple[0])
+		self.AddBranch(self.frameGrid, row, 1, srcTuple[0])
+		self.cboConfig.append(self.AddConfig(self.frameGrid, row, 2, srcTuple[1]))
+		self.cboPlatform.append(self.AddPlatform(self.frameGrid, row, 3, srcTuple[2]))
+
+	def OnClosing(self):
+		if self.Parent is not None:
+			self.Parent.deiconify()
+			self.Parent = None
+		if self.VM is not None:
+			self.VM.UpdateSourceBranch()
+		self.model.WriteConfigFile()
+		self.window.destroy()
+
+	def OnAddSource(self):
+		folderSelected = tkFileDialog.askdirectory()
+		if len(folderSelected) > 0:
+			ConfigEncoder.AddSrc(self.model, folderSelected)
+			row = len(self.model.Sources)
+			self.AddRow(row, self.model.Sources[-1])
+			print 'New source added : ' + folderSelected
+
+	def OnRemoveSource(self):
+		msg = 'The source ' + self.model.Sources[self.model.SrcIndex][0] + ' has been removed.'
+		del self.model.Sources[self.model.SrcIndex]
+		del self.cboConfig[self.model.SrcIndex]
+		del self.cboPlatform[self.model.SrcIndex]
+		self.model.SrcCnf.UpdateSource(self.model.SrcIndex - 1, False)
+		print msg
+
+	def AddSource(self, parent, r, c, source):
+		rd = tk.Radiobutton(parent,
+			text = source,
+			variable = self.SelectedSrc,
+			command = self.OnSelectSrc,
+			value = r)
+		rd.grid(row=r, column=0, sticky='w')
+
+	def OnSelectSrc(self):
+		SrcIndex = self.SelectedSrc.get()
+		self.model.SrcCnf.UpdateSource(SrcIndex, False)
+
+	def AddBranch(self, parent, r, c, source):
+		branch = Git.GetBranch(source)
+		UIFactory.AddLabel(parent, branch, r, c)
+
+	def AddConfig(self, parent, r, c, config):
+		configInx = ConfigEncoder.Configs.index(config)
+		return UIFactory.AddCombo(parent, ConfigEncoder.Configs, configInx, r, c, self.OnConfigChanged, r, 10)
+
+	def OnConfigChanged(self, row):
+		selectedInx = self.cboConfig[row][0].current()
+		if self.model.UpdateConfig(row, selectedInx):
+			self.model.WriteConfigFile()
+			srcTuple = self.model.Sources[row]
+			print 'Config Changed to {} for source {}'.format(srcTuple[1], srcTuple[0])
+
+	def AddPlatform(self, parent, r, c, platform):
+		platformInx = ConfigEncoder.Platforms.index(platform)
+		return UIFactory.AddCombo(parent, ConfigEncoder.Platforms, platformInx, r, c, self.OnPlatformChanged, r, 10)
+
+	def OnPlatformChanged(self, row):
+		selectedInx = self.cboPlatform[row][0].current()
+		if self.model.UpdatePlatform(row, selectedInx):
+			self.model.WriteConfigFile()
+			srcTuple = self.model.Sources[row]
+			print 'Platform Changed to {} for source {}'.format(srcTuple[2], srcTuple[0])
+
 class FilterTestSelector:
 	def AddUI(self, parent, model, r, c, updateCombo):
 		self.model = model
@@ -615,7 +689,7 @@ class FilterTestSelector:
 
 	def AddTestCombo(self, parent, c):
 		self.FilteredTests = self.AllTests = self.GetAllTests()
-		self.TestCmb = UIFactory.AddCombo(parent, self.AllTests, 0, 0, c, self.OnChangeTestCmb, 70)[0]
+		self.TestCmb = UIFactory.AddCombo(parent, self.AllTests, 0, 0, c, self.OnChangeTestCmb, None, 70)[0]
 		if len(self.FilteredTests) > 0:
 			self.TestCmb.current(0)
 
@@ -671,7 +745,7 @@ class RemoveTestMan:
 		self.model = model
 		frame = UIFactory.AddFrame(parent, r, c, 0, 0, 2)
 		self.Tests = self.model.AutoTests.GetNames()
-		self.TestCmb = UIFactory.AddCombo(frame, self.Tests, 0, 0, c, self.OnChangeTestCmb, 70)[0]
+		self.TestCmb = UIFactory.AddCombo(frame, self.Tests, 0, 0, c, self.OnChangeTestCmb, None, 70)[0]
 		if len(self.Tests) > 0:
 			self.TestCmb.current(0)
 		UIFactory.AddButton(frame, 'Remove Selected Test', 0, 1, self.OnRemoveSelectedTest, None)
@@ -1947,6 +2021,8 @@ ICOS,12345,False
 class Git:
 	@classmethod
 	def GetBranch(cls, source):
+		#return 'Branch'
+		#PerformanceTester.Print('111 GetBranch' + source)
 		#print 'Git.GetBranch : ' + source
 		params = ['git', '-C', source, 'branch']
 		output = OsOperations.ProcessOpen(params)
@@ -1956,6 +2032,7 @@ class Git:
 				return part
 			if part == '*':
 				isCurrent = True
+		#PerformanceTester.Print('111 GetBranch')
 
 	@classmethod
 	def Git(cls, source, cmd):
@@ -2579,24 +2656,30 @@ class Model:
 			self.WriteConfigFile()
 		return True
 
-	def UpdateConfig(self, index):
+	def UpdateConfig(self, row, index):
 		if index < 0 or index >= len(ConfigEncoder.Configs):
 			return False
+		srcTuple = self.Sources[row]
 		newConfig = ConfigEncoder.Configs[index]
-		if self.Config == newConfig:
+		if self.SrcIndex == row and srcTuple[1] == newConfig:
 			return False
-		self.Config = newConfig
-		self.Sources[self.SrcIndex] = self.Source, self.Config, self.Platform
+		if self.SrcIndex == row:
+			self.Config = newConfig
+		srcTuple = srcTuple[0], newConfig, srcTuple[2]
+		self.Sources[row] = srcTuple
 		return True
 
-	def UpdatePlatform(self, index):
+	def UpdatePlatform(self, row, index):
 		if index < 0 or index >= len(ConfigEncoder.Platforms):
 			return False
+		srcTuple = self.Sources[row]
 		newPlatform = ConfigEncoder.Platforms[index]
-		if self.Platform == newPlatform:
+		if self.SrcIndex == row and srcTuple[2] == newPlatform:
 			return False
-		self.Platform = newPlatform
-		self.Sources[self.SrcIndex] = self.Source, self.Config, self.Platform
+		if self.SrcIndex == row:
+			self.Platform = newPlatform
+		srcTuple = srcTuple[0], srcTuple[1], newPlatform
+		self.Sources[row] = srcTuple
 		return True
 
 	def UpdateSlot(self, index, isSelected):
