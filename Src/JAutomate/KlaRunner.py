@@ -406,6 +406,7 @@ class UIMainMenu:
 			self.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
 			self.AddButton('Copy Mock License', PreTestActions.CopyMockLicense, (self.model,))
 			self.AddButton('Copy xPort xml', PreTestActions.CopyxPortIllumRef, (self.model,))
+			self.AddButton('Generate LicMgrConfig', PreTestActions.GenerateLicMgrConfig, (self.model,))
 			self.AddButton('Copy LicMgrConfig', PreTestActions.CopyLicMgrConfig, (self.model,))
 			self.AddButton('Copy MmiSaveLogs.exe', PreTestActions.CopyMmiSaveLogExe, (self.model,))
 
@@ -489,6 +490,7 @@ class UISettings:
 		self.AddSelectPathRow(parent, 'MMi Setups Path', 'MMiSetupsPath')
 		self.AddShowAllCheck(parent)
 		self.AddRestartSlotsForMMiCheck(parent)
+		self.AddGenerateLicMgrConfigOnTestCheck(parent)
 		self.AddCopyMockLicenseOnTestCheck(parent)
 		self.AddCopyExportIllumRefOnTestCheck(parent)
 
@@ -547,6 +549,15 @@ class UISettings:
 
 	def OnRestartSlotsForMMi(self):
 		self.model.RestartSlotsForMMiAlone = self.ChkRestartSlotsForMMi.get()
+
+	def AddGenerateLicMgrConfigOnTestCheck(self, parent):
+		UIFactory.AddLabel(parent, 'Generate LicMgrConfig.xml On AutoTest', self.Row, 0)
+		isChecked = self.model.GenerateLicMgrConfigOnTest
+		self.ChkGenerateLicMgrConfigOnTest = UIFactory.AddCheckBox(parent, isChecked, self.Row, 1, self.OnGenerateLicMgrConfigOnTest)
+		self.AddRow()
+
+	def OnGenerateLicMgrConfigOnTest(self):
+		self.model.GenerateLicMgrConfigOnTest = self.ChkGenerateLicMgrConfigOnTest.get()
 
 	def AddCopyMockLicenseOnTestCheck(self, parent):
 		UIFactory.AddLabel(parent, 'Copy Mock License On AutoTest', self.Row, 0)
@@ -922,8 +933,12 @@ class AppRunner:
 			self.StopMMi()
 
 		mmiPath = PreTestActions.CopyMockLicense(self.model, fromSrc, False)
-		PreTestActions.CopyLicMgrConfig(self.model, False)
-		PreTestActions.CopyxPortIllumRef(self.model, False, False)
+		if self.model.CopyMockLicenseOnTest:
+			PreTestActions.GenerateLicMgrConfig(self.model)
+		if self.model.CopyMockLicenseOnTest:
+			PreTestActions.CopyLicMgrConfig(self.model, False)
+		if self.model.CopyExportIllumRefOnTest:
+			PreTestActions.CopyxPortIllumRef(self.model, False, False)
 		if self.model.RestartSlotsForMMiAlone:
 			OsOperations.Timeout(8)
 
@@ -1137,10 +1152,15 @@ class PreTestActions:
 		return os.path.abspath(model.Source + '/handler/tests/' + model.TestName)
 
 	@classmethod
-	def CopyLicMgrConfig(cls, model, delay = False):
+	def GenerateLicMgrConfig(cls, model):
 		src = model.StartPath + '\\LicMgrConfig.xml'
 		des = cls.GetTestPath(model) + '~/'
 		LicenseConfigWriter(model, src)
+
+	@classmethod
+	def CopyLicMgrConfig(cls, model, delay = False):
+		src = model.StartPath + '\\LicMgrConfig.xml'
+		des = cls.GetTestPath(model) + '~/'
 		if delay:
 			TaskMan.AddTimer('LicMgr', FileOperations.Copy(src, des, 9, 3))
 		else:
@@ -1273,6 +1293,8 @@ class AutoTestRunner:
 			self.InitAutoTest()
 		PreTestActions.ModifyVisionSystem(self.model, False)
 
+		if self.model.GenerateLicMgrConfigOnTest:
+			PreTestActions.GenerateLicMgrConfig(self.model)
 		if self.model.CopyMockLicenseOnTest:
 			PreTestActions.CopyLicMgrConfig(self.model, True)
 		if self.model.CopyExportIllumRefOnTest:
@@ -2437,6 +2459,7 @@ class ConfigInfo:
 		model.ClearHistory = self.ReadField(_model, 'ClearHistory', False)
 		model.ShowAllButtons = self.ReadField(_model, 'ShowAllButtons', False)
 		model.RestartSlotsForMMiAlone = self.ReadField(_model, 'RestartSlotsForMMiAlone', False)
+		model.GenerateLicMgrConfigOnTest = self.ReadField(_model, 'GenerateLicMgrConfigOnTest', False)
 		model.CopyMockLicenseOnTest = self.ReadField(_model, 'CopyMockLicenseOnTest', False)
 		model.CopyExportIllumRefOnTest = self.ReadField(_model, 'CopyExportIllumRefOnTest', False)
 
@@ -2471,6 +2494,7 @@ class ConfigInfo:
 		_model['ClearHistory'] = model.ClearHistory
 		_model['ShowAllButtons'] = model.ShowAllButtons
 		_model['RestartSlotsForMMiAlone'] = model.RestartSlotsForMMiAlone
+		_model['GenerateLicMgrConfigOnTest'] = model.GenerateLicMgrConfigOnTest
 		_model['CopyMockLicenseOnTest'] = model.CopyMockLicenseOnTest
 		_model['CopyExportIllumRefOnTest'] = model.CopyExportIllumRefOnTest
 
