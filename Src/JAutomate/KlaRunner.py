@@ -51,10 +51,12 @@ class UIFactory:
 		return but
 
 	@classmethod
-	def AddLabel(cls, parent, text, r, c):
+	def AddLabel(cls, parent, text, r, c, width = 0, anchor='w'):
 		labelVar = tk.StringVar()
 		labelVar.set(text)
-		label = tk.Label(parent, textvariable=labelVar)
+		label = tk.Label(parent, textvariable=labelVar, anchor=anchor)
+		if width > 0:
+			label['width'] = width
 		label.grid(row=r, column=c, sticky='w')
 		return (label, labelVar)
 
@@ -124,18 +126,25 @@ class UI:
 			#os.system('PAUSE')
 			return
 		self.model = Model()
-		VM = UIViewModel(self.model)
+		self.VM = UIViewModel(self.model)
 		self.model.ReadConfigFile()
 		if not os.path.exists(self.model.ConfigInfo.FileName):
 			UISourceSelector(None, self.model, None).Show()
 			return
 		self.klaRunner = KlaRunner(self.model)
 
-		title = 'KLA Application Runner 1.0.' + Git.GetHash()
+		title = 'KLA Application Runner'
 		self.window = UIFactory.CreateWindow(None, title, self.model.StartPath)
-		UIHeader(self.window, 0, 0, self.model, VM)
-		UIMainMenu(self.window, 1, 0, self.klaRunner, VM)
+		UIHeader(self.window, 0, 0, self.model, self.VM)
+		UIMainMenu(self.window, 1, 0, self.klaRunner, self.VM)
+		self.window.after(100, self.LazyInit)
 		self.window.mainloop()
+
+	def LazyInit(self):
+		title = 'KLA Application Runner 1.0.' + Git.GetHash()
+		self.window.title(title)
+		self.model.Branch = Git.GetBranch(self.model.Source)
+		self.VM.lblBranch[1].set(self.model.Branch)
 
 class UIHeader:
 	def __init__(self, parent, r, c, model, VM):
@@ -178,6 +187,7 @@ class UIHeader:
 
 	def OnSelectSource(self):
 		UISourceSelector(self.window, self.model, self.VM).Show()
+		self.VM.lblBranch[1].set(self.model.Branch)
 
 	def AddBranch(self, parent, c):
 		UIFactory.AddLabel(parent, 'Branch', self.Row, c)
@@ -193,7 +203,7 @@ class UIHeader:
 		self.VM.chkAttachMmi = UIFactory.AddCheckBox(parent, self.model.DebugVision, self.Row, c+1, self.VM.OnAttach)
 
 	def AddCopyMmi(self, parent, c):
-		UIFactory.AddLabel(parent, 'Copy MMI to Icos', self.Row, c)
+		UIFactory.AddLabel(parent, 'Copy MMi to Icos', self.Row, c)
 		self.VM.chkCopyMmi = UIFactory.AddCheckBox(parent, self.model.CopyMmi, self.Row, c+1, self.VM.OnCopyMmi)
 
 	def AddSlots(self, parent, c):
@@ -258,7 +268,7 @@ class UIViewModel:
 	def OnCopyMmi(self):
 		self.model.CopyMmi = self.chkCopyMmi.get()
 		self.model.WriteConfigFile()
-		print 'Copy MMI to ICOS : ' + str(self.chkCopyMmi.get())
+		print 'Copy MMi to ICOS : ' + str(self.chkCopyMmi.get())
 
 	def OnSlotChn(self, index):
 		self.model.UpdateSlot(index, self.chkSlots[index].get())
@@ -372,7 +382,7 @@ class UIMainMenu:
 		self.CreateColumnFrame(parent)
 		self.AddButton('Open Python', self.klaRunner.OpenPython)
 		if self.model.ShowAllButtons:
-			self.AddButton('Run Mmi SPC Tests', self.klaRunner.RunMmiSpcTests)
+			self.AddButton('Run MMi SPC Tests', self.klaRunner.RunMmiSpcTests)
 		self.AddButton('Open Test Folder', self.klaRunner.OpenTestFolder)
 		self.AddButton('Compare Test Results', self.klaRunner.CompareMmiReports)
 		self.AddButton('Tortoise Git Diff', AppRunner.OpenLocalDif, (self.model,))
@@ -596,24 +606,40 @@ class UISourceSelector:
 			self.window.mainloop()
 
 	def CreateUI(self, parent):
-		row = 0
 		self.SelectedSrc = tk.IntVar()
 		self.SelectedSrc.set(self.model.SrcIndex)
+		self.lblBranch = []
 		self.cboConfig = []
 		self.cboPlatform = []
-		self.frameGrid = UIFactory.AddFrame(parent, 0, 0, 20, 20)
+		self.frameGrid = UIFactory.AddFrame(parent, 0, 0, 0, 0)
+		row = 0
+		UIFactory.AddLabel(self.frameGrid, 'Source', row, 0)
+		UIFactory.AddLabel(self.frameGrid, 'Branch', row, 1)
+		UIFactory.AddLabel(self.frameGrid, 'Configuration', row, 2)
+		UIFactory.AddLabel(self.frameGrid, 'Platform', row, 3)
 		for srcTuple in self.model.Sources:
-			self.AddRow(row, srcTuple)
 			row += 1
-		frameRow2 = UIFactory.AddFrame(parent, 1, 0, 20, 20)
+			self.AddRow(row, srcTuple)
+		frameRow2 = UIFactory.AddFrame(parent, 1, 0, 0, 0)
 		UIFactory.AddButton(frameRow2, 'Add Source', 0, 0, self.OnAddSource, None, 19)
 		UIFactory.AddButton(frameRow2, 'Remove Source', 0, 1, self.OnRemoveSource, None, 19)
+
+		threading.Thread(target=self.LazyUiInit).start()
 
 	def AddRow(self, row, srcTuple):
 		self.AddSource(self.frameGrid, row, 0, srcTuple[0])
 		self.AddBranch(self.frameGrid, row, 1, srcTuple[0])
-		self.cboConfig.append(self.AddConfig(self.frameGrid, row, 2, srcTuple[1]))
-		self.cboPlatform.append(self.AddPlatform(self.frameGrid, row, 3, srcTuple[2]))
+		self.AddConfig(self.frameGrid, row, 2, srcTuple[1])
+		self.AddPlatform(self.frameGrid, row, 3, srcTuple[2])
+
+	def LazyUiInit(self):
+		index = 0
+		for srcTuple in self.model.Sources:
+			branch = Git.GetBranch(srcTuple[0])
+			self.lblBranch[index].set(branch)
+			if index == self.model.SrcIndex:
+				self.model.Branch = branch
+			index += 1
 
 	def OnClosing(self):
 		if self.Parent is not None:
@@ -645,20 +671,23 @@ class UISourceSelector:
 			text = source,
 			variable = self.SelectedSrc,
 			command = self.OnSelectSrc,
-			value = r)
+			value = r-1)
 		rd.grid(row=r, column=0, sticky='w')
 
 	def OnSelectSrc(self):
 		SrcIndex = self.SelectedSrc.get()
 		self.model.SrcCnf.UpdateSource(SrcIndex, False)
+		print 'Source changed to : ' + self.model.Source
 
 	def AddBranch(self, parent, r, c, source):
-		branch = Git.GetBranch(source)
-		UIFactory.AddLabel(parent, branch, r, c)
+		branch = 'branch'
+		label = UIFactory.AddLabel(parent, branch, r, c, 30)[1]
+		self.lblBranch.append(label)
 
 	def AddConfig(self, parent, r, c, config):
 		configInx = ConfigEncoder.Configs.index(config)
-		return UIFactory.AddCombo(parent, ConfigEncoder.Configs, configInx, r, c, self.OnConfigChanged, r, 10)
+		combo = UIFactory.AddCombo(parent, ConfigEncoder.Configs, configInx, r, c, self.OnConfigChanged, r-1, 10)
+		self.cboConfig.append(combo)
 
 	def OnConfigChanged(self, row):
 		selectedInx = self.cboConfig[row][0].current()
@@ -669,7 +698,8 @@ class UISourceSelector:
 
 	def AddPlatform(self, parent, r, c, platform):
 		platformInx = ConfigEncoder.Platforms.index(platform)
-		return UIFactory.AddCombo(parent, ConfigEncoder.Platforms, platformInx, r, c, self.OnPlatformChanged, r, 10)
+		combo = UIFactory.AddCombo(parent, ConfigEncoder.Platforms, platformInx, r, c, self.OnPlatformChanged, r-1, 10)
+		self.cboPlatform.append(combo)
 
 	def OnPlatformChanged(self, row):
 		selectedInx = self.cboPlatform[row][0].current()
@@ -688,10 +718,8 @@ class FilterTestSelector:
 		UIFactory.AddButton(frame, 'Add Selected Test', 0, 2, self.OnAddSelectedTest, None)
 
 	def AddTestCombo(self, parent, c):
-		self.FilteredTests = self.AllTests = self.GetAllTests()
-		self.TestCmb = UIFactory.AddCombo(parent, self.AllTests, 0, 0, c, self.OnChangeTestCmb, None, 70)[0]
-		if len(self.FilteredTests) > 0:
-			self.TestCmb.current(0)
+		self.TestCmb = UIFactory.AddCombo(parent, [], -1, 0, c, self.OnChangeTestCmb, None, 70)[0]
+		threading.Thread(target=self.UpdateUI).start()
 
 	def GetAllTests(self):
 		allFiles = []
@@ -790,7 +818,7 @@ class Menu:
 		menuData = [
 			['Source', seperator, model.Source, ' '*5, 'Config', seperator, model.Config],
 			['Branch', seperator, model.Branch, ' '*5, 'Platform', seperator, model.Platform],
-			['Test', seperator, model.TestName, ' '*5, 'Copy MMI to Icos', seperator, model.CopyMmi]
+			['Test', seperator, model.TestName, ' '*5, 'Copy MMi to Icos', seperator, model.CopyMmi]
 		]
 		PrettyTable(TableFormat().SetNoBorder('')).PrintTable(menuData)
 
@@ -814,7 +842,7 @@ class Menu:
 		],[
 			[10, ['Open CIT100', sourceBuilder.OpenSolution, 0]],
 			[11, ['Open Simulator', sourceBuilder.OpenSolution, 1]],
-			[12, ['Open Mmi', sourceBuilder.OpenSolution, 2]],
+			[12, ['Open MMi', sourceBuilder.OpenSolution, 2]],
 			[14, ['Open MockLicense', sourceBuilder.OpenSolution, 3]],
 			[15, ['Open Converters', sourceBuilder.OpenSolution, 4]],
 		],[
@@ -834,7 +862,7 @@ class Menu:
 			[93, ['Add Test', settings.AddTest]],
 			[94, ['Change Test', settings.ChangeTest]],
 			[95, ['Change Source', settings.ChangeSource]],
-			[96, ['Change MMI Attach', settings.ChangeDebugVision]],
+			[96, ['Change MMi Attach', settings.ChangeDebugVision]],
 			[97, ['Effort Log', effortLogger.PrintEffortLogInDetail]],
 			[98, ['Clear Output', OsOperations.Cls]],
 			[99, ['Stop All KLA Apps', TaskMan.StopTasks, True]],
@@ -1006,7 +1034,7 @@ class AppRunner:
 		if self.model.RestartSlotsForMMiAlone:
 			self.StopMMi()
 
-		mmiPath = PreTestActions.GetMmiPath(model, fromSrc)
+		mmiPath = PreTestActions.GetMmiPath(self.model, fromSrc)
 		if self.model.CopyMockLicenseOnTest:
 			PreTestActions.GenerateLicMgrConfig(self.model)
 		if self.model.CopyMockLicenseOnTest:
@@ -2591,7 +2619,7 @@ class SourceConfig:
 			return False
 		self.model.SrcIndex = index
 		self.model.Source, self.model.Config, self.model.Platform = self.model.Sources[self.model.SrcIndex]
-		self.model.Branch = Git.GetBranch(self.model.Source)
+		#self.model.Branch = Git.GetBranch(self.model.Source)
 		if writeToFile:
 			self.model.WriteConfigFile()
 		return True
