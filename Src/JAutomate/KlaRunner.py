@@ -94,7 +94,7 @@ class UIFactory:
 		else:
 			action = lambda: cmd(arg)
 		chkBox = tk.Checkbutton(parent, var=chkValue, command=action)
-		chkBox.grid(row=r, column=c, sticky='w')
+		chkBox.grid(row=r, column=c, sticky='ew')
 		return chkValue
 
 	@classmethod
@@ -137,14 +137,16 @@ class UI:
 		self.window = UIFactory.CreateWindow(None, title, self.model.StartPath)
 		UIHeader(self.window, 0, 0, self.model, self.VM)
 		UIMainMenu(self.window, 1, 0, self.klaRunner, self.VM)
-		self.window.after(100, self.LazyInit)
+		self.window.after(200, self.LazyInit)
 		self.window.mainloop()
 
 	def LazyInit(self):
 		title = 'KLA Application Runner 1.0.' + Git.GetHash()
+		print title
 		self.window.title(title)
 		self.model.Branch = Git.GetBranch(self.model.Source)
 		self.VM.lblBranch[1].set(self.model.Branch)
+		Git.Git('.', 'pull')
 
 class UIHeader:
 	def __init__(self, parent, r, c, model, VM):
@@ -164,16 +166,15 @@ class UIHeader:
 
 		self.AddRow()
 		self.AddSource(parent, 0)
-		self.AddActiveSrcs(parent, 3)
-
-		self.AddRow()
-		self.AddBranch(parent, 0)
 		self.AddAttachMmi(parent, 6)
 
 		self.AddRow()
-		self.AddTestUI(parent, 0)
+		self.AddBranch(parent, 0)
 		if self.model.ShowAllButtons:
 			self.AddCopyMmi(parent, 6)
+
+		self.AddRow()
+		self.AddTestUI(parent, 0)
 
 		self.AddRow()
 		self.AddSlots(parent, 0)
@@ -214,16 +215,6 @@ class UIHeader:
 			isSelected = (i+1) in self.model.slots
 			UIFactory.AddLabel(frame, str(i+1), 0, i * 2)
 			self.VM.chkSlots.append(UIFactory.AddCheckBox(frame, isSelected, 0, i * 2 + 1, self.VM.OnSlotChn, i))
-
-	def AddActiveSrcs(self, parent, c):
-		UIFactory.AddLabel(parent, 'Active Srcs', self.Row, c)
-		frame = UIFactory.AddFrame(parent, self.Row, c+1, columnspan=4)
-		self.VM.chkActiveSrcs = []
-		srcs = self.model.ActiveSrcs
-		for i in range(len(self.model.Sources)):
-			isSelected = True if i in srcs else False
-			UIFactory.AddLabel(frame, str(i+1), 0, i * 2)
-			self.VM.chkActiveSrcs.append(UIFactory.AddCheckBox(frame, isSelected, 0, i * 2 + 1, self.VM.OnActiveSrcsChn, i))
 
 class UIViewModel:
 	def __init__(self, model):
@@ -274,16 +265,6 @@ class UIViewModel:
 		self.model.UpdateSlot(index, self.chkSlots[index].get())
 		self.model.WriteConfigFile()
 		print 'Slots for the current test : ' + str(self.model.slots)
-
-	def OnActiveSrcsChn(self, index):
-		if self.chkActiveSrcs[index].get():
-			self.model.ActiveSrcs.append(index)
-			self.model.ActiveSrcs = list(set(self.model.ActiveSrcs))
-			print 'Enabled the source : ' + str(self.model.Sources[index][0])
-		else:
-			self.model.ActiveSrcs.remove(index)
-			print 'Disabled the source : ' + str(self.model.Sources[index][0])
-		self.model.WriteConfigFile()
 
 	def UpdateCombo(self):
 		tests = self.model.AutoTests.GetNames()
@@ -339,9 +320,9 @@ class ThreadHandler:
 
 class UIMainMenu:
 	def __init__(self, parent, r, c, klaRunner, VM):
-		self.parent = parent
+		self.window = parent
 		self.model = klaRunner.model
-		self.frame = UIFactory.AddFrame(self.parent, r, c, 20, 20)
+		self.frame = UIFactory.AddFrame(self.window, r, c, 20, 20)
 		self.klaRunner = klaRunner
 		self.VM = VM
 		self.testRunner = AutoTestRunner(self.model, VM)
@@ -435,7 +416,7 @@ class UIMainMenu:
 		self.ColInx += 1
 
 	def ShowSettings(self):
-		uiSettings = UISettings(self.parent, self.model, self.VM)
+		uiSettings = UISettings(self.window, self.model, self.VM)
 		uiSettings.Show()
 		self.VM.UpdateCombo()
 
@@ -611,26 +592,32 @@ class UISourceSelector:
 		self.lblBranch = []
 		self.cboConfig = []
 		self.cboPlatform = []
-		self.frameGrid = UIFactory.AddFrame(parent, 0, 0, 0, 0)
-		row = 0
-		UIFactory.AddLabel(self.frameGrid, 'Source', row, 0)
-		UIFactory.AddLabel(self.frameGrid, 'Branch', row, 1)
-		UIFactory.AddLabel(self.frameGrid, 'Configuration', row, 2)
-		UIFactory.AddLabel(self.frameGrid, 'Platform', row, 3)
+		self.chkActiveSrcs = []
+		self.frameGrid = UIFactory.AddFrame(parent, 0, 0)
+		self.AddHeader()
+		row = 1
 		for srcTuple in self.model.Sources:
-			row += 1
 			self.AddRow(row, srcTuple)
-		frameRow2 = UIFactory.AddFrame(parent, 1, 0, 0, 0)
-		UIFactory.AddButton(frameRow2, 'Add Source', 0, 0, self.OnAddSource, None, 19)
-		UIFactory.AddButton(frameRow2, 'Remove Source', 0, 1, self.OnRemoveSource, None, 19)
+			row += 1
+
+		funFrame = UIFactory.AddFrame(parent, 1, 0)
+		self.AddFunctions(funFrame)
 
 		threading.Thread(target=self.LazyUiInit).start()
+
+	def AddHeader(self):
+		UIFactory.AddLabel(self.frameGrid, 'Current Source', 0, 0)
+		UIFactory.AddLabel(self.frameGrid, 'Branch', 0, 1)
+		UIFactory.AddLabel(self.frameGrid, 'Configuration', 0, 2)
+		UIFactory.AddLabel(self.frameGrid, 'Platform', 0, 3)
+		UIFactory.AddLabel(self.frameGrid, 'Is Active', 0, 4)
 
 	def AddRow(self, row, srcTuple):
 		self.AddSource(self.frameGrid, row, 0, srcTuple[0])
 		self.AddBranch(self.frameGrid, row, 1, srcTuple[0])
 		self.AddConfig(self.frameGrid, row, 2, srcTuple[1])
 		self.AddPlatform(self.frameGrid, row, 3, srcTuple[2])
+		self.AddActive(self.frameGrid, row, 4)
 
 	def LazyUiInit(self):
 		index = 0
@@ -650,22 +637,6 @@ class UISourceSelector:
 		self.model.WriteConfigFile()
 		self.window.destroy()
 
-	def OnAddSource(self):
-		folderSelected = tkFileDialog.askdirectory()
-		if len(folderSelected) > 0:
-			ConfigEncoder.AddSrc(self.model, folderSelected)
-			row = len(self.model.Sources)
-			self.AddRow(row, self.model.Sources[-1])
-			print 'New source added : ' + folderSelected
-
-	def OnRemoveSource(self):
-		msg = 'The source ' + self.model.Sources[self.model.SrcIndex][0] + ' has been removed.'
-		del self.model.Sources[self.model.SrcIndex]
-		del self.cboConfig[self.model.SrcIndex]
-		del self.cboPlatform[self.model.SrcIndex]
-		self.model.SrcCnf.UpdateSource(self.model.SrcIndex - 1, False)
-		print msg
-
 	def AddSource(self, parent, r, c, source):
 		rd = tk.Radiobutton(parent,
 			text = source,
@@ -680,8 +651,7 @@ class UISourceSelector:
 		print 'Source changed to : ' + self.model.Source
 
 	def AddBranch(self, parent, r, c, source):
-		branch = 'branch'
-		label = UIFactory.AddLabel(parent, branch, r, c, 30)[1]
+		label = UIFactory.AddLabel(parent, 'Branch Name Updating...', r, c, 50)[1]
 		self.lblBranch.append(label)
 
 	def AddConfig(self, parent, r, c, config):
@@ -707,6 +677,42 @@ class UISourceSelector:
 			self.model.WriteConfigFile()
 			srcTuple = self.model.Sources[row]
 			print 'Platform Changed to {} for source {}'.format(srcTuple[2], srcTuple[0])
+
+	def AddActive(self, parent, r, c):
+		Index = r - 1
+		isActive = Index in self.model.ActiveSrcs
+		chk = UIFactory.AddCheckBox(parent, isActive, r, c, self.OnActiveSrcChanged, Index)
+		self.chkActiveSrcs.append(chk)
+
+	def OnActiveSrcChanged(self, Index):
+		if self.chkActiveSrcs[Index].get():
+			self.model.ActiveSrcs.append(Index)
+			self.model.ActiveSrcs = list(set(self.model.ActiveSrcs))
+			print 'Enabled the source : ' + str(self.model.Sources[Index][0])
+		else:
+			self.model.ActiveSrcs.remove(Index)
+			print 'Disabled the source : ' + str(self.model.Sources[Index][0])
+		#self.model.WriteConfigFile()
+
+	def AddFunctions(self, parent):
+		UIFactory.AddButton(parent, 'Add Source', 0, 0, self.OnAddSource, None, 19)
+		UIFactory.AddButton(parent, 'Remove Source', 0, 1, self.OnRemoveSource, None, 19)
+
+	def OnAddSource(self):
+		folderSelected = tkFileDialog.askdirectory()
+		if len(folderSelected) > 0:
+			ConfigEncoder.AddSrc(self.model, folderSelected)
+			row = len(self.model.Sources)
+			self.AddRow(row, self.model.Sources[-1])
+			print 'New source added : ' + folderSelected
+
+	def OnRemoveSource(self):
+		msg = 'The source ' + self.model.Sources[self.model.SrcIndex][0] + ' has been removed.'
+		del self.model.Sources[self.model.SrcIndex]
+		del self.cboConfig[self.model.SrcIndex]
+		del self.cboPlatform[self.model.SrcIndex]
+		self.model.SrcCnf.UpdateSource(self.model.SrcIndex - 1, False)
+		print msg
 
 class FilterTestSelector:
 	def AddUI(self, parent, model, r, c, updateCombo):
@@ -2739,6 +2745,5 @@ def main():
 	elif (__name__ == '__main__'):
 		UI().Run()
 		print 'Have a nice day...'
-		Git.Git('.', 'pull')
 
 main()
