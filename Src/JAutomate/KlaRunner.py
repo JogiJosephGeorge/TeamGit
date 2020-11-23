@@ -141,12 +141,20 @@ class UI:
 		self.window.mainloop()
 
 	def LazyInit(self):
-		title = 'KLA Application Runner 1.0.' + Git.GetHash()
-		print title
+		title = 'KLA Application Runner ' + self.GetVersion()
 		self.window.title(title)
 		self.model.Branch = Git.GetBranch(self.model.Source)
 		self.VM.lblBranch[1].set(self.model.Branch)
 		Git.Git('.', 'pull')
+		OsOperations.Cls()
+		print title
+
+	def GetVersion(self):
+		commitCnt = OsOperations.ProcessOpen('git rev-list --all --count')
+		revision = int(re.sub('\W+', '', commitCnt)) - 139
+		desStr = OsOperations.ProcessOpen('git describe --always')
+		hash = re.sub('\W+', '', desStr)
+		return '1.1.{}.{}'.format(revision, hash)
 
 class UIHeader:
 	def __init__(self, parent, r, c, model, VM):
@@ -391,10 +399,10 @@ class UIMainMenu:
 		self.AddButton('Settings', self.ShowSettings)
 		if self.model.ShowAllButtons:
 			self.AddButton('Clear Output', OsOperations.Cls)
-		self.AddParallelButton('Clean Active Srcs', self.klaSourceBuilder.CleanSource)
-		self.AddParallelButton('Build Active Srcs', self.klaSourceBuilder.BuildSource)
+		self.AddParallelButton('Clean Active Srcs', self.klaSourceBuilder.CleanSource, None, self.klaSourceBuilder.NotifyConsole)
+		self.AddParallelButton('Build Active Srcs', self.klaSourceBuilder.BuildSource, None, self.klaSourceBuilder.NotifyConsole)
 		if self.model.ShowAllButtons:
-			self.AddParallelButton('Reset Srcs', self.klaSourceBuilder.ResetSource)
+			self.AddParallelButton('Reset Srcs', self.klaSourceBuilder.ResetSource, None, self.klaSourceBuilder.NotifyConsole)
 			self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
 			self.AddButton('Effort Log', effortLogger.PrintEffortLogInDetail)
 			self.AddButton('Daily Log', effortLogger.PrintDailyLog)
@@ -512,9 +520,8 @@ class UISettings:
 		self.AddRow()
 
 	def OnShowAll(self):
-		#self.model.ShowAllButtons = self.ChkShowAll.get()
-		#print 'You need to restart the application to update the UI.'
-		VMWareRunner.ShowMessage('You need to restart the application to update the UI.')
+		self.model.ShowAllButtons = self.ChkShowAll.get()
+		KlaRunner.ShowMessage('You need to restart the application to update the UI.')
 
 	def AddRestartSlotsForMMiCheck(self, parent):
 		UIFactory.AddLabel(parent, 'Restart Slots while running MMi alone', self.Row, 0)
@@ -524,6 +531,11 @@ class UISettings:
 
 	def OnRestartSlotsForMMi(self):
 		self.model.RestartSlotsForMMiAlone = self.ChkRestartSlotsForMMi.get()
+		msg = 'The selected slots will {}be restarted while running MMi alone.'
+		if self.model.RestartSlotsForMMiAlone:
+			print msg.format('')
+		else:
+			print msg.format('NOT ')
 
 	def AddGenerateLicMgrConfigOnTestCheck(self, parent):
 		UIFactory.AddLabel(parent, 'Generate LicMgrConfig.xml On AutoTest', self.Row, 0)
@@ -533,6 +545,10 @@ class UISettings:
 
 	def OnGenerateLicMgrConfigOnTest(self):
 		self.model.GenerateLicMgrConfigOnTest = self.ChkGenerateLicMgrConfigOnTest.get()
+		if self.model.GenerateLicMgrConfigOnTest:
+			KlaRunner.ShowMessage('The file LicMgrConfig.xml will be created while running auto test.\nThis is NOT RECOMMENDED.')
+		else:
+			print 'The file LicMgrConfig.xml will NOT be created while running auto test.'
 
 	def AddCopyMockLicenseOnTestCheck(self, parent):
 		UIFactory.AddLabel(parent, 'Copy Mock License On AutoTest', self.Row, 0)
@@ -542,6 +558,10 @@ class UISettings:
 
 	def OnCopyMockLicenseOnTest(self):
 		self.model.CopyMockLicenseOnTest = self.ChkCopyMockLicenseOnTest.get()
+		if self.model.CopyMockLicenseOnTest:
+			KlaRunner.ShowMessage('The file mock License.dll will be copied while running auto test.\nThis is NOT RECOMMENDED.')
+		else:
+			print 'The file mock License.dll will NOT be copied while running auto test.'
 
 	def AddCopyExportIllumRefOnTestCheck(self, parent):
 		UIFactory.AddLabel(parent, 'Copy xPort_IllumReference.xml on AutoTest', self.Row, 0)
@@ -551,6 +571,10 @@ class UISettings:
 
 	def OnCopyExportIllumRefOnTest(self):
 		self.model.CopyExportIllumRefOnTest = self.ChkCopyExportIllumRefOnTest.get()
+		if self.model.CopyExportIllumRefOnTest:
+			KlaRunner.ShowMessage('The file xPort_IllumReference.xml will be copied while running auto test.\nThis is NOT RECOMMENDED.')
+		else:
+			print 'The file xPort_IllumReference.xml will NOT be copied while running auto test.'
 
 	def AddFirstRow(self, parent):
 		frame = UIFactory.AddFrame(parent, 0, 0, 0, 0, 2)
@@ -651,7 +675,7 @@ class UISourceSelector:
 		print 'Source changed to : ' + self.model.Source
 
 	def AddBranch(self, parent, r, c, source):
-		label = UIFactory.AddLabel(parent, 'Branch Name Updating...', r, c, 50)[1]
+		label = UIFactory.AddLabel(parent, 'Branch Name Updating...', r, c)[1]
 		self.lblBranch.append(label)
 
 	def AddConfig(self, parent, r, c, config):
@@ -1004,6 +1028,14 @@ class KlaRunner:
 			os.mkdir(wd)
 		os.chdir(wd)
 
+	@classmethod
+	def ShowMessage(cls, msg):
+		print msg
+		if KlaRunner.RunFromUI:
+			messagebox.showinfo('KLA Runner', msg)
+		else:
+			os.system('PAUSE')
+
 class AppRunner:
 	def __init__(self, model, testRunner):
 		self.model = model
@@ -1173,7 +1205,7 @@ class VMWareRunner:
 		vMwareWS = model.VMwareWS
 		slots = model.slots
 		if len(slots) == 0:
-			cls.ShowMessage('Please select necessary slot(s).')
+			KlaRunner.ShowMessage('Please select necessary slot(s).')
 			return False
 		vmRunExe = vMwareWS + '/vmrun.exe'
 		vmWareExe = vMwareWS + '/vmware.exe'
@@ -1196,15 +1228,14 @@ class VMWareRunner:
 			else:
 				subprocess.Popen([vmWareExe, vmxPath])
 				msg = 'Please start ' + slotName
-				cls.ShowMessage(msg)
-				print slotName + ' : Started.'
+				KlaRunner.ShowMessage(msg)
 		return True
 
 	@classmethod
 	def TestSlots(cls, model):
 		slots = model.slots
 		if len(slots) == 0:
-			cls.ShowMessage('Please select necessary slot(s).')
+			KlaRunner.ShowMessage('Please select necessary slot(s).')
 			return
 
 		if TaskMan.StopTask('MvxCmd.exe'):
@@ -1217,14 +1248,6 @@ class VMWareRunner:
 			cmd = 'slot{}.bat'.format(slot)
 			OsOperations.System(cmd)
 		OsOperations.ChDir(cd1)
-
-	@classmethod
-	def ShowMessage(cls, msg):
-		print msg
-		if KlaRunner.RunFromUI:
-			messagebox.showinfo('KLA Runner', msg)
-		else:
-			os.system('PAUSE')
 
 class PreTestActions:
 	@classmethod
@@ -1538,6 +1561,12 @@ class KlaSourceBuilder:
 			'/mmi/mmi/Converters.sln'
 		]
 		self.SlnNames = ['CIT100', 'Simulator', 'MMi', 'Mock', 'Converters']
+
+	def NotifyConsole(self):
+		if KlaRunner.RunFromUI:
+			OsOperations.Cls()
+			messagebox.showinfo('KLA Runner', 'Please verify the branches and configurations in console window.')
+		return True
 
 	def VerifySources(self, message):
 		isAre = (' is', 's are')[len(self.model.ActiveSrcs) > 1]
@@ -2114,14 +2143,6 @@ class Git:
 			Git.SubmoduleUpdate(model.Source)
 		print 'Git fetch and pull completed.'
 		OsOperations.Pause()
-
-	@classmethod
-	def GetHash(cls):
-		str = OsOperations.ProcessOpen('git rev-list --all --count')
-		commitCnt = re.sub('\W+', '', str)
-		str = OsOperations.ProcessOpen('git describe --always')
-		hash = re.sub('\W+', '', str)
-		return commitCnt + '.' + hash
 
 	@classmethod
 	def Commit(cls, model, msg):
