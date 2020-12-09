@@ -2272,24 +2272,38 @@ class EffortReader:
 		actualTime = None
 		date = None
 		data = []
-		def AddRow(d1, t1):
+		self.weeklyHours = timedelta()
+		self.lastDay = 0
+		def AddRow(d1, t1, isLast):
+			formattedDay = d1.strftime('%d-%b-%Y %a %H:%M')
 			formattedTime = DateTimeOps.Strftime(t1, '{:02}:{:02}')
-			data.append([d1, formattedTime])
+			todayInt = int(d1.strftime('%w'))
+			if self.lastDay > todayInt:
+				weeklyTotal = DateTimeOps.Strftime(self.weeklyHours, '{:02}:{:02}')
+				data.append(['', '', weeklyTotal])
+				self.weeklyHours = timedelta()
+			self.weeklyHours += t1
+			self.lastDay = todayInt
+			data.append([formattedDay, formattedTime, ''])
+			if isLast:
+				weeklyTotal = DateTimeOps.Strftime(self.weeklyHours, '{:02}:{:02}')
+				data.append(['', '', weeklyTotal])
+		startDate = datetime.now().today() - timedelta(days=30)
 		for lineParts in self.content:
 			dt = datetime.strptime(lineParts[0], self.DTFormat)
-			if DateTimeOps.IsSameDate(dt, date, self.DayStarts):
-				ts = dt - lastDt
-				if len(lineParts[1] + lineParts[2]) > 0:
-					actualTime += ts
-			else:
-				if date is not None:
-					AddRow(formattedDay, actualTime)
-				date = dt
-				formattedDay = dt.strftime('%d-%b-%Y %H:%M')
-				actualTime = timedelta()
+			if dt > startDate:
+				if DateTimeOps.IsSameDate(dt, date, self.DayStarts):
+					ts = dt - lastDt
+					if len(lineParts[1] + lineParts[2]) > 0:
+						actualTime += ts
+				else:
+					if date is not None:
+						AddRow(date, actualTime, False)
+					date = dt
+					actualTime = timedelta()
 			lastDt = dt
-		AddRow(formattedDay, actualTime)
-		return data
+		AddRow(date, actualTime, True)
+		return data,actualTime
 
 	def FormatText(self, message):
 		return message.encode('ascii', 'ignore').decode('ascii')
@@ -2363,12 +2377,15 @@ class EffortLogger:
 	def PrintDailyLog(self):
 		reader = EffortReader(self.model)
 		reader.ReadFile()
-		data = reader.GetDailyLog()
+		data,todaysTime = reader.GetDailyLog()
 		if data is None:
 			return
-		effortData = [['Date', 'Actual Time'], ['-']] + data
+		effortData = [['Daily Start Time', 'Log', 'Total'], ['-']] + data
 		table = PrettyTable(TableFormat().SetSingleLine()).ToString(effortData)
 		print table,
+		print (datetime.now() + timedelta(hours=9) - todaysTime).strftime('%H:%M')
+		#csvTable = PrettyTable(TableFormat().SetNoBorder(u',')).ToString(effortData)
+		#print csvTable,
 		reader.CheckApplication()
 
 	def Trim(self, message, width):
