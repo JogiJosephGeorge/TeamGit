@@ -336,6 +336,7 @@ class UIMainMenu:
 		self.klaRunner = klaRunner
 		self.VM = VM
 		self.testRunner = AutoTestRunner(self.model, VM)
+		self.mmiSpcTestRunner = MmiSpcTestRunner(self.model)
 		self.settings = Settings(self.model, self.klaRunner)
 		self.appRunner = AppRunner(self.model, self.testRunner)
 		self.klaSourceBuilder = KlaSourceBuilder(self.model, self.klaRunner)
@@ -377,7 +378,7 @@ class UIMainMenu:
 		self.CreateColumnFrame(parent)
 		self.AddButton('Open Python', self.klaRunner.OpenPython)
 		if self.model.ShowAllButtons:
-			self.AddButton('Run MMi SPC Tests', self.klaRunner.RunMmiSpcTests)
+			self.AddButton('Run MMi SPC Tests', self.mmiSpcTestRunner.RunAllTests)
 		self.AddButton('Open Test Folder', self.klaRunner.OpenTestFolder)
 		self.AddButton('Compare Test Results', self.klaRunner.CompareMmiReports)
 		self.AddButton('Tortoise Git Diff', AppRunner.OpenLocalDif, (self.model,))
@@ -976,11 +977,6 @@ class KlaRunner:
 		par = 'start python -i ' + fileName
 		OsOperations.System(par, 'Starting my.py')
 
-	def RunMmiSpcTests(self):
-		fileName = os.path.abspath(self.model.Source + '/mmi/mmi/mmi_stat/integration/mmiSpcTests.py')
-		par = 'start python -i ' + fileName
-		OsOperations.System(par, 'Starting mmiSpcTests.py')
-
 	def GetTestPath(self):
 		return os.path.abspath(self.model.Source + '/handler/tests/' + self.model.TestName)
 
@@ -1432,6 +1428,23 @@ class LicenseConfigWriter:
 
 		with open(fileName, 'w') as f:
 			f.write('\n'.join(strArr))
+
+class MmiSpcTestRunner:
+	def __init__(self, model):
+		self.model = model
+
+	def RunAllTests(self):
+		os.chdir(self.model.Source)
+		buildPath = 'mmi/mmi/bin/{}/{}'.format(self.model.Platform, self.model.Config)
+		par = 'python libs/testing/testrunner.py'
+		par += ' -t mmi/mmi/mmi_stat/integration/tests'
+		par += ' -c ' + buildPath
+		par += ' -s ' + buildPath
+		par += ' -f ' + buildPath
+		par += ' -n 1 -r 2'
+		par += ' --mmiSetupExe ' + self.model.MMiSetupsPath
+		OsOperations.System(par, 'Running Mmi SPC Tests')
+		os.chdir(self.model.StartPath)
 
 class AutoTestRunner:
 	def __init__(self, model, VM):
