@@ -211,10 +211,8 @@ class UIHeader:
 		UIFactory.AddButton(parent, ' ... ', self.Row, c+2, self.ShowAutoTestSettings, None)
 
 	def ShowAutoTestSettings(self):
-		uiAutoTestSettings = UIAutoTestSettings(self.window, self.model)
+		uiAutoTestSettings = UIAutoTestSettings(self.window, self.model, self.VM)
 		uiAutoTestSettings.Show()
-		self.VM.UpdateCombo()
-		self.VM.UpdateSlots()
 
 	def AddAttachMmi(self, parent, c):
 		txt = 'Attach MMi'
@@ -466,20 +464,35 @@ class UIWindow(object):
 		self.window.destroy()
 
 class UIAutoTestSettings(UIWindow):
-	def __init__(self, parent, model):
+	def __init__(self, parent, model, VM):
 		super(UIAutoTestSettings, self).__init__(parent, model, 'Auto Test Settings')
+		self.VM = VM
 
 	def CreateUI(self, parent):
 		testFrame = UIFactory.AddFrame(parent, 0, 0)
-		self.AddFirstRow(testFrame)
+
+		UIFactory.AddLabel(testFrame, 'Method 1: Add test by browsing script.py file', 0, 0)
+		self.AddBrowseButton(testFrame, 1)
+
+		UIFactory.AddLabel(testFrame, '', 2, 0) # Empty Row
+
+		UIFactory.AddLabel(testFrame, 'Method 2: Add test by selecting from list', 3, 0)
 		self.filterTestSelector = FilterTestSelector()
 		self.RemoveTestMan = RemoveTestMan()
-		self.filterTestSelector.AddUI(testFrame, self.model, 1, 0, self.RemoveTestMan.UpdateCombo)
-		self.RemoveTestMan.AddUI(testFrame, self.model, 2, 0)
+		self.filterTestSelector.AddUI(testFrame, self.model, 4, 0, self.RemoveTestMan.UpdateCombo)
 
-	def AddFirstRow(self, parent):
-		frame = UIFactory.AddFrame(parent, 0, 0, 0, 0, 2)
-		UIFactory.AddButton(frame, 'Add Test', 0, 1, self.AddTestUI, None, 19)
+		UIFactory.AddLabel(testFrame, '', 5, 0) # Empty Row
+
+		self.RemoveTestMan.AddUI(testFrame, self.model, 6, 0)
+
+	def OnClosing(self):
+		self.VM.UpdateCombo()
+		self.VM.UpdateSlotsChk(False)
+		super(UIAutoTestSettings, self).OnClosing()
+
+	def AddBrowseButton(self, parent, r):
+		frame = UIFactory.AddFrame(parent, r, 0)
+		UIFactory.AddButton(frame, 'Add Test', 0, 0, self.AddTestUI, None, 19)
 
 	def AddTestUI(self):
 		dir = self.model.Source + '/handler/tests'
@@ -737,7 +750,6 @@ class UISourceSelector(UIWindow):
 		else:
 			self.model.ActiveSrcs.remove(Index)
 			print 'Disabled the source : ' + str(self.model.Sources[Index][0])
-		#self.model.WriteConfigFile()
 
 	def AddFunctions(self, parent):
 		UIFactory.AddButton(parent, 'Add Source', 0, 0, self.OnAddSource, None, 19)
@@ -763,13 +775,13 @@ class FilterTestSelector:
 	def AddUI(self, parent, model, r, c, updateCombo):
 		self.model = model
 		self.UpdateCombo = updateCombo
-		frame = UIFactory.AddFrame(parent, r, c, 0, 0, 2)
+		frame = UIFactory.AddFrame(parent, r, c)
 		UIFactory.AddEntry(frame, self.OnSearchTextChanged, 0, 0, 25)
 		self.AddTestCombo(frame, 1)
 		UIFactory.AddButton(frame, 'Add Selected Test', 0, 2, self.OnAddSelectedTest, None)
 
 	def AddTestCombo(self, parent, c):
-		self.TestCmb = UIFactory.AddCombo(parent, [], -1, 0, c, self.OnChangeTestCmb, None, 70)[0]
+		self.TestCmb = UIFactory.AddCombo(parent, [], -1, 0, c, self.OnChangeTestCmb, None, 50)[0]
 		threading.Thread(target=self.UpdateUI).start()
 
 	def GetAllTests(self):
@@ -796,6 +808,8 @@ class FilterTestSelector:
 		self.TestCmb['values'] = self.FilteredTests
 		if len(self.FilteredTests) > 0:
 			self.TestCmb.current(0)
+		else:
+			self.TestCmb.set('')
 		return True
 
 	def OnAddSelectedTest(self):
@@ -824,10 +838,11 @@ class RemoveTestMan:
 		self.model = model
 		frame = UIFactory.AddFrame(parent, r, c, 0, 0, 2)
 		self.Tests = self.model.AutoTests.GetNames()
-		self.TestCmb = UIFactory.AddCombo(frame, self.Tests, 0, 0, c, self.OnChangeTestCmb, None, 70)[0]
+		UIFactory.AddLabel(frame, 'Selected Tests', 0, 0)
+		self.TestCmb = UIFactory.AddCombo(frame, self.Tests, 0, 0, 1, self.OnChangeTestCmb, None, 50)[0]
 		if len(self.Tests) > 0:
 			self.TestCmb.current(0)
-		UIFactory.AddButton(frame, 'Remove Selected Test', 0, 1, self.OnRemoveSelectedTest, None)
+		UIFactory.AddButton(frame, 'Remove Test', 0, 2, self.OnRemoveSelectedTest, None)
 
 	def OnChangeTestCmb(self, event):
 		if len(self.Tests) > 0:
@@ -2636,6 +2651,14 @@ class AutoTestModel:
 		slotStrs = [str(slot) for slot in slots]
 		return '{} {}'.format(testName, '_'.join(slotStrs))
 
+	def ToString(self):
+		data = []
+		index = 0
+		for item in self.Tests:
+			data.append([ str(index), str(item[0]), str(item[1]) ])
+			index += 1
+		return PrettyTable(TableFormat().SetSingleLine()).ToString(data)
+
 class ConfigInfo:
 	def __init__(self, fileName):
 		self.FileName = fileName
@@ -2841,6 +2864,12 @@ class Model:
 
 	def GetLibsTestPath(self):
 		return self.Source + '/libs/testing'
+
+	def TestInfoToString(self):
+		msg  = 'Current Test Index : ' + str(self.TestIndex) + '\n'
+		msg += 'Current Test Name  : ' + self.TestName + '\n'
+		msg += 'Current Slots      : ' + str(self.slots) + '\n'
+		return msg
 
 def main():
 	if (len(sys.argv) == 2):
