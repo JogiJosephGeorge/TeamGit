@@ -318,10 +318,6 @@ class ThreadHandler:
 		self.SetButtonNormal(name)
 		del self.threads[name]
 
-	def AddButton(self, but):
-		name = self.GetButtonName(but)
-		self.Buttons[name] = but
-
 	def GetButtonName(self, but):
 		return ' '.join(but.config('text')[-1])
 
@@ -337,11 +333,35 @@ class ThreadHandler:
 		#	button['state'] = 'normal'
 		self.Buttons[name].config(background='SystemButtonFace')
 
+	def AddButton(self, parent, label, r, c, FunPnt, args = None, InitFunPnt = None):
+		argSet = (label, FunPnt, args, InitFunPnt)
+		but = UIFactory.AddButton(parent, label, r, c, self.Start, argSet, 19)
+		name = self.GetButtonName(but)
+		self.Buttons[name] = but
+
+class UIGrid:
+	def __init__(self, parent, r, c, threadHandler):
+		self.Col = 0
+		self.MainFrame = UIFactory.AddFrame(parent, r, c, 20, 20)
+		self.threadHandler = threadHandler
+
+	def CreateColumnFrame(self):
+		self.ColFrame = UIFactory.AddFrame(self.MainFrame, 0, self.Col, sticky='n')
+		self.Col += 1
+		self.RowInx = 0
+
+	def AddParallelButton(self, label, FunPnt, args = None, InitFunPnt = None):
+		self.threadHandler.AddButton(self.ColFrame, label, self.RowInx, 0, FunPnt, args, InitFunPnt)
+		self.RowInx += 1
+
+	def AddButton(self, label, FunPnt, args = None):
+		but = UIFactory.AddButton(self.ColFrame, label, self.RowInx, 0, FunPnt, args, 19)
+		self.RowInx += 1
+
 class UIMainMenu:
 	def __init__(self, parent, r, c, klaRunner, VM):
 		self.window = parent
 		self.model = klaRunner.model
-		self.frame = UIFactory.AddFrame(self.window, r, c, 20, 20)
 		self.klaRunner = klaRunner
 		self.VM = VM
 		self.testRunner = AutoTestRunner(self.model, VM)
@@ -350,91 +370,76 @@ class UIMainMenu:
 		self.appRunner = AppRunner(self.model, self.testRunner)
 		self.vsSolutions = VisualStudioSolutions(self.model)
 		self.klaSourceBuilder = KlaSourceBuilder(self.model, self.klaRunner, self.vsSolutions)
-		self.threadHandler = ThreadHandler()
-		self.Col = 0
-		self.AddColumn1(self.frame)
-		self.AddColumn2(self.frame)
-		self.AddColumn3(self.frame)
-		self.AddColumn4(self.frame)
-		self.AddColumn5(self.frame)
 
-	def AddColumn1(self, parent):
-		self.CreateColumnFrame(parent)
-		self.AddButton('Stop All KLA Apps', self.VM.StopTasks)
+		self.uiGrid = UIGrid(parent, r, c, ThreadHandler())
+		self.AddColumn1()
+		self.AddColumn2()
+		self.AddColumn3()
+		self.AddColumn4()
+		self.AddColumn5()
+
+	def AddColumn1(self):
+		self.uiGrid.CreateColumnFrame()
+		self.uiGrid.AddButton('Stop All KLA Apps', self.VM.StopTasks)
 		tr = self.testRunner
-		self.AddParallelButton('Run test', tr.RunAutoTest, (False,False), tr.InitAutoTest)
-		self.AddParallelButton('Start test', tr.RunAutoTest, (True,False), tr.InitAutoTest)
+		self.uiGrid.AddParallelButton('Run test', tr.RunAutoTest, (False,False), tr.InitAutoTest)
+		self.uiGrid.AddParallelButton('Start test', tr.RunAutoTest, (True,False), tr.InitAutoTest)
 		if self.model.ShowAllButtons:
-			self.AddButton('Run Handler', self.appRunner.RunHandler)
-			self.AddButton('Stop MMi alone', self.appRunner.StopMMi)
-			self.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True,False))
-			self.AddButton('Run MMi from C:/Icos', self.appRunner.RunMMi, (False,False))
+			self.uiGrid.AddButton('Run Handler', self.appRunner.RunHandler)
+			self.uiGrid.AddButton('Stop MMi alone', self.appRunner.StopMMi)
+			self.uiGrid.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True,False))
+			self.uiGrid.AddButton('Run MMi from C:/Icos', self.appRunner.RunMMi, (False,False))
 
-	def AddColumn2(self, parent):
+	def AddColumn2(self):
+		self.uiGrid.CreateColumnFrame()
 		vsSolutions = self.vsSolutions
-		self.CreateColumnFrame(parent)
-		self.AddButton('Open CIT100', vsSolutions.OpenSolution, (0,))
-		self.AddButton('Open Simulator', vsSolutions.OpenSolution, (1,))
-		self.AddButton('Open Mmi', vsSolutions.OpenSolution, (2,))
-		self.AddButton('Open MockLicense', vsSolutions.OpenSolution, (3,))
-		self.AddButton('Open Converters', vsSolutions.OpenSolution, (4,))
+		self.uiGrid.AddButton('Open CIT100', vsSolutions.OpenSolution, (0,))
+		self.uiGrid.AddButton('Open Simulator', vsSolutions.OpenSolution, (1,))
+		self.uiGrid.AddButton('Open Mmi', vsSolutions.OpenSolution, (2,))
+		self.uiGrid.AddButton('Open MockLicense', vsSolutions.OpenSolution, (3,))
+		self.uiGrid.AddButton('Open Converters', vsSolutions.OpenSolution, (4,))
 
-	def AddColumn3(self, parent):
-		self.CreateColumnFrame(parent)
-		self.AddButton('Open Python', self.klaRunner.OpenPython)
+	def AddColumn3(self):
+		self.uiGrid.CreateColumnFrame()
+		self.uiGrid.AddButton('Open Python', self.klaRunner.OpenPython)
 		if self.model.ShowAllButtons:
-			self.AddButton('Run MMi SPC Tests', self.mmiSpcTestRunner.RunAllTests)
-		self.AddButton('Open Test Folder', self.klaRunner.OpenTestFolder)
-		self.AddButton('Compare Test Results', self.klaRunner.CompareMmiReports)
-		self.AddButton('Tortoise Git Diff', AppRunner.OpenLocalDif, (self.model,))
+			self.uiGrid.AddButton('Run MMi SPC Tests', self.mmiSpcTestRunner.RunAllTests)
+		self.uiGrid.AddButton('Open Test Folder', self.klaRunner.OpenTestFolder)
+		self.uiGrid.AddButton('Compare Test Results', self.klaRunner.CompareMmiReports)
+		self.uiGrid.AddButton('Tortoise Git Diff', AppRunner.OpenLocalDif, (self.model,))
 		if self.model.ShowAllButtons:
-			self.AddButton('Git GUI', Git.OpenGitGui, (self.model,))
-			self.AddButton('Git Bash Console', Git.OpenGitBash, (self.model,))
-		self.AddButton('Git Fetch Pull', Git.FetchPull, (self.model,))
-		self.AddButton('Git Submodule Update', Git.SubmoduleUpdate, (self.model,))
+			self.uiGrid.AddButton('Git GUI', Git.OpenGitGui, (self.model,))
+			self.uiGrid.AddButton('Git Bash Console', Git.OpenGitBash, (self.model,))
+		self.uiGrid.AddButton('Git Fetch Pull', Git.FetchPull, (self.model,))
+		self.uiGrid.AddButton('Git Submodule Update', Git.SubmoduleUpdate, (self.model,))
 
-	def AddColumn4(self, parent):
-		self.CreateColumnFrame(parent)
-		self.AddButton('Run Selected Slots', VMWareRunner.RunSlots, (self.model,))
-		self.AddButton('Test First Slot', VMWareRunner.TestSlots, (self.model,))
+	def AddColumn4(self):
+		self.uiGrid.CreateColumnFrame()
+		self.uiGrid.AddButton('Run Selected Slots', VMWareRunner.RunSlots, (self.model,))
+		self.uiGrid.AddButton('Test First Slot', VMWareRunner.TestSlots, (self.model,))
 		if self.model.ShowAllButtons:
-			self.AddButton('Comment VisionSystem', PreTestActions.ModifyVisionSystem, (self.model,))
-			self.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
-			self.AddButton('Copy Mock License', PreTestActions.CopyMockLicense, (self.model,))
-			self.AddButton('Copy xPort xml', PreTestActions.CopyxPortIllumRef, (self.model,))
-			self.AddButton('Generate LicMgrConfig', PreTestActions.GenerateLicMgrConfig, (self.model,))
-			self.AddButton('Copy LicMgrConfig', PreTestActions.CopyLicMgrConfig, (self.model,))
-			self.AddButton('Copy MmiSaveLogs.exe', PreTestActions.CopyMmiSaveLogExe, (self.model,))
+			self.uiGrid.AddButton('Comment VisionSystem', PreTestActions.ModifyVisionSystem, (self.model,))
+			self.uiGrid.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
+			self.uiGrid.AddButton('Copy Mock License', PreTestActions.CopyMockLicense, (self.model,))
+			self.uiGrid.AddButton('Copy xPort xml', PreTestActions.CopyxPortIllumRef, (self.model,))
+			self.uiGrid.AddButton('Generate LicMgrConfig', PreTestActions.GenerateLicMgrConfig, (self.model,))
+			self.uiGrid.AddButton('Copy LicMgrConfig', PreTestActions.CopyLicMgrConfig, (self.model,))
+			self.uiGrid.AddButton('Copy MmiSaveLogs.exe', PreTestActions.CopyMmiSaveLogExe, (self.model,))
 
-	def AddColumn5(self, parent):
-		self.CreateColumnFrame(parent)
+	def AddColumn5(self):
+		self.uiGrid.CreateColumnFrame()
 		effortLogger = EffortLogger(self.model)
-		self.AddButton('Settings', self.ShowSettings)
+		self.uiGrid.AddButton('Settings', self.ShowSettings)
 		if self.model.ShowAllButtons:
-			self.AddButton('Clear Output', OsOperations.Cls)
-		self.AddParallelButton('Clean Active Srcs', self.klaSourceBuilder.CleanSource, None, self.klaSourceBuilder.NotifyClean)
-		self.AddParallelButton('Build Active Srcs', self.klaSourceBuilder.BuildSource, None, self.klaSourceBuilder.NotifyBuild)
+			self.uiGrid.AddButton('Clear Output', OsOperations.Cls)
+		srcBuilder = self.klaSourceBuilder
+		self.uiGrid.AddParallelButton('Clean Active Srcs', srcBuilder.CleanSource, None, srcBuilder.NotifyClean)
+		self.uiGrid.AddParallelButton('Build Active Srcs', srcBuilder.BuildSource, None, srcBuilder.NotifyBuild)
 		if self.model.ShowAllButtons:
-			self.AddParallelButton('Reset Srcs', self.klaSourceBuilder.ResetSource, None, self.klaSourceBuilder.NotifyReset)
-			self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
-			self.AddButton('Effort Log', effortLogger.PrintEffortLogInDetail)
-			self.AddButton('Daily Log', effortLogger.PrintDailyLog)
-
-	def CreateColumnFrame(self, parent):
-		self.ColFrame = UIFactory.AddFrame(parent, 0, self.Col, sticky='n')
-		self.Col += 1
-		self.ColInx = 0
-
-	def AddParallelButton(self, label, FunPnt, arg = None, InitFunPnt = None):
-		args = (label, FunPnt, arg, InitFunPnt)
-		but = UIFactory.AddButton(self.ColFrame, label, self.ColInx, 0,
-			self.threadHandler.Start, args, 19)
-		self.threadHandler.AddButton(but)
-		self.ColInx += 1
-
-	def AddButton(self, label, FunPnt, args = None):
-		but = UIFactory.AddButton(self.ColFrame, label, self.ColInx, 0, FunPnt, args, 19)
-		self.ColInx += 1
+			self.uiGrid.AddParallelButton('Reset Srcs', srcBuilder.ResetSource, None, srcBuilder.NotifyReset)
+			self.uiGrid.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
+			self.uiGrid.AddButton('Effort Log', effortLogger.PrintEffortLogInDetail)
+			self.uiGrid.AddButton('Daily Log', effortLogger.PrintDailyLog)
 
 	def ShowSettings(self):
 		uiSettings = UISettings(self.window, self.model)
@@ -903,7 +908,7 @@ class Menu:
 		PrettyTable(TableFormat().SetNoBorder('')).PrintTable(menuData)
 
 		testRunner = self.testRunner
-		sourceBuilder = self.klaSourceBuilder
+		srcBuilder = self.klaSourceBuilder
 		vsSolutions = self.vsSolutions
 		settings = self.settings
 		effortLogger = EffortLogger(model)
@@ -938,8 +943,8 @@ class Menu:
 			[28, ['Print mmi.h IDs', self.klaRunner.PrintMissingIds]],
 			[29, ['Copy MmiSaveLogs.exe', PreTestActions.CopyMmiSaveLogExe, model]],
 		],[
-			[91, ['Build Source ' + activeSrcs, sourceBuilder.BuildSource]],
-			[92, ['Clean Source ' + activeSrcs, sourceBuilder.CleanSource]],
+			[91, ['Build Source ' + activeSrcs, srcBuilder.BuildSource]],
+			[92, ['Clean Source ' + activeSrcs, srcBuilder.CleanSource]],
 			[93, ['Add Test', settings.AddTest]],
 			[94, ['Change Test', settings.ChangeTest]],
 			[95, ['Change Source', settings.ChangeSource]],
