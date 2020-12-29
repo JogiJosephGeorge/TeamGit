@@ -711,6 +711,7 @@ class UISourceSelector(UIWindow):
 			index += 1
 
 	def OnClosing(self):
+		self.model.Branch = self.lblBranches[self.model.SrcIndex].get()
 		if self.VM is not None:
 			self.VM.UpdateSourceBranch()
 		super(UISourceSelector, self).OnClosing()
