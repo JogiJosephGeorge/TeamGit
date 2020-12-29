@@ -391,6 +391,7 @@ class UIMainMenu:
 			self.AddButton('Git GUI', Git.OpenGitGui, (self.model,))
 			self.AddButton('Git Bash Console', Git.OpenGitBash, (self.model,))
 		self.AddButton('Git Fetch Pull', Git.FetchPull, (self.model,))
+		self.AddButton('Git Submodule Update', Git.SubmoduleUpdate, (self.model,))
 
 	def AddColumn4(self, parent):
 		self.CreateColumnFrame(parent)
@@ -2227,11 +2228,13 @@ class Git:
 		cls.Git(source, 'reset --hard')
 
 	@classmethod
-	def SubmoduleUpdate(cls, source):
+	def SubmoduleUpdate(cls, model):
+		source = model.Source
 		cls.Git(source, 'submodule update --init --recursive')
 		cls.Git(source, 'submodule foreach git reset --hard') # It seems this is not working
 		cls.Git(source, 'submodule sync --recursive')
 		cls.Git(source, 'submodule update')
+		print 'Git All Submodules Updated.'
 
 	@classmethod
 	def OpenGitGui(cls, model):
@@ -2249,10 +2252,8 @@ class Git:
 		OsOperations.Pause()
 
 	@classmethod
-	def FetchPull(cls, model, submoduleUpdate=True):
+	def FetchPull(cls, model):
 		Git.Git(model.Source, 'pull')
-		if submoduleUpdate:
-			Git.SubmoduleUpdate(model.Source)
 		print 'Git fetch and pull completed.'
 		OsOperations.Pause()
 
