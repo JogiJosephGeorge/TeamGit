@@ -208,6 +208,13 @@ class UIHeader:
 		UIFactory.AddLabel(parent, 'Test', self.Row, c)
 		testNames = self.model.AutoTests.GetNames()
 		self.VM.cmbTest = UIFactory.AddCombo(parent, testNames, self.model.TestIndex, self.Row, c+1, self.VM.OnTestChanged, None, 70)
+		UIFactory.AddButton(parent, ' ... ', self.Row, c+2, self.ShowAutoTestSettings, None)
+
+	def ShowAutoTestSettings(self):
+		uiAutoTestSettings = UIAutoTestSettings(self.window, self.model)
+		uiAutoTestSettings.Show()
+		self.VM.UpdateCombo()
+		self.VM.UpdateSlots()
 
 	def AddAttachMmi(self, parent, c):
 		txt = 'Attach MMi'
@@ -431,9 +438,8 @@ class UIMainMenu:
 		self.ColInx += 1
 
 	def ShowSettings(self):
-		uiSettings = UISettings(self.window, self.model, self.VM)
+		uiSettings = UISettings(self.window, self.model)
 		uiSettings.Show()
-		self.VM.UpdateCombo()
 
 class UIWindow(object):
 	def __init__(self, parent, model, title):
@@ -459,19 +465,9 @@ class UIWindow(object):
 		self.model.WriteConfigFile()
 		self.window.destroy()
 
-class UISettings(UIWindow):
-	def __init__(self, parent, model, VM):
-		super(UISettings, self).__init__(parent, model, 'Settings')
-		self.VM = VM
-
-	def OnClosing(self):
-		if self.Parent is not None:
-			self.VM.UpdateCombo()
-			self.VM.UpdateSlotsChk(True)
-		super(UISettings, self).OnClosing()
-
-	def AddRow(self):
-		self.Row += 1
+class UIAutoTestSettings(UIWindow):
+	def __init__(self, parent, model):
+		super(UIAutoTestSettings, self).__init__(parent, model, 'Auto Test Settings')
 
 	def CreateUI(self, parent):
 		testFrame = UIFactory.AddFrame(parent, 0, 0)
@@ -481,7 +477,28 @@ class UISettings(UIWindow):
 		self.filterTestSelector.AddUI(testFrame, self.model, 1, 0, self.RemoveTestMan.UpdateCombo)
 		self.RemoveTestMan.AddUI(testFrame, self.model, 2, 0)
 
-		pathFrame = UIFactory.AddFrame(parent, 1, 0)
+	def AddFirstRow(self, parent):
+		frame = UIFactory.AddFrame(parent, 0, 0, 0, 0, 2)
+		UIFactory.AddButton(frame, 'Add Test', 0, 1, self.AddTestUI, None, 19)
+
+	def AddTestUI(self):
+		dir = self.model.Source + '/handler/tests'
+		ftypes=[('Script Files', 'Script.py')]
+		title = "Select Script file"
+		filename = tkFileDialog.askopenfilename(initialdir=dir, filetypes=ftypes, title=title)
+		if len(filename) > 10:
+			testName = filename[len(dir) + 1: -10]
+			self.filterTestSelector.AddSelectedTest(testName)
+
+class UISettings(UIWindow):
+	def __init__(self, parent, model):
+		super(UISettings, self).__init__(parent, model, 'Settings')
+
+	def AddRow(self):
+		self.Row += 1
+
+	def CreateUI(self, parent):
+		pathFrame = UIFactory.AddFrame(parent, 0, 0)
 		self.Row = 0
 		self.AddSelectFileRow(pathFrame, 'DevEnv.com', 'DevEnvCom')
 		self.AddSelectFileRow(pathFrame, 'DevEnv.exe', 'DevEnvExe')
@@ -491,7 +508,7 @@ class UISettings(UIWindow):
 		self.AddSelectPathRow(pathFrame, 'MMi Config Path', 'MMiConfigPath')
 		self.AddSelectPathRow(pathFrame, 'MMi Setups Path', 'MMiSetupsPath')
 
-		checkFrame = UIFactory.AddFrame(parent, 2, 0)
+		checkFrame = UIFactory.AddFrame(parent, 1, 0)
 		self.Row = 0
 		self.AddShowAllCheck(checkFrame)
 		self.AddRestartSlotsForMMiCheck(checkFrame)
@@ -611,19 +628,6 @@ class UISettings(UIWindow):
 			KlaRunner.ShowMessage('All .vs directories in the source will be removed while reseting source.')
 		else:
 			print 'The .vs directories will NOT be affected while reseting source.'
-
-	def AddFirstRow(self, parent):
-		frame = UIFactory.AddFrame(parent, 0, 0, 0, 0, 2)
-		UIFactory.AddButton(frame, 'Add Test', 0, 1, self.AddTestUI, None, 19)
-
-	def AddTestUI(self):
-		dir = self.model.Source + '/handler/tests'
-		ftypes=[('Script Files', 'Script.py')]
-		title = "Select Script file"
-		filename = tkFileDialog.askopenfilename(initialdir=dir, filetypes=ftypes, title=title)
-		if len(filename) > 10:
-			testName = filename[len(dir) + 1: -10]
-			self.filterTestSelector.AddSelectedTest(testName)
 
 class UISourceSelector(UIWindow):
 	def __init__(self, parent, model, VM):
