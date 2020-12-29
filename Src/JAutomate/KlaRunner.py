@@ -264,7 +264,7 @@ class UITestGroup:
 	def OnAttach(self):
 		self.model.DebugVision = self.chkAttachMmi.get()
 		self.model.WriteConfigFile()
-		print 'Test Runner will ' + ['NOT ', ''][self.model.DebugVision] + 'wait for debugger to attach to testhost/mmi'
+		print 'Test Runner will ' + ['NOT ', ''][self.model.DebugVision] + 'wait for debugger to attach to testhost/mmi.'
 
 	def AddSlots(self, parent, r, c):
 		frame = UIFactory.AddFrame(parent, r, c)
@@ -406,7 +406,6 @@ class UIMainMenu:
 		self.vsSolutions = vsSolutions
 		self.testRunner = testRunner
 		self.mmiSpcTestRunner = MmiSpcTestRunner(self.model)
-		self.settings = Settings(self.model, self.klaRunner)
 		self.appRunner = AppRunner(self.model, self.testRunner)
 
 		UI.AddSeparator()
@@ -943,90 +942,6 @@ class RemoveTestMan:
 		self.Tests = self.model.AutoTests.GetNames()
 		self.TestCmb['values'] = self.Tests
 
-class Menu:
-	def __init__(self, klaRunner, model):
-		self.klaRunner = klaRunner
-		self.testRunner = AutoTestRunner(model, None)
-		self.settings = Settings(model, klaRunner)
-		self.appRunner = AppRunner(model, self.testRunner)
-		self.vsSolutions = VisualStudioSolutions(model)
-		self.klaSourceBuilder = KlaSourceBuilder(model, klaRunner, self.vsSolutions)
-
-	def PrepareMainMenu(self):
-		model = self.klaRunner.model
-		seperator = ' : '
-		menuData = [
-			['Source', seperator, model.Source, ' '*5, 'Config', seperator, model.Config],
-			['Branch', seperator, model.Branch, ' '*5, 'Platform', seperator, model.Platform],
-			['Test', seperator, model.TestName, ' '*5, 'Copy MMi to Icos', seperator, model.CopyMmi]
-		]
-		PrettyTable(TableFormat().SetNoBorder('')).PrintTable(menuData)
-
-		testRunner = self.testRunner
-		srcBuilder = self.klaSourceBuilder
-		vsSolutions = self.vsSolutions
-		settings = self.settings
-		effortLogger = EffortLogger(model)
-		autoTest = ('', ' (attach MMi)')[model.DebugVision]
-		activeSrcs = str([i + 1 for i in model.ActiveSrcs]).replace(' ', '') if len(model.ActiveSrcs) > 0 else ''
-		group = [
-		[
-			[1, ['Open Python', self.klaRunner.OpenPython]],
-			[2, ['Run test' + autoTest, testRunner.RunAutoTest, False]],
-			[3, ['Start test' + autoTest, testRunner.RunAutoTest, True]],
-			[4, ['Run Handler and MMi', self.appRunner.RunHandlerMMi]],
-			[5, ['Run Handler alone', self.appRunner.RunHandler]],
-			[6, ['Run MMi from Source', self.appRunner.RunMMi, True]],
-			[7, ['Run MMi from C:Icos', self.appRunner.RunMMi, False]],
-			[8, ['Run Slots', VMWareRunner.RunSlots, model]],
-			[9, ['Run ToolLink Host', self.appRunner.RunToollinkHost]],
-		],[
-			[10, ['Open CIT100', vsSolutions.OpenSolution, 0]],
-			[11, ['Open Simulator', vsSolutions.OpenSolution, 1]],
-			[12, ['Open MMi', vsSolutions.OpenSolution, 2]],
-			[14, ['Open MockLicense', vsSolutions.OpenSolution, 3]],
-			[15, ['Open Converters', vsSolutions.OpenSolution, 4]],
-		],[
-			[20, ['Open Test Folder', self.klaRunner.OpenTestFolder]],
-			[21, ['Open Local Diff', AppRunner.OpenLocalDif, model]],
-			[22, ['Open Git GUI', Git.OpenGitGui, model]],
-			[23, ['Open Git Bash', Git.OpenGitBash, model]],
-			[24, ['Comment VisionSystem', PreTestActions.ModifyVisionSystem, model]],
-			[25, ['Copy Mock License', PreTestActions.CopyMockLicense, model]],
-			[26, ['Copy xPort xml', PreTestActions.CopyxPortIllumRef, model]],
-			[27, ['Copy LicMgrConfig', PreTestActions.CopyLicMgrConfig, model]],
-			[28, ['Print mmi.h IDs', self.klaRunner.PrintMissingIds]],
-			[29, ['Copy MmiSaveLogs.exe', PreTestActions.CopyMmiSaveLogExe, model]],
-		],[
-			[91, ['Build Source ' + activeSrcs, srcBuilder.BuildSource]],
-			[92, ['Clean Source ' + activeSrcs, srcBuilder.CleanSource]],
-			[93, ['Add Test', settings.AddTest]],
-			[94, ['Change Test', settings.ChangeTest]],
-			[95, ['Change Source', settings.ChangeSource]],
-			[96, ['Change MMi Attach', settings.ChangeDebugVision]],
-			[97, ['Effort Log', effortLogger.PrintEffortLogInDetail]],
-			[98, ['Clear Output', OsOperations.Cls]],
-			[99, ['Stop All KLA Apps', TaskMan.StopTasks, True]],
-			[0, 'EXIT']
-		]]
-		colCnt = model.MenuColCnt
-		menuData = [ 
-			['Num', 'Description'] * colCnt,
-			['-']
-		]
-		return menuData + ArrayOrganizer().Transform(group, colCnt)
-
-	def ReadUserInput(self):
-		menuData = self.PrepareMainMenu()
-		PrettyTable(TableFormat().SetDoubleLineBorder()).PrintTable(menuData)
-		userIn = OsOperations.InputNumber('Type the number then press ENTER: ')
-		for row in menuData:
-			for i in range(1, len(row)):
-				if row[i - 1] == userIn:
-					return row[i]
-		print 'Wrong input is given !!!'
-		return [-1]
-
 class MessageBox:
 	@classmethod
 	def ShowMessage(cls, msg):
@@ -1054,27 +969,7 @@ class KlaRunner:
 
 	def __init__(self, model):
 		self.model = model
-		self.menu = Menu(self, self.model)
 		self.SetWorkingDir()
-
-	def Run(self):
-		if not ctypes.windll.shell32.IsUserAnAdmin():
-			print 'Please run this application with Administrator privilates'
-			OsOperations.Pause()
-			return
-		while True:
-			if self.model.ClearHistory:
-				OsOperations.Cls()
-			else:
-				print
-			selItem = self.menu.ReadUserInput()
-			if selItem == 'EXIT':
-				break
-			cnt = len(selItem)
-			if cnt == 2:
-				selItem[1]()
-			elif cnt == 3:
-				selItem[1](selItem[2])
 
 	def OpenPython(self):
 		#FileOperations.Delete('{}/libs/testing/myconfig.py'.format(self.model.Source))
@@ -1127,28 +1022,6 @@ class KlaRunner:
 		PrettyTable.PrintArray([pr(st) for st in sets], 6)
 		print 
 		OsOperations.Pause(self.model.ClearHistory)
-
-	def GetSourceInfo(self, activeSrcs): #Obsolete Method
-		heading = ['Source', 'Branch', 'Config', 'Platform']
-		if activeSrcs == None:
-			sources = list(self.model.Sources)
-		elif len(activeSrcs) == 0:
-			sources = [self.model.Sources[self.model.SrcIndex]]
-		else:
-			sources = [self.model.Sources[inx] for inx in activeSrcs]
-		menuData = []
-		for src in sources:
-			branch = Git.GetBranch(src[0])
-			if src[0] == self.model.Source:
-				self.model.Branch = branch
-			menuData.append([src[0], branch, src[1], src[2]])
-		return (heading, menuData)
-
-	def PrintBranches(self, activeSrcs = None): #Obsolete Method
-		heading, data = self.GetSourceInfo(activeSrcs)
-		menuData = [ heading, ['-'] ] + data
-		PrettyTable(TableFormat().SetSingleLine()).PrintTable(menuData)
-		return data
 
 	def SetWorkingDir(self):
 		wd = os.path.join(self.model.StartPath, self.model.TempDir)
@@ -1631,65 +1504,6 @@ class AutoTestRunner:
 		sys.path.append(newPath)
 		return newPath
 		OsOperations.Pause(self.model.ClearHistory)
-
-class Settings: # Obsolete Class
-	def __init__(self, model, klaRunner):
-		self.model = model
-		self.klaRunner = klaRunner
-
-	def ChangeTest(self):
-		index = self.SelectOption1('Test Name', self.model.AutoTests.GetNames(), self.model.TestIndex)
-		self.model.UpdateTest(index, True)
-		OsOperations.Pause(self.model.ClearHistory)
-
-	def AddTest(self):
-		number = OsOperations.InputNumber('Type the number of test then press ENTER: ')
-		testName = AutoTestRunner.GetTestName(self.model.Source, number)
-		if testName == '':
-			print 'There is no test exists for the number : ' + str(number)
-			return
-		if self.model.AutoTests.Contains(testName):
-			print 'The given test ({}) already exists'.format(testName)
-			return
-		slots = OsOperations.Input('Enter slots : ')
-		index = self.model.AutoTests.AddTestToModel(testName, slots)
-		self.model.UpdateTest(index, True)
-		OsOperations.Pause(self.model.ClearHistory)
-
-	def ChangeSource(self):
-		heading, data = self.klaRunner.GetSourceInfo(None)
-		index = self.SelectOption(heading, data, self.model.SrcIndex)
-		self.model.SrcCnf.UpdateSource(index, True)
-		OsOperations.Pause(self.model.ClearHistory)
-
-	def ChangeDebugVision(self):
-		arr = [ 'Attach MMi', 'Do not attach' ]
-		index = 0 if self.model.DebugVision else 1
-		number = self.SelectOption1('Options', arr, index)
-		if number >= 0:
-			self.model.DebugVision = number == 0
-			self.model.WriteConfigFile()
-		OsOperations.Pause(self.model.ClearHistory)
-
-	def SelectOption1(self, heading, arr, currentIndex):
-		arrOfArr = [[item] for item in arr]
-		return self.SelectOption([heading], arrOfArr, currentIndex)
-
-	def SelectOption(self, heading, arrOfArr, currentIndex):
-		data = [
-			['Num'] + heading,
-			['-']
-		]
-		for i,line in enumerate(arrOfArr):
-			line[0] = ('  ', '* ')[i == currentIndex] + line[0]
-			data.append([i + 1] + line)
-		PrettyTable(TableFormat().SetSingleLine()).PrintTable(data)
-		number = OsOperations.InputNumber('Type the number then press ENTER: ')
-		if number > 0 and number <= len(arrOfArr):
-			return number - 1
-		else:
-			print 'Wrong input is given !!!'
-		return -1
 
 class VisualStudioSolutions:
 	def __init__(self, model):
@@ -2969,10 +2783,6 @@ def main():
 		param1 = sys.argv[1].lower()
 		if param1 == 'test':
 			UnitTestsRunner().Run()
-		elif param1 == 'cmd':
-			model = Model()
-			model.ReadConfigFile()
-			KlaRunner(model).Run()
 	elif (__name__ == '__main__'):
 		UI().Run()
 		print 'Have a nice day...'
