@@ -131,6 +131,8 @@ class UI:
 		if not os.path.exists(self.model.ConfigInfo.FileName):
 			UISourceSelector(None, self.model, None).Show()
 			return
+		fileName = self.model.StartPath + '/' + self.model.LogFileName
+		Logger.Init(fileName)
 		self.klaRunner = KlaRunner(self.model)
 
 		title = 'KLA Application Runner'
@@ -687,6 +689,7 @@ class UISourceSelector:
 		SrcIndex = self.SelectedSrc.get()
 		self.model.SrcCnf.UpdateSource(SrcIndex, False)
 		print 'Source changed to : ' + self.model.Source
+		Logger.Log('Source changed to : ' + self.model.Source)
 
 	def AddBranch(self, parent, r, c, source):
 		label = UIFactory.AddLabel(parent, 'Branch Name Updating...', r, c)[1]
@@ -1056,6 +1059,7 @@ class AppRunner:
 		self.testRunner = testRunner
 
 	def RunHandler(self, doPause = True):
+		Logger.Log('Run Handler in ' + self.model.Source)
 		TaskMan.StopTasks(False)
 
 		config = self.model.Config
@@ -1087,6 +1091,7 @@ class AppRunner:
 			self.StopMMi()
 
 		mmiPath = PreTestActions.GetMmiPath(self.model, fromSrc)
+		Logger.Log('Run MMi from ' + mmiPath)
 		if self.model.CopyMockLicenseOnTest:
 			PreTestActions.GenerateLicMgrConfig(self.model)
 		if self.model.CopyMockLicenseOnTest:
@@ -1435,6 +1440,7 @@ class AutoTestRunner:
 		return VMWareRunner.RunSlots(self.model)
 
 	def RunAutoTest(self, startUp, callInit = True):
+		Logger.Log('{} Auto Test {} in {}'.format('Start' if startUp else 'Run', self.model.TestName, self.model.Source))
 		if callInit:
 			self.InitAutoTest()
 		PreTestActions.ModifyVisionSystem(self.model, False)
@@ -1643,7 +1649,7 @@ class KlaSourceBuilder:
 		else:
 			message = 'building'
 			buildOption = '/build'
-		logFileName = self.model.StartPath + '/' + self.model.LogFileName
+		logFileName = self.model.StartPath + '/Build' + self.model.LogFileName
 		buildLoger = BuildLoger(logFileName, ForCleaning)
 		for source, branch, config, srcPlatform in self.VerifySources(message):
 			buildLoger.StartSource(source, branch)
@@ -1685,6 +1691,19 @@ class KlaSourceBuilder:
 		else:
 			print msg
 			OsOperations.Pause(doPause)
+
+class Logger:
+	@classmethod
+	def Init(cls, fileName):
+		cls.fileName = fileName
+		if not os.path.exists(fileName):
+			print "File created : " + fileName
+			FileOperations.Write(fileName, '')
+
+	@classmethod
+	def Log(cls, message):
+		message = datetime.now().strftime('%Y %b %d %H:%M:%S> ') + message
+		FileOperations.Append(cls.fileName, message)
 
 class BuildLoger:
 	def __init__(self, fileName, ForCleaning):
