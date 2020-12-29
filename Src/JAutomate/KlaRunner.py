@@ -463,6 +463,9 @@ class UIWindow(object):
 		self.model.WriteConfigFile()
 		self.window.destroy()
 
+	def AddBackButton(self, parent, r, c):
+		UIFactory.AddButton(parent, 'Back', r, c, self.OnClosing, None, 19)
+
 class UIAutoTestSettings(UIWindow):
 	def __init__(self, parent, model, VM):
 		super(UIAutoTestSettings, self).__init__(parent, model, 'Auto Test Settings')
@@ -484,6 +487,10 @@ class UIAutoTestSettings(UIWindow):
 		UIFactory.AddLabel(testFrame, '', 5, 0) # Empty Row
 
 		self.RemoveTestMan.AddUI(testFrame, self.model, 6, 0)
+
+		UIFactory.AddLabel(testFrame, '', 7, 0) # Empty Row
+
+		self.AddBackButton(parent, 8, 0)
 
 	def OnClosing(self):
 		self.VM.UpdateCombo()
@@ -529,6 +536,8 @@ class UISettings(UIWindow):
 		self.AddCopyMockLicenseOnTestCheck(checkFrame)
 		self.AddCopyExportIllumRefOnTestCheck(checkFrame)
 		self.AddCleanDotVsOnReset(checkFrame)
+
+		self.AddBackButton(parent, 2, 0)
 
 	def AddSelectPathRow(self, parent, label, attrName):
 		self.AddSelectItemRow(parent, label, attrName, False)
@@ -754,6 +763,7 @@ class UISourceSelector(UIWindow):
 	def AddFunctions(self, parent):
 		UIFactory.AddButton(parent, 'Add Source', 0, 0, self.OnAddSource, None, 19)
 		UIFactory.AddButton(parent, 'Remove Source', 0, 1, self.OnRemoveSource, None, 19)
+		self.AddBackButton(parent, 0, 2)
 
 	def OnAddSource(self):
 		folderSelected = tkFileDialog.askdirectory()
