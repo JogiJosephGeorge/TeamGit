@@ -116,9 +116,6 @@ class PerformanceTester:
 		cls.lastTime = t
 
 class UI:
-	def __init__(self):
-		KlaRunner.RunFromUI = True
-
 	def Run(self):
 		if not ctypes.windll.shell32.IsUserAnAdmin():
 			raw_input('Please run this application with Administrator privilates')
@@ -291,7 +288,7 @@ class UIViewModel:
 		self.lblBranch.set(self.model.Branch)
 
 	def StopTasks(self):
-		TaskMan.StopTasks(False)
+		TaskMan.StopTasks()
 		VMWareRunner.RunSlots(self.model, False, False)
 
 	@classmethod
@@ -424,8 +421,8 @@ class UIMainMenu:
 		if self.model.ShowAllButtons:
 			self.uiGrid.AddButton('Run Handler', self.appRunner.RunHandler)
 			self.uiGrid.AddButton('Stop MMi alone', self.appRunner.StopMMi)
-			self.uiGrid.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True,False))
-			self.uiGrid.AddButton('Run MMi from C:/Icos', self.appRunner.RunMMi, (False,False))
+			self.uiGrid.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True,))
+			self.uiGrid.AddButton('Run MMi from C:/Icos', self.appRunner.RunMMi, (False,))
 			self.uiGrid.AddButton('Run MMi SPC Tests', self.mmiSpcTestRunner.RunAllTests)
 
 	def AddColumn2(self):
@@ -909,29 +906,16 @@ class RemoveTestMan:
 
 class MessageBox:
 	@classmethod
-	def ShowMessage(cls, msg):
+	def ShowMessage(cls, msg, caption = 'KLA Runner'):
 		print msg
-		if KlaRunner.RunFromUI:
-			messagebox.showinfo('KLA Runner', msg)
-		else:
-			os.system('PAUSE')
+		messagebox.showinfo(caption, msg)
 
 	@classmethod
 	def YesNoQuestion(cls, title, msg):
 		print msg
 		return messagebox.askquestion(title, msg) == 'yes'
 
-	@classmethod
-	def ShowInfo(cls, caption, msg, doPause):
-		if KlaRunner.RunFromUI:
-			messagebox.showinfo(caption, msg)
-		else:
-			print msg
-			OsOperations.Pause(doPause)
-
 class KlaRunner:
-	RunFromUI = False
-
 	def __init__(self, model):
 		self.model = model
 		self.SetWorkingDir()
@@ -954,7 +938,6 @@ class KlaRunner:
 			return
 		subprocess.Popen(['Explorer', dirPath])
 		print 'Open directory : ' + dirPath
-		OsOperations.Pause(self.model.ClearHistory)
 
 	def CompareMmiReports(self):
 		if not os.path.isfile(self.model.BCompare):
@@ -986,7 +969,6 @@ class KlaRunner:
 		pr = lambda st : '{:>6}, {:<6}'.format('[' + str(st[0]), str(st[1]) + ']')
 		PrettyTable.PrintArray([pr(st) for st in sets], 6)
 		print 
-		OsOperations.Pause(self.model.ClearHistory)
 
 	def SetWorkingDir(self):
 		wd = os.path.join(self.model.StartPath, self.model.TempDir)
@@ -999,9 +981,9 @@ class AppRunner:
 		self.model = model
 		self.testRunner = testRunner
 
-	def RunHandler(self, doPause = True):
+	def RunHandler(self):
 		Logger.Log('Run Handler in ' + self.model.Source)
-		TaskMan.StopTasks(False)
+		TaskMan.StopTasks()
 
 		config = self.model.Config
 		platform = ConfigEncoder.GetPlatform(self.model.Platform)
@@ -1016,18 +998,16 @@ class AppRunner:
 		for file in [consoleExe, testTempDir, simulatorExe]:
 			if not os.path.exists(file):
 				print 'File not found : ' + file
-				OsOperations.Pause()
 				return
 
 		OsOperations.System('start ' + consoleExe + ' ' + testTempDir)
 		OsOperations.System('start {} {} {}'.format(simulatorExe, testTempDir, handlerPath))
-		OsOperations.Pause(doPause and self.model.ClearHistory)
 
 	def StopMMi(self):
 		TaskMan.StopTask('MMi.exe')
 		VMWareRunner.RunSlots(self.model)
 
-	def RunMMi(self, fromSrc, doPause = True):
+	def RunMMi(self, fromSrc):
 		if self.model.RestartSlotsForMMiAlone:
 			self.StopMMi()
 
@@ -1036,26 +1016,23 @@ class AppRunner:
 		if self.model.CopyMockLicenseOnTest:
 			PreTestActions.GenerateLicMgrConfig(self.model)
 		if self.model.CopyMockLicenseOnTest:
-			PreTestActions.CopyMockLicense(self.model, fromSrc, False)
+			PreTestActions.CopyMockLicense(self.model, fromSrc)
 			PreTestActions.CopyLicMgrConfig(self.model, False)
 		if self.model.CopyExportIllumRefOnTest:
-			PreTestActions.CopyxPortIllumRef(self.model, False, False)
+			PreTestActions.CopyxPortIllumRef(self.model)
 		if self.model.RestartSlotsForMMiAlone:
 			OsOperations.Timeout(8)
 
 		mmiExe = os.path.abspath(mmiPath + '/Mmi.exe')
 		if not os.path.exists(mmiExe):
 			print 'File not found : ' + mmiExe
-			OsOperations.Pause()
 			return
 
 		OsOperations.System('start ' + mmiExe)
-		OsOperations.Pause(doPause and self.model.ClearHistory)
 
 	def RunHandlerMMi(self):
-		self.RunHandler(False)
-		self.RunMMi(True, False)
-		OsOperations.Pause(self.model.ClearHistory)
+		self.RunHandler()
+		self.RunMMi(True)
 
 	def RunToollinkHost(self):
 		sys.path.append('C:\Handler\\testing')
@@ -1087,13 +1064,12 @@ class AppRunner:
 		par = [ 'TortoiseGitProc.exe', '/command:diff', '/path:' + model.Source + '' ]
 		print 'subprocess.Popen : ' + str(par)
 		subprocess.Popen(par)
-		OsOperations.Pause()
 
 class TaskMan:
 	namedTimers = {}
 
 	@classmethod
-	def StopTasks(cls, doPause):
+	def StopTasks(cls):
 		cls.StopTimers()
 		for exeName in [
 			'Mmi.exe',
@@ -1105,7 +1081,6 @@ class TaskMan:
 		]:
 			TaskMan.StopTask(exeName)
 		TaskMan.StopTask('python.exe', os.getpid())
-		OsOperations.Pause(doPause)
 
 	@classmethod
 	def StopTask(cls, exeName, exceptProcId = -1):
@@ -1214,13 +1189,12 @@ class VMWareRunner:
 
 class PreTestActions:
 	@classmethod
-	def CopyMockLicense(cls, model, toSrc = True, doPause = True):
+	def CopyMockLicense(cls, model, toSrc = True):
 		args = (model.Source, model.Platform, model.Config)
 		licencePath = '{}/mmi/mmi/mmi_stat/integration/code/MockLicenseDll/{}/{}/License.dll'
 		licenseFile = os.path.abspath(licencePath.format(*args))
 		mmiPath = PreTestActions.GetMmiPath(model, toSrc)
 		FileOperations.Copy(licenseFile, mmiPath)
-		OsOperations.Pause(doPause and model.ClearHistory)
 
 	@classmethod
 	def GetMmiPath(cls, model, toSrc = True):
@@ -1232,14 +1206,13 @@ class PreTestActions:
 		return mmiPath
 
 	@classmethod
-	def CopyxPortIllumRef(cls, model, doPause = False, delay = False):
+	def CopyxPortIllumRef(cls, model, delay = False):
 		src = model.StartPath + '\\xPort_IllumReference.xml'
 		des = 'C:/icos/xPort/'
 		if delay:
 			TaskMan.AddTimer('xport', FileOperations.Copy(src, des, 8, 3))
 		else:
 			FileOperations.Copy(src, des)
-		OsOperations.Pause(doPause)
 
 	@classmethod
 	def GetTestPath(cls, model):
@@ -1270,7 +1243,7 @@ class PreTestActions:
 		FileOperations.Copy(src, destin)
 
 	@classmethod
-	def ModifyVisionSystem(cls, model, doPause = True):
+	def ModifyVisionSystem(cls, model):
 		line = 'shutil.copy2(os.path.join(mvsSlots, slot, slot + ".bat"), os.path.join(self.mvsPath, slot, slot + ".bat"))'
 		oldLine = ' ' + line
 		newLine = ' #' + line
@@ -1284,7 +1257,6 @@ class PreTestActions:
 			print fileName + ' has been modified.'
 		else:
 			print fileName + ' had already been modified.'
-		OsOperations.Pause(doPause and model.ClearHistory)
 
 class LicenseConfigWriter:
 	class LineType:
@@ -1392,26 +1364,23 @@ class AutoTestRunner:
 			self.lastSrc = self.model.Source
 		elif self.lastSrc != self.model.Source:
 			msg = 'Test has already been executed with {}. So please restart KLA Runner.'.format(self.lastSrc)
-			if KlaRunner.RunFromUI:
-				messagebox.showinfo('KLA Runner', msg)
-			else:
-				print msg
+			messagebox.showinfo('KLA Runner', msg)
 			return False
-		TaskMan.StopTasks(False)
+		TaskMan.StopTasks()
 		return VMWareRunner.RunSlots(self.model)
 
 	def RunAutoTest(self):
 		testType = 'Start' if self.model.StartOnly else 'Run'
 		Logger.Log('{} Auto Test {} in {}'.format(testType, self.model.TestName, self.model.Source))
-		PreTestActions.ModifyVisionSystem(self.model, False)
+		PreTestActions.ModifyVisionSystem(self.model)
 
 		if self.model.GenerateLicMgrConfigOnTest:
 			PreTestActions.GenerateLicMgrConfig(self.model)
 		if self.model.CopyMockLicenseOnTest:
-			#PreTestActions.CopyMockLicense(self.model, False, False)
+			#PreTestActions.CopyMockLicense(self.model, False)
 			PreTestActions.CopyLicMgrConfig(self.model, True)
 		if self.model.CopyExportIllumRefOnTest:
-			PreTestActions.CopyxPortIllumRef(self.model, False, True)
+			PreTestActions.CopyxPortIllumRef(self.model, True)
 
 		#FileOperations.Copy(self.model.StartPath + '/Profiles', 'C:/icos/Profiles', 8, 3)
 		os.chdir(self.model.StartPath)
@@ -1468,7 +1437,6 @@ class AutoTestRunner:
 		newPath = os.path.abspath(source + libsTesting)
 		sys.path.append(newPath)
 		return newPath
-		OsOperations.Pause(self.model.ClearHistory)
 
 class VisualStudioSolutions:
 	def __init__(self, model):
@@ -1492,9 +1460,7 @@ class VisualStudioSolutions:
 		print 'Open solution : ' + fileName
 		if self.model.Config is not 'Debug' or self.model.Platform is not 'Win32':
 			msg = 'Please check configuration and platform in Visual Studio'
-			MessageBox.ShowInfo('Visual Studio', msg, self.model.ClearHistory)
-		else:
-			OsOperations.Pause(self.model.ClearHistory)
+			MessageBox.ShowMessage(msg, 'Visual Studio')
 
 class KlaSourceBuilder:
 	def __init__(self, model, klaRunner, vsSolutions):
@@ -1559,7 +1525,6 @@ class KlaSourceBuilder:
 				Git.RevertLastCommit(src)
 			#Git.SubmoduleUpdate(src)
 			print 'Cleaning completed for ' + src
-		OsOperations.Pause(self.model.ClearHistory)
 
 	def DeleteAllGitIgnoreFiles(self, dirName):
 		os.remove('{}/.gitignore'.format(dirName))
@@ -1595,7 +1560,6 @@ class KlaSourceBuilder:
 			buildLoger.EndSource(source)
 		if len(self.model.ActiveSrcs) > 1 and not ForCleaning:
 			print buildLoger.ConsolidatedOutput
-		OsOperations.Pause(self.model.ClearHistory)
 
 class Logger:
 	@classmethod
@@ -1784,12 +1748,6 @@ class OsOperations:
 		else:
 			print message
 		os.system(params)
-
-	@classmethod
-	def Pause(cls, condition = True):
-		if condition and not KlaRunner.RunFromUI:
-			#raw_input('Press ENTER key to continue . . .')
-			os.system('PAUSE')
 
 	@classmethod
 	def GetProcessIds(cls, exeName):
@@ -2082,7 +2040,6 @@ class Git:
 		param = [ 'git-gui', '--working-dir', model.Source ]
 		print 'Staring Git GUI'
 		subprocess.Popen(param)
-		OsOperations.Pause()
 
 	@classmethod
 	def OpenGitBash(cls, model):
@@ -2090,13 +2047,11 @@ class Git:
 		gitBin = gitBin.replace('Program Files', 'PROGRA~1')
 		par = 'start {}/sh.exe --cd={}'.format(gitBin, model.Source)
 		OsOperations.System(par, 'Staring Git Bash')
-		OsOperations.Pause()
 
 	@classmethod
 	def FetchPull(cls, model):
 		Git.Git(model.Source, 'pull')
 		print 'Git fetch and pull completed.'
-		OsOperations.Pause()
 
 	@classmethod
 	def Commit(cls, model, msg):
@@ -2301,7 +2256,6 @@ class EffortLogger:
 		today = datetime.now()
 		self.PrintEffortTable(today, 'Today', reader)
 		reader.CheckApplication()
-		OsOperations.Pause()
 
 	def PrintEffortTable(self, date, message, reader):
 		dictAppNameToTime, totalTime = reader.GetDetailedEfforts(date)
@@ -2570,7 +2524,6 @@ class ConfigInfo:
 		model.LogFileName = self.ReadField(_model, 'LogFileName', 'bin/Log.txt')
 		model.MenuColCnt = self.ReadField(_model, 'MenuColCnt', 4)
 		model.MaxSlots = self.ReadField(_model, 'MaxSlots', 8)
-		model.ClearHistory = self.ReadField(_model, 'ClearHistory', False)
 		model.ShowAllButtons = self.ReadField(_model, 'ShowAllButtons', False)
 		model.RestartSlotsForMMiAlone = self.ReadField(_model, 'RestartSlotsForMMiAlone', False)
 		model.GenerateLicMgrConfigOnTest = self.ReadField(_model, 'GenerateLicMgrConfigOnTest', False)
@@ -2607,7 +2560,6 @@ class ConfigInfo:
 		_model['LogFileName'] = model.LogFileName
 		_model['MenuColCnt'] = model.MenuColCnt
 		_model['MaxSlots'] = model.MaxSlots
-		_model['ClearHistory'] = model.ClearHistory
 		_model['ShowAllButtons'] = model.ShowAllButtons
 		_model['RestartSlotsForMMiAlone'] = model.RestartSlotsForMMiAlone
 		_model['GenerateLicMgrConfigOnTest'] = model.GenerateLicMgrConfigOnTest
