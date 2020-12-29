@@ -38,7 +38,7 @@ class UIFactory:
 		return window
 
 	@classmethod
-	def AddButton(cls, parent, text, r, c, cmd, args, width = 0):
+	def AddButton(cls, parent, text, r, c, cmd, args = None, width = 0):
 		if args is None:
 			action = cmd
 		else:
@@ -129,16 +129,23 @@ class UI:
 		self.VM = UIViewModel(self.model)
 		self.model.ReadConfigFile()
 		if not os.path.exists(self.model.ConfigInfo.FileName):
-			UISourceSelector(None, self.model, None).Show()
+			UISourceSelector(None, self.model).Show()
 			return
 		fileName = self.model.StartPath + '/' + self.model.LogFileName
 		Logger.Init(fileName)
-		self.klaRunner = KlaRunner(self.model)
+		klaRunner = KlaRunner(self.model)
+		vsSolutions = VisualStudioSolutions(self.model)
+		threadHandler = ThreadHandler()
+		testRunner = AutoTestRunner(self.model, self.VM)
 
 		title = 'KLA Application Runner'
 		self.window = UIFactory.CreateWindow(None, title, self.model.StartPath)
-		UIHeader(self.window, 0, 0, self.model, self.VM)
-		UIMainMenu(self.window, 1, 0, self.klaRunner, self.VM)
+		self.mainFrame = UIFactory.AddFrame(self.window, 0, 0, 20, 0)
+		self.Row = 0
+		UISourceGroup(self, klaRunner, vsSolutions, threadHandler)
+		UITestGroup(self, klaRunner, vsSolutions, threadHandler, testRunner)
+		UIMainMenu(self, klaRunner, vsSolutions, threadHandler, testRunner)
+
 		self.window.after(200, self.LazyInit)
 		self.window.mainloop()
 
@@ -153,83 +160,124 @@ class UI:
 
 	def GetVersion(self):
 		commitCnt = OsOperations.ProcessOpen('git rev-list --all --count')
-		revision = int(re.sub('\W+', '', commitCnt)) - 139
+		revision = int(re.sub('\W+', '', commitCnt)) - 155
 		desStr = OsOperations.ProcessOpen('git describe --always')
 		hash = re.sub('\W+', '', desStr)
-		return '1.1.{}.{}'.format(revision, hash)
-
-class UIHeader:
-	def __init__(self, parent, r, c, model, VM):
-		self.window = parent
-		self.model = model
-		self.VM = VM
-		frame = UIFactory.AddFrame(parent, r, c, 20, 0)
-		self.Row = 0
-		self.CreateUI(frame)
+		return '1.2.{}.{}'.format(revision, hash)
 
 	def AddRow(self):
+		frame = UIFactory.AddFrame(self.mainFrame, self.Row, 0)
 		self.Row += 1
+		return frame
 
-	def CreateUI(self, parent):
-		UIFactory.AddLabel(parent, ' ', self.Row, 2)
-		UIFactory.AddLabel(parent, ' ', self.Row, 5)
+	def AddSeparator(self):
+		frame = self.AddRow()
+		UIFactory.AddLabel(frame, ' ', 0, 0)
 
-		self.AddRow()
-		self.AddSource(parent, 0)
-		self.AddAttachMmi(parent, 6)
+class UISourceGroup:
+	def __init__(self, UI, klaRunner, vsSolutions, threadHandler):
+		self.window = UI.window
+		self.model = UI.model
+		self.VM = UI.VM
+		self.klaRunner = klaRunner
+		self.vsSolutions = vsSolutions
+		self.threadHandler = threadHandler
 
-		self.AddRow()
-		self.AddBranch(parent, 0)
-		if self.model.ShowAllButtons:
-			self.AddCopyMmi(parent, 6)
+		row1 = UI.AddRow()
+		UIFactory.AddLabel(row1, 'Source', 0, 0)
+		self.AddSourceDescription(row1, 0, 1)
+		UIFactory.AddButton(row1, ' ... ', 0, 2, self.OnSelectSource)
+		self.VM.lblBranch = UIFactory.AddLabel(row1, self.model.Branch, 0, 3)
 
-		self.AddRow()
-		self.AddTestUI(parent, 0)
-
-		self.AddRow()
-		self.AddSlots(parent, 0)
-
-	def AddSource(self, parent, c):
-		UIFactory.AddLabel(parent, 'Source', self.Row, c)
-		frameSource = UIFactory.AddFrame(parent, self.Row, c+1)
+	def AddSourceDescription(self, parent, r, c):
 		source = self.VM.GetSource()
-		self.VM.lblSource = UIFactory.AddLabel(frameSource, source, 0, 0)
-		UIFactory.AddButton(frameSource, ' ... ', 0, 1, self.OnSelectSource, None)
+		self.VM.lblSource = UIFactory.AddLabel(parent, source, r, c)
 
 	def OnSelectSource(self):
-		UISourceSelector(self.window, self.model, self.VM).Show()
-		self.VM.lblBranch[1].set(self.model.Branch)
+		UISourceSelector(self.window, self.model, self.klaRunner, self.vsSolutions, self.VM, self.threadHandler).Show()
 
-	def AddBranch(self, parent, c):
-		UIFactory.AddLabel(parent, 'Branch', self.Row, c)
-		self.VM.lblBranch = UIFactory.AddLabel(parent, self.model.Branch, self.Row, c+1)
+	def AddParallelButton(self, label, FunPnt, InitFunPnt):
+		self.threadHandler.AddButton(self.frame, label, 0, self.ColInx, FunPnt, None, InitFunPnt, 0)
+		self.ColInx += 1
 
-	def AddTestUI(self, parent, c):
-		UIFactory.AddLabel(parent, 'Test', self.Row, c)
+class UITestGroup:
+	def __init__(self, UI, klaRunner, vsSolutions, threadHandler, tr):
+		self.window = UI.window
+		self.parent = UI.window
+		self.model = UI.model
+		self.VM = UI.VM
+		self.klaRunner = klaRunner
+		self.vsSolutions = vsSolutions
+		self.threadHandler = threadHandler
+		self.tr = tr
+
+		UI.AddSeparator()
+
+		row1 = UI.AddRow()
+		self.AddRunTestButton(row1, 0, 0)
+		self.AddTestCombo(row1, 0, 1)
+		self.AddAutoTestSettings(row1, 0, 2)
+
+		row2 = UI.AddRow()
+		self.AddStartOnly(row2, 0, 0)
+		self.AddAttachMmi(row2, 0, 1)
+		UIFactory.AddButton(row2, 'Open Test Folder', 0, 2, self.klaRunner.OpenTestFolder)
+		UIFactory.AddButton(row2, 'Compare Test Results', 0, 3, self.klaRunner.CompareMmiReports)
+
+		row3 = UI.AddRow()
+		UIFactory.AddLabel(row3, 'Slots', 0, 0)
+		self.AddSlots(row3, 0, 1)
+		UIFactory.AddButton(row3, 'Run Slots', 0, 2, VMWareRunner.RunSlots, (self.model,))
+		UIFactory.AddButton(row3, 'Test First Slot Selected', 0, 4, VMWareRunner.TestSlots, (self.model,))
+
+	def AddRunTestButton(self, parent, r, c):
+		label = self.GetLabel()
+		self.RunTestBut = self.threadHandler.AddButton(parent, label, r, c, self.tr.RunAutoTest, None, self.tr.InitAutoTest)
+
+	def GetLabel(self):
+		return 'Start Test' if self.model.StartOnly else 'Run Test'
+
+	def AddTestCombo(self, parent, r, c):
 		testNames = self.model.AutoTests.GetNames()
-		self.VM.cmbTest = UIFactory.AddCombo(parent, testNames, self.model.TestIndex, self.Row, c+1, self.VM.OnTestChanged, None, 70)
-		UIFactory.AddButton(parent, ' ... ', self.Row, c+2, self.ShowAutoTestSettings, None)
+		self.VM.cmbTest = UIFactory.AddCombo(parent, testNames, self.model.TestIndex, r, c, self.VM.OnTestChanged, None, 70)
+
+	def AddAutoTestSettings(self, parent, r, c):
+		UIFactory.AddButton(parent, ' ... ', r, c, self.ShowAutoTestSettings)
 
 	def ShowAutoTestSettings(self):
 		uiAutoTestSettings = UIAutoTestSettings(self.window, self.model, self.VM)
 		uiAutoTestSettings.Show()
 
-	def AddAttachMmi(self, parent, c):
-		txt = 'Attach MMi'
-		self.VM.chkAttachMmi = UIFactory.AddCheckBox(parent, txt, self.model.DebugVision, self.Row, c+1, self.VM.OnAttach)
+	def AddStartOnly(self, parent, r, c):
+		self.chkStartOnly = UIFactory.AddCheckBox(parent, 'Start only', self.model.StartOnly, r, c, self.OnStartOnly)
 
-	def AddCopyMmi(self, parent, c):
-		txt = 'Copy MMi to Icos'
-		self.VM.chkCopyMmi = UIFactory.AddCheckBox(parent, txt, self.model.CopyMmi, self.Row, c+1, self.VM.OnCopyMmi)
+	def OnStartOnly(self):
+		self.model.StartOnly = self.chkStartOnly.get()
+		self.model.WriteConfigFile()
+		label = self.GetLabel()
+		print label
+		self.RunTestBut.config(text=label)
 
-	def AddSlots(self, parent, c):
-		UIFactory.AddLabel(parent, 'Slots', self.Row, c)
-		frame = UIFactory.AddFrame(parent, self.Row, c+1, columnspan=5)
+	def AddAttachMmi(self, parent, r, c):
+		self.chkAttachMmi = UIFactory.AddCheckBox(parent, 'Attach MMi', self.model.DebugVision, r, c, self.OnAttach)
+
+	def OnAttach(self):
+		self.model.DebugVision = self.chkAttachMmi.get()
+		self.model.WriteConfigFile()
+		print 'Test Runner will ' + ['NOT ', ''][self.model.DebugVision] + 'wait for debugger to attach to testhost/mmi'
+
+	def AddSlots(self, parent, r, c):
+		frame = UIFactory.AddFrame(parent, r, c)
 		self.VM.chkSlots = []
 		for i in range(self.model.MaxSlots):
 			isSelected = (i+1) in self.model.slots
 			txt = str(i+1)
-			self.VM.chkSlots.append(UIFactory.AddCheckBox(frame, txt, isSelected, 0, i, self.VM.OnSlotChn, i))
+			self.VM.chkSlots.append(UIFactory.AddCheckBox(frame, txt, isSelected, 0, i, self.OnSlotChn, i))
+
+	def OnSlotChn(self, index):
+		self.model.UpdateSlot(index, self.VM.chkSlots[index].get())
+		self.model.WriteConfigFile()
+		print 'Slots for the current test : ' + str(self.model.slots)
 
 class UIViewModel:
 	def __init__(self, model):
@@ -259,37 +307,27 @@ class UIViewModel:
 		python = sys.executable
 		os.execl(python, python, * argv)
 
-	def OnTestChanged(self, event):
-		if self.model.UpdateTest(self.cmbTest[0].current(), False):
-			print 'Test Changed to : ' + self.model.TestName
-			self.UpdateSlotsChk(True)
-
 	def UpdateSlotsChk(self, writeToFile):
 		for i in range(self.model.MaxSlots):
 			self.chkSlots[i].set((i+1) in self.model.slots)
 		if writeToFile:
 			self.model.WriteConfigFile()
 
-	def OnAttach(self):
-		self.model.DebugVision = self.chkAttachMmi.get()
-		self.model.WriteConfigFile()
-		print 'Attach to MMi : ' + ('Yes' if self.model.DebugVision else 'No')
-
 	def OnCopyMmi(self):
 		self.model.CopyMmi = self.chkCopyMmi.get()
 		self.model.WriteConfigFile()
 		print 'Copy MMi to ICOS : ' + str(self.chkCopyMmi.get())
-
-	def OnSlotChn(self, index):
-		self.model.UpdateSlot(index, self.chkSlots[index].get())
-		self.model.WriteConfigFile()
-		print 'Slots for the current test : ' + str(self.model.slots)
 
 	def UpdateCombo(self):
 		tests = self.model.AutoTests.GetNames()
 		self.cmbTest[0]['values'] = tests
 		if self.model.TestIndex >= 0 and len(tests) > self.model.TestIndex:
 			self.cmbTest[0].current(self.model.TestIndex)
+
+	def OnTestChanged(self, event):
+		if self.model.UpdateTest(self.cmbTest[0].current(), False):
+			print 'Test Changed to : ' + self.model.TestName
+			self.UpdateSlotsChk(True)
 
 	def UpdateSlots(self):
 		if VMWareRunner.SelectSlots(self.model):
@@ -333,20 +371,21 @@ class ThreadHandler:
 		#	button['state'] = 'normal'
 		self.Buttons[name].config(background='SystemButtonFace')
 
-	def AddButton(self, parent, label, r, c, FunPnt, args = None, InitFunPnt = None):
+	def AddButton(self, parent, label, r, c, FunPnt, args = None, InitFunPnt = None, width = 19):
 		argSet = (label, FunPnt, args, InitFunPnt)
-		but = UIFactory.AddButton(parent, label, r, c, self.Start, argSet, 19)
+		but = UIFactory.AddButton(parent, label, r, c, self.Start, argSet, width)
 		name = self.GetButtonName(but)
 		self.Buttons[name] = but
+		return but
 
 class UIGrid:
-	def __init__(self, parent, r, c, threadHandler):
+	def __init__(self, parent, threadHandler):
 		self.Col = 0
-		self.MainFrame = UIFactory.AddFrame(parent, r, c, 20, 20)
+		self.parent = parent
 		self.threadHandler = threadHandler
 
 	def CreateColumnFrame(self):
-		self.ColFrame = UIFactory.AddFrame(self.MainFrame, 0, self.Col, sticky='n')
+		self.ColFrame = UIFactory.AddFrame(self.parent, 0, self.Col, sticky='n')
 		self.Col += 1
 		self.RowInx = 0
 
@@ -359,36 +398,37 @@ class UIGrid:
 		self.RowInx += 1
 
 class UIMainMenu:
-	def __init__(self, parent, r, c, klaRunner, VM):
-		self.window = parent
+	def __init__(self, UI, klaRunner, vsSolutions, threadHandler, testRunner):
+		self.window = UI.window
+		self.VM = UI.VM
 		self.model = klaRunner.model
 		self.klaRunner = klaRunner
-		self.VM = VM
-		self.testRunner = AutoTestRunner(self.model, VM)
+		self.vsSolutions = vsSolutions
+		self.testRunner = testRunner
 		self.mmiSpcTestRunner = MmiSpcTestRunner(self.model)
 		self.settings = Settings(self.model, self.klaRunner)
 		self.appRunner = AppRunner(self.model, self.testRunner)
-		self.vsSolutions = VisualStudioSolutions(self.model)
-		self.klaSourceBuilder = KlaSourceBuilder(self.model, self.klaRunner, self.vsSolutions)
 
-		self.uiGrid = UIGrid(parent, r, c, ThreadHandler())
+		UI.AddSeparator()
+
+		self.uiGrid = UIGrid(UI.AddRow(), threadHandler)
 		self.AddColumn1()
 		self.AddColumn2()
 		self.AddColumn3()
 		self.AddColumn4()
 		self.AddColumn5()
 
+		UI.AddSeparator()
+
 	def AddColumn1(self):
 		self.uiGrid.CreateColumnFrame()
 		self.uiGrid.AddButton('Stop All KLA Apps', self.VM.StopTasks)
-		tr = self.testRunner
-		self.uiGrid.AddParallelButton('Run test', tr.RunAutoTest, (False,False), tr.InitAutoTest)
-		self.uiGrid.AddParallelButton('Start test', tr.RunAutoTest, (True,False), tr.InitAutoTest)
 		if self.model.ShowAllButtons:
 			self.uiGrid.AddButton('Run Handler', self.appRunner.RunHandler)
 			self.uiGrid.AddButton('Stop MMi alone', self.appRunner.StopMMi)
 			self.uiGrid.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True,False))
 			self.uiGrid.AddButton('Run MMi from C:/Icos', self.appRunner.RunMMi, (False,False))
+			self.uiGrid.AddButton('Run MMi SPC Tests', self.mmiSpcTestRunner.RunAllTests)
 
 	def AddColumn2(self):
 		self.uiGrid.CreateColumnFrame()
@@ -402,10 +442,6 @@ class UIMainMenu:
 	def AddColumn3(self):
 		self.uiGrid.CreateColumnFrame()
 		self.uiGrid.AddButton('Open Python', self.klaRunner.OpenPython)
-		if self.model.ShowAllButtons:
-			self.uiGrid.AddButton('Run MMi SPC Tests', self.mmiSpcTestRunner.RunAllTests)
-		self.uiGrid.AddButton('Open Test Folder', self.klaRunner.OpenTestFolder)
-		self.uiGrid.AddButton('Compare Test Results', self.klaRunner.CompareMmiReports)
 		self.uiGrid.AddButton('Tortoise Git Diff', AppRunner.OpenLocalDif, (self.model,))
 		if self.model.ShowAllButtons:
 			self.uiGrid.AddButton('Git GUI', Git.OpenGitGui, (self.model,))
@@ -414,11 +450,8 @@ class UIMainMenu:
 		self.uiGrid.AddButton('Git Submodule Update', Git.SubmoduleUpdate, (self.model,))
 
 	def AddColumn4(self):
-		self.uiGrid.CreateColumnFrame()
-		self.uiGrid.AddButton('Run Selected Slots', VMWareRunner.RunSlots, (self.model,))
-		self.uiGrid.AddButton('Test First Slot', VMWareRunner.TestSlots, (self.model,))
 		if self.model.ShowAllButtons:
-			self.uiGrid.AddButton('Comment VisionSystem', PreTestActions.ModifyVisionSystem, (self.model,))
+			self.uiGrid.CreateColumnFrame()
 			self.uiGrid.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
 			self.uiGrid.AddButton('Copy Mock License', PreTestActions.CopyMockLicense, (self.model,))
 			self.uiGrid.AddButton('Copy xPort xml', PreTestActions.CopyxPortIllumRef, (self.model,))
@@ -432,11 +465,7 @@ class UIMainMenu:
 		self.uiGrid.AddButton('Settings', self.ShowSettings)
 		if self.model.ShowAllButtons:
 			self.uiGrid.AddButton('Clear Output', OsOperations.Cls)
-		srcBuilder = self.klaSourceBuilder
-		self.uiGrid.AddParallelButton('Clean Active Srcs', srcBuilder.CleanSource, None, srcBuilder.NotifyClean)
-		self.uiGrid.AddParallelButton('Build Active Srcs', srcBuilder.BuildSource, None, srcBuilder.NotifyBuild)
 		if self.model.ShowAllButtons:
-			self.uiGrid.AddParallelButton('Reset Srcs', srcBuilder.ResetSource, None, srcBuilder.NotifyReset)
 			self.uiGrid.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
 			self.uiGrid.AddButton('Effort Log', effortLogger.PrintEffortLogInDetail)
 			self.uiGrid.AddButton('Daily Log', effortLogger.PrintDailyLog)
@@ -538,10 +567,10 @@ class UISettings(UIWindow):
 		self.Row = 0
 		self.AddShowAllCheck(checkFrame)
 		self.AddRestartSlotsForMMiCheck(checkFrame)
+		self.AddCopyMMiToIcosOnTestCheck(checkFrame)
 		self.AddGenerateLicMgrConfigOnTestCheck(checkFrame)
 		self.AddCopyMockLicenseOnTestCheck(checkFrame)
 		self.AddCopyExportIllumRefOnTestCheck(checkFrame)
-		self.AddCleanDotVsOnReset(checkFrame)
 
 		self.AddBackButton(parent, 2, 0)
 
@@ -605,6 +634,19 @@ class UISettings(UIWindow):
 		else:
 			print msg.format('NOT ')
 
+	def AddCopyMMiToIcosOnTestCheck(self, parent):
+		txt = 'Copy MMi to Icos On AutoTest'
+		isChecked = self.model.CopyMmi
+		self.ChkCopyMMiToIcosOnTest = UIFactory.AddCheckBox(parent, txt, isChecked, self.Row, 1, self.OnCopyMMiToIcosOnTest)
+		self.AddRow()
+
+	def OnCopyMMiToIcosOnTest(self):
+		self.model.CopyMmi = self.ChkCopyMMiToIcosOnTest.get()
+		if not self.model.CopyMmi:
+			MessageBox.ShowMessage('Do NOT copy the mmi built over the installation in C:/icos.\nThis is NOT RECOMMENDED.')
+		else:
+			print 'Copy the mmi built over the installation in C:/icos.'
+
 	def AddGenerateLicMgrConfigOnTestCheck(self, parent):
 		txt = 'Generate LicMgrConfig.xml On AutoTest'
 		isChecked = self.model.GenerateLicMgrConfigOnTest
@@ -644,62 +686,52 @@ class UISettings(UIWindow):
 		else:
 			print 'The file xPort_IllumReference.xml will NOT be copied while running auto test.'
 
-	def AddCleanDotVsOnReset(self, parent):
-		txt = 'Remove .vs directories on reseting source'
-		isChecked = self.model.CleanDotVsOnReset
-		self.ChkCleanDotVsOnReset = UIFactory.AddCheckBox(parent, txt, isChecked, self.Row, 1, self.OnCleanDotVsOnReset)
-		self.AddRow()
-
-	def OnCleanDotVsOnReset(self):
-		self.model.CleanDotVsOnReset = self.ChkCleanDotVsOnReset.get()
-		if self.model.CleanDotVsOnReset:
-			MessageBox.ShowMessage('All .vs directories in the source will be removed while reseting source.')
-		else:
-			print 'The .vs directories will NOT be affected while reseting source.'
-
 class UISourceSelector(UIWindow):
-	def __init__(self, parent, model, VM):
+	def __init__(self, parent, model, klaRunner, vsSolutions, VM, threadHandler):
 		super(UISourceSelector, self).__init__(parent, model, 'Select Source')
+		self.klaRunner = klaRunner
+		self.vsSolutions = vsSolutions
 		self.VM = VM
+		self.threadHandler = threadHandler
 
 	def CreateUI(self, parent):
 		self.SelectedSrc = tk.IntVar()
 		self.SelectedSrc.set(self.model.SrcIndex)
-		self.lblBranch = []
+		self.lblBranches = []
 		self.cboConfig = []
 		self.cboPlatform = []
 		self.chkActiveSrcs = []
-		self.frameGrid = UIFactory.AddFrame(parent, 0, 0)
-		self.AddHeader()
-		row = 1
+		self.Row = 0
+		self.mainFrame = parent
+		frameGrid = self.AddRow()
+		UIFactory.AddLabel(frameGrid, 'Current Source', 0, 0)
+		UIFactory.AddLabel(frameGrid, 'Branch', 0, 1)
+		UIFactory.AddLabel(frameGrid, 'Configuration', 0, 2)
+		UIFactory.AddLabel(frameGrid, 'Platform', 0, 3)
+		UIFactory.AddLabel(frameGrid, 'Is Active', 0, 4)
+		r = 1
 		for srcTuple in self.model.Sources:
-			self.AddRow(row, srcTuple)
-			row += 1
+			self.AddSource(frameGrid, r, 0, srcTuple[0])
+			self.AddBranch(frameGrid, r, 1, srcTuple[0])
+			self.AddConfig(frameGrid, r, 2, srcTuple[1])
+			self.AddPlatform(frameGrid, r, 3, srcTuple[2])
+			self.AddActive(frameGrid, r, 4)
+			r += 1
 
-		funFrame = UIFactory.AddFrame(parent, 1, 0)
-		self.AddFunctions(funFrame)
+		self.AddFunctions()
 
 		threading.Thread(target=self.LazyUiInit).start()
 
-	def AddHeader(self):
-		UIFactory.AddLabel(self.frameGrid, 'Current Source', 0, 0)
-		UIFactory.AddLabel(self.frameGrid, 'Branch', 0, 1)
-		UIFactory.AddLabel(self.frameGrid, 'Configuration', 0, 2)
-		UIFactory.AddLabel(self.frameGrid, 'Platform', 0, 3)
-		UIFactory.AddLabel(self.frameGrid, 'Is Active', 0, 4)
-
-	def AddRow(self, row, srcTuple):
-		self.AddSource(self.frameGrid, row, 0, srcTuple[0])
-		self.AddBranch(self.frameGrid, row, 1, srcTuple[0])
-		self.AddConfig(self.frameGrid, row, 2, srcTuple[1])
-		self.AddPlatform(self.frameGrid, row, 3, srcTuple[2])
-		self.AddActive(self.frameGrid, row, 4)
+	def AddRow(self, ):
+		frame = UIFactory.AddFrame(self.mainFrame, self.Row, 0)
+		self.Row += 1
+		return frame
 
 	def LazyUiInit(self):
 		index = 0
 		for srcTuple in self.model.Sources:
 			branch = Git.GetBranch(srcTuple[0])
-			self.lblBranch[index].set(branch)
+			self.lblBranches[index].set(branch)
 			if index == self.model.SrcIndex:
 				self.model.Branch = branch
 			index += 1
@@ -725,7 +757,7 @@ class UISourceSelector(UIWindow):
 
 	def AddBranch(self, parent, r, c, source):
 		label = UIFactory.AddLabel(parent, 'Branch Name Updating...', r, c)[1]
-		self.lblBranch.append(label)
+		self.lblBranches.append(label)
 
 	def AddConfig(self, parent, r, c, config):
 		configInx = ConfigEncoder.Configs.index(config)
@@ -766,10 +798,33 @@ class UISourceSelector(UIWindow):
 			self.model.ActiveSrcs.remove(Index)
 			print 'Disabled the source : ' + str(self.model.Sources[Index][0])
 
-	def AddFunctions(self, parent):
-		UIFactory.AddButton(parent, 'Add Source', 0, 0, self.OnAddSource, None, 19)
-		UIFactory.AddButton(parent, 'Remove Source', 0, 1, self.OnRemoveSource, None, 19)
-		self.AddBackButton(parent, 0, 2)
+	def AddFunctions(self):
+		if self.klaRunner is not None:
+			row1 = self.AddRow()
+			srcBuilder = KlaSourceBuilder(self.model, self.klaRunner, self.vsSolutions)
+			self.threadHandler.AddButton(row1, ' Clean ', 0, 0, srcBuilder.CleanSource, None, srcBuilder.NotifyClean, 19)
+			self.threadHandler.AddButton(row1, ' Build ', 0, 1, srcBuilder.BuildSource, None, srcBuilder.NotifyBuild, 19)
+			if self.model.ShowAllButtons:
+				self.threadHandler.AddButton(row1, ' Reset ', 0, 2, srcBuilder.ResetSource, None, srcBuilder.NotifyReset, 19)
+				row2 = self.AddRow()
+				self.AddCleanDotVsOnReset(row2, 0, 0)
+
+		row3 = self.AddRow()
+		UIFactory.AddButton(row3, 'Add Source', 0, 0, self.OnAddSource, None, 19)
+		UIFactory.AddButton(row3, 'Remove Source', 0, 1, self.OnRemoveSource, None, 19)
+		self.AddBackButton(row3, 0, 2)
+
+	def AddCleanDotVsOnReset(self, parent, r, c):
+		txt = 'Remove .vs directories on reseting source'
+		isChecked = self.model.CleanDotVsOnReset
+		self.ChkCleanDotVsOnReset = UIFactory.AddCheckBox(parent, txt, isChecked, r, c, self.OnCleanDotVsOnReset)
+
+	def OnCleanDotVsOnReset(self):
+		self.model.CleanDotVsOnReset = self.ChkCleanDotVsOnReset.get()
+		if self.model.CleanDotVsOnReset:
+			MessageBox.ShowMessage('All .vs directories in the source will be removed while reseting source.')
+		else:
+			print 'The .vs directories will NOT be affected while reseting source.'
 
 	def OnAddSource(self):
 		folderSelected = tkFileDialog.askdirectory()
@@ -796,7 +851,7 @@ class FilterTestSelector:
 		frame = UIFactory.AddFrame(parent, r, c)
 		UIFactory.AddEntry(frame, self.OnSearchTextChanged, 0, 0, 25)
 		self.AddTestCombo(frame, 1)
-		UIFactory.AddButton(frame, 'Add Selected Test', 0, 2, self.OnAddSelectedTest, None)
+		UIFactory.AddButton(frame, 'Add Selected Test', 0, 2, self.OnAddSelectedTest)
 
 	def AddTestCombo(self, parent, c):
 		self.TestCmb = UIFactory.AddCombo(parent, [], -1, 0, c, self.OnChangeTestCmb, None, 50)[0]
@@ -860,7 +915,7 @@ class RemoveTestMan:
 		self.TestCmb = UIFactory.AddCombo(frame, self.Tests, 0, 0, 1, self.OnChangeTestCmb, None, 50)[0]
 		if len(self.Tests) > 0:
 			self.TestCmb.current(0)
-		UIFactory.AddButton(frame, 'Remove Test', 0, 2, self.OnRemoveSelectedTest, None)
+		UIFactory.AddButton(frame, 'Remove Test', 0, 2, self.OnRemoveSelectedTest)
 
 	def OnChangeTestCmb(self, event):
 		if len(self.Tests) > 0:
@@ -880,7 +935,7 @@ class RemoveTestMan:
 				index = len(self.Tests) - 1
 			self.TestCmb.current(index)
 			if self.model.TestIndex >= len(self.Tests):
-				self.model.TestIndex = len(self.Tests) - 1
+				self.model.UpdateTest(len(self.Tests) - 1, False)
 		else:
 			print 'No tests selected'
 
@@ -1507,10 +1562,9 @@ class AutoTestRunner:
 		TaskMan.StopTasks(False)
 		return VMWareRunner.RunSlots(self.model)
 
-	def RunAutoTest(self, startUp, callInit = True):
-		Logger.Log('{} Auto Test {} in {}'.format('Start' if startUp else 'Run', self.model.TestName, self.model.Source))
-		if callInit:
-			self.InitAutoTest()
+	def RunAutoTest(self):
+		testType = 'Start' if self.model.StartOnly else 'Run'
+		Logger.Log('{} Auto Test {} in {}'.format(testType, self.model.TestName, self.model.Source))
 		PreTestActions.ModifyVisionSystem(self.model, False)
 
 		if self.model.GenerateLicMgrConfigOnTest:
@@ -1533,7 +1587,7 @@ class AutoTestRunner:
 			return
 		import my
 		#print 'Module location of my : ' + my.__file__
-		my.c.startup = startUp
+		my.c.startup = self.model.StartOnly
 		my.c.debugvision = self.model.DebugVision
 		my.c.copymmi = self.model.CopyMmi
 		my.c.mmiBuildConfiguration = ConfigEncoder.GetBuildConfig(self.model)
@@ -1679,6 +1733,9 @@ class KlaSourceBuilder:
 		return self.NotifyUser('Reset')
 
 	def NotifyUser(self, message):
+		if len(self.model.ActiveSrcs) == 0:
+			MessageBox.ShowMessage('There are no active sources. Please select the required one.')
+			return False
 		title = message + ' Source'
 		isAre = ' is'
 		if len(self.model.ActiveSrcs) > 1:
@@ -2727,6 +2784,7 @@ class ConfigInfo:
 		model.BCompare = self.ReadField(_model, 'BCompare', 'C:/Program Files (x86)/Beyond Compare 4/BCompare.exe')
 		model.MMiConfigPath = self.ReadField(_model, 'MMiConfigPath', 'D:\\')
 		model.MMiSetupsPath = self.ReadField(_model, 'MMiSetupsPath', 'D:/MmiSetups')
+		model.StartOnly = self.ReadField(_model, 'StartOnly', False)
 		model.DebugVision = self.ReadField(_model, 'DebugVision', False)
 		model.CopyMmi = self.ReadField(_model, 'CopyMmi', True)
 		model.TempDir = self.ReadField(_model, 'TempDir', 'bin')
@@ -2763,6 +2821,7 @@ class ConfigInfo:
 		_model['BCompare'] = model.BCompare
 		_model['MMiConfigPath'] = model.MMiConfigPath
 		_model['MMiSetupsPath'] = model.MMiSetupsPath
+		_model['StartOnly'] = model.StartOnly
 		_model['DebugVision'] = model.DebugVision
 		_model['CopyMmi'] = model.CopyMmi
 		_model['TempDir'] = model.TempDir
