@@ -1649,8 +1649,7 @@ class KlaSourceBuilder:
 		else:
 			message = 'building'
 			buildOption = '/build'
-		logFileName = self.model.StartPath + '/Build' + self.model.LogFileName
-		buildLoger = BuildLoger(logFileName, ForCleaning)
+		buildLoger = BuildLoger(self.model, ForCleaning)
 		for source, branch, config, srcPlatform in self.VerifySources(message):
 			buildLoger.StartSource(source, branch)
 			for inx,sln in enumerate(self.Solutions):
@@ -1668,6 +1667,8 @@ class KlaSourceBuilder:
 				OsOperations.Popen(params, buildLoger.PrintMsg)
 				buildLoger.EndSolution()
 			buildLoger.EndSource(source)
+		if len(self.model.ActiveSrcs) > 1 and not ForCleaning:
+			print buildLoger.ConsolidatedOutput
 		OsOperations.Pause(self.model.ClearHistory)
 
 	def OpenSolution(self, index):
@@ -1706,18 +1707,29 @@ class Logger:
 		FileOperations.Append(cls.fileName, message)
 
 class BuildLoger:
-	def __init__(self, fileName, ForCleaning):
-		self.fileName = fileName
+	def __init__(self, model, ForCleaning):
+		if ForCleaning:
+			self.fileName = model.StartPath + '/bin/BuildLog.txt'
+		else:
+			timeStamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+			self.fileName = '{}/bin/BuildLog_{}.txt'.format(model.StartPath, timeStamp)
 		self.ForCleaning = ForCleaning
 		self.message = 'cleaning' if ForCleaning else 'building'
-		if not os.path.exists(fileName):
-			print "File created : " + fileName
+		if not os.path.exists(self.fileName):
+			print "File created : " + self.fileName
 			FileOperations.Write(self.fileName, '')
+		self.ConsolidatedOutput = ''
+
+	def AddOutput(self, message, doLog):
+		self.ConsolidatedOutput += message
+		self.ConsolidatedOutput += '\n'
+		if doLog:
+			self.Log(message)
 
 	def StartSource(self, src, branch):
 		self.srcStartTime = datetime.now()
-		self.Log('Source : ' + src)
-		self.Log('Branch : ' + branch)
+		self.AddOutput('Source : ' + src, True)
+		self.AddOutput('Branch : ' + branch, True)
 		self.logDataTable = [
 			[ 'Solution', 'Config', 'Platform', 'Succeeded', 'Failed', 'Up To Date', 'Skipped', 'Time Taken' ],
 			['-']
@@ -1725,10 +1737,12 @@ class BuildLoger:
 
 	def EndSource(self, src):
 		timeDelta = self.TimeDeltaToStr(datetime.now() - self.srcStartTime)
-		self.Log('Completed {} : {} in {}'.format(self.message, src, timeDelta))
+		self.Log('Completed {} {} in {}'.format(self.message, src, timeDelta))
 		if not self.ForCleaning:
+			self.logDataTable.append(['-'])
+			self.logDataTable.append([''] * 7 + [timeDelta])
 			table = PrettyTable(TableFormat().SetSingleLine()).ToString(self.logDataTable)
-			print table
+			self.AddOutput(table, True)
 			FileOperations.Append(self.fileName, table)
 
 	def StartSolution(self, slnFile, name, config, platform):
