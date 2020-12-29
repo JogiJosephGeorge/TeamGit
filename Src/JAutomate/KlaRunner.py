@@ -774,12 +774,14 @@ class UISourceSelector(UIWindow):
 			print 'New source added : ' + folderSelected
 
 	def OnRemoveSource(self):
-		msg = 'The source ' + self.model.Sources[self.model.SrcIndex][0] + ' has been removed.'
-		del self.model.Sources[self.model.SrcIndex]
-		del self.cboConfig[self.model.SrcIndex]
-		del self.cboPlatform[self.model.SrcIndex]
-		self.model.SrcCnf.UpdateSource(self.model.SrcIndex - 1, False)
-		print msg
+		src = self.model.Sources[self.model.SrcIndex][0]
+		if KlaRunner.YesNoQuestion('Remove Source', 'Do you want to remove source ' + src):
+			msg = 'The source ' + src + ' has been removed.'
+			del self.model.Sources[self.model.SrcIndex]
+			del self.cboConfig[self.model.SrcIndex]
+			del self.cboPlatform[self.model.SrcIndex]
+			self.model.SrcCnf.UpdateSource(self.model.SrcIndex - 1, False)
+			print msg
 
 class FilterTestSelector:
 	def AddUI(self, parent, model, r, c, updateCombo):
@@ -1076,6 +1078,11 @@ class KlaRunner:
 			messagebox.showinfo('KLA Runner', msg)
 		else:
 			os.system('PAUSE')
+
+	@classmethod
+	def YesNoQuestion(cls, title, msg):
+		print msg
+		return messagebox.askquestion(title, msg) == 'yes'
 
 class AppRunner:
 	def __init__(self, model, testRunner):
