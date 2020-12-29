@@ -435,31 +435,40 @@ class UIMainMenu:
 		uiSettings.Show()
 		self.VM.UpdateCombo()
 
-class UISettings:
-	def __init__(self, parent, model, VM):
+class UIWindow(object):
+	def __init__(self, parent, model, title):
 		self.Parent = parent
 		self.model = model
-		self.VM = VM
+		self.Title = title
 
 	def Show(self):
-		title = 'Settings'
-		self.window = UIFactory.CreateWindow(self.Parent, title, self.model.StartPath)
+		self.window = UIFactory.CreateWindow(self.Parent, self.Title, self.model.StartPath)
 		self.frame = UIFactory.AddFrame(self.window, 0, 0, 20, 20)
 		self.CreateUI(self.frame)
 		self.window.protocol('WM_DELETE_WINDOW', self.OnClosing)
 		if self.Parent is None:
 			self.window.mainloop()
 
+	def CreateUI(self, parent):
+		pass
+
 	def OnClosing(self):
-		self.model.WriteConfigFile()
-		self.RestartNeeded()
-		# UIViewModel.RestartApp(self.model) TODO: This is not working
 		if self.Parent is not None:
 			self.Parent.deiconify()
 			self.Parent = None
+		self.model.WriteConfigFile()
+		self.window.destroy()
+
+class UISettings(UIWindow):
+	def __init__(self, parent, model, VM):
+		super(UISettings, self).__init__(parent, model, 'Settings')
+		self.VM = VM
+
+	def OnClosing(self):
+		if self.Parent is not None:
 			self.VM.UpdateCombo()
 			self.VM.UpdateSlotsChk(True)
-		self.window.destroy()
+		super(UISettings, self).OnClosing()
 
 	def AddRow(self):
 		self.Row += 1
@@ -616,26 +625,10 @@ class UISettings:
 			testName = filename[len(dir) + 1: -10]
 			self.filterTestSelector.AddSelectedTest(testName)
 
-	def RestartNeeded(self):
-		if not self.model.ShowAllButtons == self.ChkShowAll.get():
-			self.model.ShowAllButtons = self.ChkShowAll.get()
-			return True
-		return False
-
-class UISourceSelector:
+class UISourceSelector(UIWindow):
 	def __init__(self, parent, model, VM):
-		self.Parent = parent
-		self.model = model
+		super(UISourceSelector, self).__init__(parent, model, 'Select Source')
 		self.VM = VM
-
-	def Show(self):
-		title = 'Select Source'
-		self.window = UIFactory.CreateWindow(self.Parent, title, self.model.StartPath)
-		self.frame = UIFactory.AddFrame(self.window, 0, 0, 20, 20)
-		self.CreateUI(self.frame)
-		self.window.protocol('WM_DELETE_WINDOW', self.OnClosing)
-		if self.Parent is None:
-			self.window.mainloop()
 
 	def CreateUI(self, parent):
 		self.SelectedSrc = tk.IntVar()
@@ -680,13 +673,9 @@ class UISourceSelector:
 			index += 1
 
 	def OnClosing(self):
-		if self.Parent is not None:
-			self.Parent.deiconify()
-			self.Parent = None
 		if self.VM is not None:
 			self.VM.UpdateSourceBranch()
-		self.model.WriteConfigFile()
-		self.window.destroy()
+		super(UISourceSelector, self).OnClosing()
 
 	def AddSource(self, parent, r, c, source):
 		rd = tk.Radiobutton(parent,
