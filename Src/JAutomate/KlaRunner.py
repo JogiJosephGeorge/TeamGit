@@ -476,6 +476,7 @@ class UISettings:
 		self.AddGenerateLicMgrConfigOnTestCheck(parent)
 		self.AddCopyMockLicenseOnTestCheck(parent)
 		self.AddCopyExportIllumRefOnTestCheck(parent)
+		self.AddCleanDotVsOnReset(parent)
 
 	def AddSelectPathRow(self, parent, label, attrName):
 		self.AddSelectItemRow(parent, label, attrName, False)
@@ -575,6 +576,19 @@ class UISettings:
 			KlaRunner.ShowMessage('The file xPort_IllumReference.xml will be copied while running auto test.\nThis is NOT RECOMMENDED.')
 		else:
 			print 'The file xPort_IllumReference.xml will NOT be copied while running auto test.'
+
+	def AddCleanDotVsOnReset(self, parent):
+		UIFactory.AddLabel(parent, 'Remove .vs directories on reseting source', self.Row, 0)
+		isChecked = self.model.CleanDotVsOnReset
+		self.ChkCleanDotVsOnReset = UIFactory.AddCheckBox(parent, isChecked, self.Row, 1, self.OnCleanDotVsOnReset)
+		self.AddRow()
+
+	def OnCleanDotVsOnReset(self):
+		self.model.CleanDotVsOnReset = self.ChkCleanDotVsOnReset.get()
+		if self.model.CleanDotVsOnReset:
+			KlaRunner.ShowMessage('All .vs directories in the source will be removed while reseting source.')
+		else:
+			print 'The .vs directories will NOT be affected while reseting source.'
 
 	def AddFirstRow(self, parent):
 		frame = UIFactory.AddFrame(parent, 0, 0, 0, 0, 2)
@@ -1583,11 +1597,14 @@ class KlaSourceBuilder:
 
 	def ResetSource(self):
 		excludeDirs = [
-			'/mmi/mmi/.vs',
 			'/mmi/mmi/packages',
-			'/handler/cpp/.vs',
 			'/Handler/FabLink/cpp/bin',
 			'/Handler/FabLink/FabLinkLib/System32',
+			]
+		if self.model.CleanDotVsOnReset:
+			excludeDirs += [
+				'/mmi/mmi/.vs',
+				'/handler/cpp/.vs',
 			]
 		for srcSet in self.VerifySources('cleaning'):
 			src = srcSet[0]
@@ -2613,6 +2630,7 @@ class ConfigInfo:
 		model.GenerateLicMgrConfigOnTest = self.ReadField(_model, 'GenerateLicMgrConfigOnTest', False)
 		model.CopyMockLicenseOnTest = self.ReadField(_model, 'CopyMockLicenseOnTest', False)
 		model.CopyExportIllumRefOnTest = self.ReadField(_model, 'CopyExportIllumRefOnTest', False)
+		model.CleanDotVsOnReset = self.ReadField(_model, 'CleanDotVsOnReset', False)
 
 		model.MMiConfigPath = model.MMiConfigPath.replace('/', '\\')
 
@@ -2648,6 +2666,7 @@ class ConfigInfo:
 		_model['GenerateLicMgrConfigOnTest'] = model.GenerateLicMgrConfigOnTest
 		_model['CopyMockLicenseOnTest'] = model.CopyMockLicenseOnTest
 		_model['CopyExportIllumRefOnTest'] = model.CopyExportIllumRefOnTest
+		_model['CleanDotVsOnReset'] = model.CleanDotVsOnReset
 
 		with open(self.FileName, 'w') as f:
 			json.dump(_model, f, indent=3)
