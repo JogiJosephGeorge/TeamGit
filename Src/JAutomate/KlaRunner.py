@@ -349,7 +349,7 @@ class UIMainMenu:
 
 	def AddColumn1(self, parent):
 		self.CreateColumnFrame(parent)
-		self.AddButton('Stop All KLA Apps', TaskMan.StopTasks, (False,))
+		self.AddButton('Stop All KLA Apps', self.StopTasks)
 		tr = self.testRunner
 		self.AddParallelButton('Run test', tr.RunAutoTest, (False,False), tr.InitAutoTest)
 		self.AddParallelButton('Start test', tr.RunAutoTest, (True,False), tr.InitAutoTest)
@@ -359,6 +359,10 @@ class UIMainMenu:
 			self.AddButton('Stop MMi alone', self.appRunner.StopMMi)
 			self.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True,False))
 			self.AddButton('Run MMi from C:/Icos', self.appRunner.RunMMi, (False,False))
+
+	def StopTasks(self):
+		TaskMan.StopTasks(False)
+		VMWareRunner.RunSlots(self.model, False, False)
 
 	def AddColumn2(self, parent):
 		sourceBuilder = self.klaSourceBuilder
@@ -1220,11 +1224,12 @@ class VMWareRunner:
 		return True
 
 	@classmethod
-	def RunSlots(cls, model):
+	def RunSlots(cls, model, startSlot = True, showMessage = True):
 		vMwareWS = model.VMwareWS
 		slots = model.slots
 		if len(slots) == 0:
-			KlaRunner.ShowMessage('Please select necessary slot(s).')
+			if showMessage:
+				KlaRunner.ShowMessage('Please select necessary slot(s).')
 			return False
 		vmRunExe = vMwareWS + '/vmrun.exe'
 		vmWareExe = vMwareWS + '/vmware.exe'
@@ -1245,9 +1250,11 @@ class VMWareRunner:
 				print slotName + ' : Restarted.'
 				subprocess.Popen([vmRunExe, '-vp', '1', 'reset', vmxPath])
 			else:
-				subprocess.Popen([vmWareExe, vmxPath])
-				msg = 'Please start ' + slotName
-				KlaRunner.ShowMessage(msg)
+				if startSlot:
+					subprocess.Popen([vmWareExe, vmxPath])
+					if showMessage:
+						msg = 'Please start ' + slotName
+						KlaRunner.ShowMessage(msg)
 		return True
 
 	@classmethod
