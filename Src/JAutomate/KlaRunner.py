@@ -86,15 +86,15 @@ class UIFactory:
 		return (combo,var)
 
 	@classmethod
-	def AddCheckBox(cls, parent, defVal, r, c, cmd, arg = None):
+	def AddCheckBox(cls, parent, text, defVal, r, c, cmd, arg = None, sticky='w'):
 		chkValue = tk.BooleanVar()
 		chkValue.set(defVal)
 		if arg is None:
 			action = cmd
 		else:
 			action = lambda: cmd(arg)
-		chkBox = tk.Checkbutton(parent, var=chkValue, command=action)
-		chkBox.grid(row=r, column=c, sticky='ew')
+		chkBox = tk.Checkbutton(parent, var=chkValue, command=action, text=text)
+		chkBox.grid(row=r, column=c, sticky=sticky)
 		return chkValue
 
 	@classmethod
@@ -210,12 +210,12 @@ class UIHeader:
 		self.VM.cmbTest = UIFactory.AddCombo(parent, testNames, self.model.TestIndex, self.Row, c+1, self.VM.OnTestChanged, None, 70)
 
 	def AddAttachMmi(self, parent, c):
-		UIFactory.AddLabel(parent, 'Attach MMi', self.Row, c)
-		self.VM.chkAttachMmi = UIFactory.AddCheckBox(parent, self.model.DebugVision, self.Row, c+1, self.VM.OnAttach)
+		txt = 'Attach MMi'
+		self.VM.chkAttachMmi = UIFactory.AddCheckBox(parent, txt, self.model.DebugVision, self.Row, c+1, self.VM.OnAttach)
 
 	def AddCopyMmi(self, parent, c):
-		UIFactory.AddLabel(parent, 'Copy MMi to Icos', self.Row, c)
-		self.VM.chkCopyMmi = UIFactory.AddCheckBox(parent, self.model.CopyMmi, self.Row, c+1, self.VM.OnCopyMmi)
+		txt = 'Copy MMi to Icos'
+		self.VM.chkCopyMmi = UIFactory.AddCheckBox(parent, txt, self.model.CopyMmi, self.Row, c+1, self.VM.OnCopyMmi)
 
 	def AddSlots(self, parent, c):
 		UIFactory.AddLabel(parent, 'Slots', self.Row, c)
@@ -223,8 +223,8 @@ class UIHeader:
 		self.VM.chkSlots = []
 		for i in range(self.model.MaxSlots):
 			isSelected = (i+1) in self.model.slots
-			UIFactory.AddLabel(frame, str(i+1), 0, i * 2)
-			self.VM.chkSlots.append(UIFactory.AddCheckBox(frame, isSelected, 0, i * 2 + 1, self.VM.OnSlotChn, i))
+			txt = str(i+1)
+			self.VM.chkSlots.append(UIFactory.AddCheckBox(frame, txt, isSelected, 0, i, self.VM.OnSlotChn, i))
 
 class UIViewModel:
 	def __init__(self, model):
@@ -464,25 +464,31 @@ class UISettings:
 		self.Row += 1
 
 	def CreateUI(self, parent):
-		self.AddFirstRow(parent)
+		testFrame = UIFactory.AddFrame(parent, 0, 0)
+		self.AddFirstRow(testFrame)
 		self.filterTestSelector = FilterTestSelector()
 		self.RemoveTestMan = RemoveTestMan()
-		self.filterTestSelector.AddUI(parent, self.model, 1, 0, self.RemoveTestMan.UpdateCombo)
-		self.RemoveTestMan.AddUI(parent, self.model, 2, 0)
-		self.Row = 3
-		self.AddSelectFileRow(parent, 'DevEnv.com', 'DevEnvCom')
-		self.AddSelectFileRow(parent, 'DevEnv.exe', 'DevEnvExe')
-		self.AddSelectPathRow(parent, 'Git Bin', 'GitBin')
-		self.AddSelectPathRow(parent, 'VM ware WS', 'VMwareWS')
-		self.AddSelectFileRow(parent, 'Effort Log File', 'EffortLogFile')
-		self.AddSelectPathRow(parent, 'MMi Config Path', 'MMiConfigPath')
-		self.AddSelectPathRow(parent, 'MMi Setups Path', 'MMiSetupsPath')
-		self.AddShowAllCheck(parent)
-		self.AddRestartSlotsForMMiCheck(parent)
-		self.AddGenerateLicMgrConfigOnTestCheck(parent)
-		self.AddCopyMockLicenseOnTestCheck(parent)
-		self.AddCopyExportIllumRefOnTestCheck(parent)
-		self.AddCleanDotVsOnReset(parent)
+		self.filterTestSelector.AddUI(testFrame, self.model, 1, 0, self.RemoveTestMan.UpdateCombo)
+		self.RemoveTestMan.AddUI(testFrame, self.model, 2, 0)
+
+		pathFrame = UIFactory.AddFrame(parent, 1, 0)
+		self.Row = 0
+		self.AddSelectFileRow(pathFrame, 'DevEnv.com', 'DevEnvCom')
+		self.AddSelectFileRow(pathFrame, 'DevEnv.exe', 'DevEnvExe')
+		self.AddSelectPathRow(pathFrame, 'Git Bin', 'GitBin')
+		self.AddSelectPathRow(pathFrame, 'VM ware WS', 'VMwareWS')
+		self.AddSelectFileRow(pathFrame, 'Effort Log File', 'EffortLogFile')
+		self.AddSelectPathRow(pathFrame, 'MMi Config Path', 'MMiConfigPath')
+		self.AddSelectPathRow(pathFrame, 'MMi Setups Path', 'MMiSetupsPath')
+
+		checkFrame = UIFactory.AddFrame(parent, 2, 0)
+		self.Row = 0
+		self.AddShowAllCheck(checkFrame)
+		self.AddRestartSlotsForMMiCheck(checkFrame)
+		self.AddGenerateLicMgrConfigOnTestCheck(checkFrame)
+		self.AddCopyMockLicenseOnTestCheck(checkFrame)
+		self.AddCopyExportIllumRefOnTestCheck(checkFrame)
+		self.AddCleanDotVsOnReset(checkFrame)
 
 	def AddSelectPathRow(self, parent, label, attrName):
 		self.AddSelectItemRow(parent, label, attrName, False)
@@ -521,9 +527,9 @@ class UISettings:
 			print '{} Path changed : {}'.format(attrName, filename)
 
 	def AddShowAllCheck(self, parent):
-		UIFactory.AddLabel(parent, 'Show All Commands in KlaRunner', self.Row, 0)
+		txt = 'Show All Commands in KlaRunner'
 		isChecked = self.model.ShowAllButtons
-		self.ChkShowAll = UIFactory.AddCheckBox(parent, isChecked, self.Row, 1, self.OnShowAll)
+		self.ChkShowAll = UIFactory.AddCheckBox(parent, txt, isChecked, self.Row, 1, self.OnShowAll)
 		self.AddRow()
 
 	def OnShowAll(self):
@@ -531,9 +537,9 @@ class UISettings:
 		KlaRunner.ShowMessage('You need to restart the application to update the UI.')
 
 	def AddRestartSlotsForMMiCheck(self, parent):
-		UIFactory.AddLabel(parent, 'Restart Slots while running MMi alone', self.Row, 0)
+		txt = 'Restart Slots while running MMi alone'
 		isChecked = self.model.RestartSlotsForMMiAlone
-		self.ChkRestartSlotsForMMi = UIFactory.AddCheckBox(parent, isChecked, self.Row, 1, self.OnRestartSlotsForMMi)
+		self.ChkRestartSlotsForMMi = UIFactory.AddCheckBox(parent, txt, isChecked, self.Row, 1, self.OnRestartSlotsForMMi)
 		self.AddRow()
 
 	def OnRestartSlotsForMMi(self):
@@ -545,9 +551,9 @@ class UISettings:
 			print msg.format('NOT ')
 
 	def AddGenerateLicMgrConfigOnTestCheck(self, parent):
-		UIFactory.AddLabel(parent, 'Generate LicMgrConfig.xml On AutoTest', self.Row, 0)
+		txt = 'Generate LicMgrConfig.xml On AutoTest'
 		isChecked = self.model.GenerateLicMgrConfigOnTest
-		self.ChkGenerateLicMgrConfigOnTest = UIFactory.AddCheckBox(parent, isChecked, self.Row, 1, self.OnGenerateLicMgrConfigOnTest)
+		self.ChkGenerateLicMgrConfigOnTest = UIFactory.AddCheckBox(parent, txt, isChecked, self.Row, 1, self.OnGenerateLicMgrConfigOnTest)
 		self.AddRow()
 
 	def OnGenerateLicMgrConfigOnTest(self):
@@ -558,9 +564,9 @@ class UISettings:
 			print 'The file LicMgrConfig.xml will NOT be created while running auto test.'
 
 	def AddCopyMockLicenseOnTestCheck(self, parent):
-		UIFactory.AddLabel(parent, 'Copy Mock License On AutoTest', self.Row, 0)
+		txt = 'Copy Mock License On AutoTest'
 		isChecked = self.model.CopyMockLicenseOnTest
-		self.ChkCopyMockLicenseOnTest = UIFactory.AddCheckBox(parent, isChecked, self.Row, 1, self.OnCopyMockLicenseOnTest)
+		self.ChkCopyMockLicenseOnTest = UIFactory.AddCheckBox(parent, txt, isChecked, self.Row, 1, self.OnCopyMockLicenseOnTest)
 		self.AddRow()
 
 	def OnCopyMockLicenseOnTest(self):
@@ -571,9 +577,9 @@ class UISettings:
 			print 'The file mock License.dll will NOT be copied while running auto test.'
 
 	def AddCopyExportIllumRefOnTestCheck(self, parent):
-		UIFactory.AddLabel(parent, 'Copy xPort_IllumReference.xml on AutoTest', self.Row, 0)
+		txt = 'Copy xPort_IllumReference.xml on AutoTest'
 		isChecked = self.model.CopyExportIllumRefOnTest
-		self.ChkCopyExportIllumRefOnTest = UIFactory.AddCheckBox(parent, isChecked, self.Row, 1, self.OnCopyExportIllumRefOnTest)
+		self.ChkCopyExportIllumRefOnTest = UIFactory.AddCheckBox(parent, txt, isChecked, self.Row, 1, self.OnCopyExportIllumRefOnTest)
 		self.AddRow()
 
 	def OnCopyExportIllumRefOnTest(self):
@@ -584,9 +590,9 @@ class UISettings:
 			print 'The file xPort_IllumReference.xml will NOT be copied while running auto test.'
 
 	def AddCleanDotVsOnReset(self, parent):
-		UIFactory.AddLabel(parent, 'Remove .vs directories on reseting source', self.Row, 0)
+		txt = 'Remove .vs directories on reseting source'
 		isChecked = self.model.CleanDotVsOnReset
-		self.ChkCleanDotVsOnReset = UIFactory.AddCheckBox(parent, isChecked, self.Row, 1, self.OnCleanDotVsOnReset)
+		self.ChkCleanDotVsOnReset = UIFactory.AddCheckBox(parent, txt, isChecked, self.Row, 1, self.OnCleanDotVsOnReset)
 		self.AddRow()
 
 	def OnCleanDotVsOnReset(self):
@@ -726,7 +732,7 @@ class UISourceSelector:
 	def AddActive(self, parent, r, c):
 		Index = r - 1
 		isActive = Index in self.model.ActiveSrcs
-		chk = UIFactory.AddCheckBox(parent, isActive, r, c, self.OnActiveSrcChanged, Index)
+		chk = UIFactory.AddCheckBox(parent, '', isActive, r, c, self.OnActiveSrcChanged, Index, 'ew')
 		self.chkActiveSrcs.append(chk)
 
 	def OnActiveSrcChanged(self, Index):
