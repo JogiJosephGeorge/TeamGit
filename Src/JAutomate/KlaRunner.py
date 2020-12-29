@@ -243,6 +243,10 @@ class UIViewModel:
 		self.lblSource[1].set(source)
 		self.lblBranch[1].set(self.model.Branch)
 
+	def StopTasks(self):
+		TaskMan.StopTasks(False)
+		VMWareRunner.RunSlots(self.model, False, False)
+
 	@classmethod
 	def RestartApp(cls, model):
 		# This won't work when we execute the application using shortcut link
@@ -344,7 +348,8 @@ class UIMainMenu:
 		self.mmiSpcTestRunner = MmiSpcTestRunner(self.model)
 		self.settings = Settings(self.model, self.klaRunner)
 		self.appRunner = AppRunner(self.model, self.testRunner)
-		self.klaSourceBuilder = KlaSourceBuilder(self.model, self.klaRunner)
+		self.vsSolutions = VisualStudioSolutions(self.model)
+		self.klaSourceBuilder = KlaSourceBuilder(self.model, self.klaRunner, self.vsSolutions)
 		self.threadHandler = ThreadHandler()
 		self.Col = 0
 		self.AddColumn1(self.frame)
@@ -355,29 +360,24 @@ class UIMainMenu:
 
 	def AddColumn1(self, parent):
 		self.CreateColumnFrame(parent)
-		self.AddButton('Stop All KLA Apps', self.StopTasks)
+		self.AddButton('Stop All KLA Apps', self.VM.StopTasks)
 		tr = self.testRunner
 		self.AddParallelButton('Run test', tr.RunAutoTest, (False,False), tr.InitAutoTest)
 		self.AddParallelButton('Start test', tr.RunAutoTest, (True,False), tr.InitAutoTest)
 		if self.model.ShowAllButtons:
-			#self.AddButton('Run Handler and MMi', self.appRunner.RunHandlerMMi)
 			self.AddButton('Run Handler', self.appRunner.RunHandler)
 			self.AddButton('Stop MMi alone', self.appRunner.StopMMi)
 			self.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True,False))
 			self.AddButton('Run MMi from C:/Icos', self.appRunner.RunMMi, (False,False))
 
-	def StopTasks(self):
-		TaskMan.StopTasks(False)
-		VMWareRunner.RunSlots(self.model, False, False)
-
 	def AddColumn2(self, parent):
-		sourceBuilder = self.klaSourceBuilder
+		vsSolutions = self.vsSolutions
 		self.CreateColumnFrame(parent)
-		self.AddButton('Open CIT100', sourceBuilder.OpenSolution, (0,))
-		self.AddButton('Open Simulator', sourceBuilder.OpenSolution, (1,))
-		self.AddButton('Open Mmi', sourceBuilder.OpenSolution, (2,))
-		self.AddButton('Open MockLicense', sourceBuilder.OpenSolution, (3,))
-		self.AddButton('Open Converters', sourceBuilder.OpenSolution, (4,))
+		self.AddButton('Open CIT100', vsSolutions.OpenSolution, (0,))
+		self.AddButton('Open Simulator', vsSolutions.OpenSolution, (1,))
+		self.AddButton('Open Mmi', vsSolutions.OpenSolution, (2,))
+		self.AddButton('Open MockLicense', vsSolutions.OpenSolution, (3,))
+		self.AddButton('Open Converters', vsSolutions.OpenSolution, (4,))
 
 	def AddColumn3(self, parent):
 		self.CreateColumnFrame(parent)
@@ -411,10 +411,10 @@ class UIMainMenu:
 		self.AddButton('Settings', self.ShowSettings)
 		if self.model.ShowAllButtons:
 			self.AddButton('Clear Output', OsOperations.Cls)
-		self.AddParallelButton('Clean Active Srcs', self.klaSourceBuilder.CleanSource, None, self.klaSourceBuilder.NotifyConsole)
-		self.AddParallelButton('Build Active Srcs', self.klaSourceBuilder.BuildSource, None, self.klaSourceBuilder.NotifyConsole)
+		self.AddParallelButton('Clean Active Srcs', self.klaSourceBuilder.CleanSource, None, self.klaSourceBuilder.NotifyClean)
+		self.AddParallelButton('Build Active Srcs', self.klaSourceBuilder.BuildSource, None, self.klaSourceBuilder.NotifyBuild)
 		if self.model.ShowAllButtons:
-			self.AddParallelButton('Reset Srcs', self.klaSourceBuilder.ResetSource, None, self.klaSourceBuilder.NotifyConsole)
+			self.AddParallelButton('Reset Srcs', self.klaSourceBuilder.ResetSource, None, self.klaSourceBuilder.NotifyReset)
 			self.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
 			self.AddButton('Effort Log', effortLogger.PrintEffortLogInDetail)
 			self.AddButton('Daily Log', effortLogger.PrintDailyLog)
@@ -583,7 +583,7 @@ class UISettings(UIWindow):
 
 	def OnShowAll(self):
 		self.model.ShowAllButtons = self.ChkShowAll.get()
-		KlaRunner.ShowMessage('You need to restart the application to update the UI.')
+		MessageBox.ShowMessage('You need to restart the application to update the UI.')
 
 	def AddRestartSlotsForMMiCheck(self, parent):
 		txt = 'Restart Slots while running MMi alone'
@@ -608,7 +608,7 @@ class UISettings(UIWindow):
 	def OnGenerateLicMgrConfigOnTest(self):
 		self.model.GenerateLicMgrConfigOnTest = self.ChkGenerateLicMgrConfigOnTest.get()
 		if self.model.GenerateLicMgrConfigOnTest:
-			KlaRunner.ShowMessage('The file LicMgrConfig.xml will be created while running auto test.\nThis is NOT RECOMMENDED.')
+			MessageBox.ShowMessage('The file LicMgrConfig.xml will be created while running auto test.\nThis is NOT RECOMMENDED.')
 		else:
 			print 'The file LicMgrConfig.xml will NOT be created while running auto test.'
 
@@ -621,7 +621,7 @@ class UISettings(UIWindow):
 	def OnCopyMockLicenseOnTest(self):
 		self.model.CopyMockLicenseOnTest = self.ChkCopyMockLicenseOnTest.get()
 		if self.model.CopyMockLicenseOnTest:
-			KlaRunner.ShowMessage('The file mock License.dll will be copied while running auto test.\nThis is NOT RECOMMENDED.')
+			MessageBox.ShowMessage('The file mock License.dll will be copied while running auto test.\nThis is NOT RECOMMENDED.')
 		else:
 			print 'The file mock License.dll will NOT be copied while running auto test.'
 
@@ -634,7 +634,7 @@ class UISettings(UIWindow):
 	def OnCopyExportIllumRefOnTest(self):
 		self.model.CopyExportIllumRefOnTest = self.ChkCopyExportIllumRefOnTest.get()
 		if self.model.CopyExportIllumRefOnTest:
-			KlaRunner.ShowMessage('The file xPort_IllumReference.xml will be copied while running auto test.\nThis is NOT RECOMMENDED.')
+			MessageBox.ShowMessage('The file xPort_IllumReference.xml will be copied while running auto test.\nThis is NOT RECOMMENDED.')
 		else:
 			print 'The file xPort_IllumReference.xml will NOT be copied while running auto test.'
 
@@ -647,7 +647,7 @@ class UISettings(UIWindow):
 	def OnCleanDotVsOnReset(self):
 		self.model.CleanDotVsOnReset = self.ChkCleanDotVsOnReset.get()
 		if self.model.CleanDotVsOnReset:
-			KlaRunner.ShowMessage('All .vs directories in the source will be removed while reseting source.')
+			MessageBox.ShowMessage('All .vs directories in the source will be removed while reseting source.')
 		else:
 			print 'The .vs directories will NOT be affected while reseting source.'
 
@@ -775,7 +775,7 @@ class UISourceSelector(UIWindow):
 
 	def OnRemoveSource(self):
 		src = self.model.Sources[self.model.SrcIndex][0]
-		if KlaRunner.YesNoQuestion('Remove Source', 'Do you want to remove source ' + src):
+		if MessageBox.YesNoQuestion('Remove Source', 'Do you want to remove source ' + src):
 			msg = 'The source ' + src + ' has been removed.'
 			del self.model.Sources[self.model.SrcIndex]
 			del self.cboConfig[self.model.SrcIndex]
@@ -888,7 +888,8 @@ class Menu:
 		self.testRunner = AutoTestRunner(model, None)
 		self.settings = Settings(model, klaRunner)
 		self.appRunner = AppRunner(model, self.testRunner)
-		self.klaSourceBuilder = KlaSourceBuilder(model, klaRunner)
+		self.vsSolutions = VisualStudioSolutions(model)
+		self.klaSourceBuilder = KlaSourceBuilder(model, klaRunner, self.vsSolutions)
 
 	def PrepareMainMenu(self):
 		model = self.klaRunner.model
@@ -902,6 +903,7 @@ class Menu:
 
 		testRunner = self.testRunner
 		sourceBuilder = self.klaSourceBuilder
+		vsSolutions = self.vsSolutions
 		settings = self.settings
 		effortLogger = EffortLogger(model)
 		autoTest = ('', ' (attach MMi)')[model.DebugVision]
@@ -918,11 +920,11 @@ class Menu:
 			[8, ['Run Slots', VMWareRunner.RunSlots, model]],
 			[9, ['Run ToolLink Host', self.appRunner.RunToollinkHost]],
 		],[
-			[10, ['Open CIT100', sourceBuilder.OpenSolution, 0]],
-			[11, ['Open Simulator', sourceBuilder.OpenSolution, 1]],
-			[12, ['Open MMi', sourceBuilder.OpenSolution, 2]],
-			[14, ['Open MockLicense', sourceBuilder.OpenSolution, 3]],
-			[15, ['Open Converters', sourceBuilder.OpenSolution, 4]],
+			[10, ['Open CIT100', vsSolutions.OpenSolution, 0]],
+			[11, ['Open Simulator', vsSolutions.OpenSolution, 1]],
+			[12, ['Open MMi', vsSolutions.OpenSolution, 2]],
+			[14, ['Open MockLicense', vsSolutions.OpenSolution, 3]],
+			[15, ['Open Converters', vsSolutions.OpenSolution, 4]],
 		],[
 			[20, ['Open Test Folder', self.klaRunner.OpenTestFolder]],
 			[21, ['Open Local Diff', AppRunner.OpenLocalDif, model]],
@@ -963,6 +965,28 @@ class Menu:
 					return row[i]
 		print 'Wrong input is given !!!'
 		return [-1]
+
+class MessageBox:
+	@classmethod
+	def ShowMessage(cls, msg):
+		print msg
+		if KlaRunner.RunFromUI:
+			messagebox.showinfo('KLA Runner', msg)
+		else:
+			os.system('PAUSE')
+
+	@classmethod
+	def YesNoQuestion(cls, title, msg):
+		print msg
+		return messagebox.askquestion(title, msg) == 'yes'
+
+	@classmethod
+	def ShowInfo(cls, caption, msg, doPause):
+		if KlaRunner.RunFromUI:
+			messagebox.showinfo(caption, msg)
+		else:
+			print msg
+			OsOperations.Pause(doPause)
 
 class KlaRunner:
 	RunFromUI = False
@@ -1043,7 +1067,7 @@ class KlaRunner:
 		print 
 		OsOperations.Pause(self.model.ClearHistory)
 
-	def GetSourceInfo(self, activeSrcs):
+	def GetSourceInfo(self, activeSrcs): #Obsolete Method
 		heading = ['Source', 'Branch', 'Config', 'Platform']
 		if activeSrcs == None:
 			sources = list(self.model.Sources)
@@ -1059,7 +1083,7 @@ class KlaRunner:
 			menuData.append([src[0], branch, src[1], src[2]])
 		return (heading, menuData)
 
-	def PrintBranches(self, activeSrcs = None):
+	def PrintBranches(self, activeSrcs = None): #Obsolete Method
 		heading, data = self.GetSourceInfo(activeSrcs)
 		menuData = [ heading, ['-'] ] + data
 		PrettyTable(TableFormat().SetSingleLine()).PrintTable(menuData)
@@ -1070,19 +1094,6 @@ class KlaRunner:
 		if not os.path.isdir(wd):
 			os.mkdir(wd)
 		os.chdir(wd)
-
-	@classmethod
-	def ShowMessage(cls, msg):
-		print msg
-		if KlaRunner.RunFromUI:
-			messagebox.showinfo('KLA Runner', msg)
-		else:
-			os.system('PAUSE')
-
-	@classmethod
-	def YesNoQuestion(cls, title, msg):
-		print msg
-		return messagebox.askquestion(title, msg) == 'yes'
 
 class AppRunner:
 	def __init__(self, model, testRunner):
@@ -1256,7 +1267,7 @@ class VMWareRunner:
 		slots = model.slots
 		if len(slots) == 0:
 			if showMessage:
-				KlaRunner.ShowMessage('Please select necessary slot(s).')
+				MessageBox.ShowMessage('Please select necessary slot(s).')
 			return False
 		vmRunExe = vMwareWS + '/vmrun.exe'
 		vmWareExe = vMwareWS + '/vmware.exe'
@@ -1281,14 +1292,14 @@ class VMWareRunner:
 					subprocess.Popen([vmWareExe, vmxPath])
 					if showMessage:
 						msg = 'Please start ' + slotName
-						KlaRunner.ShowMessage(msg)
+						MessageBox.ShowMessage(msg)
 		return True
 
 	@classmethod
 	def TestSlots(cls, model):
 		slots = model.slots
 		if len(slots) == 0:
-			KlaRunner.ShowMessage('Please select necessary slot(s).')
+			MessageBox.ShowMessage('Please select necessary slot(s).')
 			return
 
 		if TaskMan.StopTask('MvxCmd.exe'):
@@ -1620,10 +1631,9 @@ class Settings: # Obsolete Class
 			print 'Wrong input is given !!!'
 		return -1
 
-class KlaSourceBuilder:
-	def __init__(self, model, klaRunner):
+class VisualStudioSolutions:
+	def __init__(self, model):
 		self.model = model
-		self.klaRunner = klaRunner
 		self.Solutions = [
 			'/handler/cpp/CIT100.sln',
 			'/handler/Simulator/CIT100Simulator/CIT100Simulator.sln',
@@ -1633,24 +1643,52 @@ class KlaSourceBuilder:
 		]
 		self.SlnNames = ['CIT100', 'Simulator', 'MMi', 'Mock', 'Converters']
 
-	def NotifyConsole(self):
-		if KlaRunner.RunFromUI:
-			OsOperations.Cls()
-			messagebox.showinfo('KLA Runner', 'Please verify the branches and configurations in console window.')
-		return True
-
-	def VerifySources(self, message):
-		isAre = (' is', 's are')[len(self.model.ActiveSrcs) > 1]
-		print 'The following source{} ready for {}.'.format(isAre, message)
-		sources = self.klaRunner.PrintBranches(self.model.ActiveSrcs)
-		question = 'Please type "Yes" to continue {} : '.format(message)
-		answer = OsOperations.Input(question).lower()
-		if answer == 'yes' or answer == 'y':
-			print 'Started {}...'.format(message)
+	def OpenSolution(self, index):
+		fileName = self.model.Source + self.Solutions[index]
+		param = [
+			self.model.DevEnvExe,
+			fileName
+		]
+		subprocess.Popen(param)
+		print 'Open solution : ' + fileName
+		if self.model.Config is not 'Debug' or self.model.Platform is not 'Win32':
+			msg = 'Please check configuration and platform in Visual Studio'
+			MessageBox.ShowInfo('Visual Studio', msg, self.model.ClearHistory)
 		else:
-			print 'Cancelled {}.'.format(message)
-			sources = []
-		return sources
+			OsOperations.Pause(self.model.ClearHistory)
+
+class KlaSourceBuilder:
+	def __init__(self, model, klaRunner, vsSolutions):
+		self.model = model
+		self.klaRunner = klaRunner
+		self.vsSolutions = vsSolutions
+
+	def NotifyClean(self):
+		return self.NotifyUser('Clean')
+
+	def NotifyBuild(self):
+		return self.NotifyUser('Build')
+
+	def NotifyReset(self):
+		return self.NotifyUser('Reset')
+
+	def NotifyUser(self, message):
+		title = message + ' Source'
+		isAre = ' is'
+		if len(self.model.ActiveSrcs) > 1:
+			title += 's'
+			isAre = 's are'
+		fullMessage = 'The following source{} ready for {}ing.\n'.format(isAre, message)
+		self.srcTuple = []
+		for activeSrc in self.model.ActiveSrcs:
+			source, config, platform = self.model.Sources[activeSrc]
+			branch = Git.GetBranch(source)
+			fullMessage += '\n{} ({} | {})\n{}\n'.format(source, platform, config, branch)
+			self.srcTuple.append([source, branch, config, platform])
+		fullMessage += '\nDo you want to continue {}ing?'.format(message)
+		result = MessageBox.YesNoQuestion(title, fullMessage)
+		print 'Yes' if result else 'No'
+		return result
 
 	def ResetSource(self):
 		excludeDirs = [
@@ -1663,7 +1701,7 @@ class KlaSourceBuilder:
 				'/mmi/mmi/.vs',
 				'/handler/cpp/.vs',
 			]
-		for srcSet in self.VerifySources('cleaning'):
+		for srcSet in self.srcTuple:
 			src = srcSet[0]
 			cnt = len(Git.ModifiedFiles(self.model.Source))
 			if cnt > 0:
@@ -1677,7 +1715,7 @@ class KlaSourceBuilder:
 			Git.ResetHard(src)
 			if cnt > 0:
 				Git.RevertLastCommit(src)
-			Git.SubmoduleUpdate(src)
+			#Git.SubmoduleUpdate(src)
 			print 'Cleaning completed for ' + src
 		OsOperations.Pause(self.model.ClearHistory)
 
@@ -1694,16 +1732,11 @@ class KlaSourceBuilder:
 		self.CallDevEnv(False)
 
 	def CallDevEnv(self, ForCleaning):
-		if ForCleaning:
-			message = 'cleaning'
-			buildOption = '/Clean'
-		else:
-			message = 'building'
-			buildOption = '/build'
+		buildOption = '/Clean' if ForCleaning else '/build'
 		buildLoger = BuildLoger(self.model, ForCleaning)
-		for source, branch, config, srcPlatform in self.VerifySources(message):
+		for source, branch, config, srcPlatform in self.srcTuple:
 			buildLoger.StartSource(source, branch)
-			for inx,sln in enumerate(self.Solutions):
+			for inx,sln in enumerate(self.vsSolutions.Solutions):
 				slnFile = os.path.abspath(source + '/' + sln)
 				if not os.path.exists(slnFile):
 					print "Solution file doesn't exist : " + slnFile
@@ -1711,9 +1744,9 @@ class KlaSourceBuilder:
 				isSimulator = sln.split('/')[-1] == 'CIT100Simulator.sln'
 				platform = ConfigEncoder.GetPlatform(srcPlatform, isSimulator)
 				BuildConf = config + '|' + platform
-				outFile = os.path.abspath(source + '/Out_' + self.SlnNames[inx]) + '.txt'
+				outFile = os.path.abspath(source + '/Out_' + self.vsSolutions.SlnNames[inx]) + '.txt'
 
-				buildLoger.StartSolution(sln, self.SlnNames[inx], config, platform)
+				buildLoger.StartSolution(sln, self.vsSolutions.SlnNames[inx], config, platform)
 				params = [self.model.DevEnvCom, slnFile, buildOption, BuildConf, '/out', outFile]
 				OsOperations.Popen(params, buildLoger.PrintMsg)
 				buildLoger.EndSolution()
@@ -1721,28 +1754,6 @@ class KlaSourceBuilder:
 		if len(self.model.ActiveSrcs) > 1 and not ForCleaning:
 			print buildLoger.ConsolidatedOutput
 		OsOperations.Pause(self.model.ClearHistory)
-
-	def OpenSolution(self, index):
-		fileName = self.model.Source + self.Solutions[index]
-		param = [
-			self.model.DevEnvExe,
-			fileName
-		]
-		subprocess.Popen(param)
-		print 'Open solution : ' + fileName
-		if self.model.Config is not 'Debug' or self.model.Platform is not 'Win32':
-			msg = 'Please check configuration and platform in Visual Studio'
-			KlaSourceBuilder.ShowInfo('Visual Studio', msg, self.model.ClearHistory)
-		else:
-			OsOperations.Pause(self.model.ClearHistory)
-
-	@classmethod
-	def ShowInfo(cls, caption, msg, doPause):
-		if KlaRunner.RunFromUI:
-			messagebox.showinfo(caption, msg)
-		else:
-			print msg
-			OsOperations.Pause(doPause)
 
 class Logger:
 	@classmethod
