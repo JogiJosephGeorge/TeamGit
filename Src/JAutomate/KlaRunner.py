@@ -58,7 +58,7 @@ class UIFactory:
 		if width > 0:
 			label['width'] = width
 		label.grid(row=r, column=c, sticky='w')
-		return (label, labelVar)
+		return labelVar
 
 	@classmethod
 	def AddEntry(cls, parent, cmd, r, c, width = 0):
@@ -69,8 +69,7 @@ class UIFactory:
 
 	@classmethod
 	def AddCombo(cls, parent, values, inx, r, c, cmd, arg = None, width = 0):
-		var = tk.StringVar()
-		combo = ttk.Combobox(parent, textvariable=var)
+		combo = ttk.Combobox(parent)
 		combo['state'] = 'readonly'
 		combo['values'] = values
 		if inx >= 0 and inx < len(values):
@@ -83,16 +82,16 @@ class UIFactory:
 			combo['width'] = width
 		combo.grid(row=r, column=c)
 		combo.bind("<<ComboboxSelected>>", action)
-		return (combo,var)
+		return combo
 
 	@classmethod
-	def AddCheckBox(cls, parent, text, defVal, r, c, cmd, arg = None, sticky='w'):
+	def AddCheckBox(cls, parent, text, defVal, r, c, cmd, args = None, sticky='w'):
 		chkValue = tk.BooleanVar()
 		chkValue.set(defVal)
-		if arg is None:
+		if args is None:
 			action = cmd
 		else:
-			action = lambda: cmd(arg)
+			action = lambda: cmd(*args)
 		chkBox = tk.Checkbutton(parent, var=chkValue, command=action, text=text)
 		chkBox.grid(row=r, column=c, sticky=sticky)
 		return chkValue
@@ -153,7 +152,7 @@ class UI:
 		title = 'KLA Application Runner ' + self.GetVersion()
 		self.window.title(title)
 		self.model.Branch = Git.GetBranch(self.model.Source)
-		self.VM.lblBranch[1].set(self.model.Branch)
+		self.VM.lblBranch.set(self.model.Branch)
 		Git.Git('.', 'pull')
 		OsOperations.Cls()
 		print title
@@ -272,7 +271,7 @@ class UITestGroup:
 		for i in range(self.model.MaxSlots):
 			isSelected = (i+1) in self.model.slots
 			txt = str(i+1)
-			self.VM.chkSlots.append(UIFactory.AddCheckBox(frame, txt, isSelected, 0, i, self.OnSlotChn, i))
+			self.VM.chkSlots.append(UIFactory.AddCheckBox(frame, txt, isSelected, 0, i, self.OnSlotChn, (i,)))
 
 	def OnSlotChn(self, index):
 		self.model.UpdateSlot(index, self.VM.chkSlots[index].get())
@@ -288,8 +287,8 @@ class UIViewModel:
 
 	def UpdateSourceBranch(self):
 		source = self.GetSource()
-		self.lblSource[1].set(source)
-		self.lblBranch[1].set(self.model.Branch)
+		self.lblSource.set(source)
+		self.lblBranch.set(self.model.Branch)
 
 	def StopTasks(self):
 		TaskMan.StopTasks(False)
@@ -320,12 +319,12 @@ class UIViewModel:
 
 	def UpdateCombo(self):
 		tests = self.model.AutoTests.GetNames()
-		self.cmbTest[0]['values'] = tests
+		self.cmbTest['values'] = tests
 		if self.model.TestIndex >= 0 and len(tests) > self.model.TestIndex:
-			self.cmbTest[0].current(self.model.TestIndex)
+			self.cmbTest.current(self.model.TestIndex)
 
 	def OnTestChanged(self, event):
-		if self.model.UpdateTest(self.cmbTest[0].current(), False):
+		if self.model.UpdateTest(self.cmbTest.current(), False):
 			print 'Test Changed to : ' + self.model.TestName
 			self.UpdateSlotsChk(True)
 
@@ -548,9 +547,6 @@ class UISettings(UIWindow):
 	def __init__(self, parent, model):
 		super(UISettings, self).__init__(parent, model, 'Settings')
 
-	def AddRow(self):
-		self.Row += 1
-
 	def CreateUI(self, parent):
 		pathFrame = UIFactory.AddFrame(parent, 0, 0)
 		self.Row = 0
@@ -562,14 +558,15 @@ class UISettings(UIWindow):
 		self.AddSelectPathRow(pathFrame, 'MMi Config Path', 'MMiConfigPath')
 		self.AddSelectPathRow(pathFrame, 'MMi Setups Path', 'MMiSetupsPath')
 
-		checkFrame = UIFactory.AddFrame(parent, 1, 0)
+		self.checkFrame = UIFactory.AddFrame(parent, 1, 0)
 		self.Row = 0
-		self.AddShowAllCheck(checkFrame)
-		self.AddRestartSlotsForMMiCheck(checkFrame)
-		self.AddCopyMMiToIcosOnTestCheck(checkFrame)
-		self.AddGenerateLicMgrConfigOnTestCheck(checkFrame)
-		self.AddCopyMockLicenseOnTestCheck(checkFrame)
-		self.AddCopyExportIllumRefOnTestCheck(checkFrame)
+		self.CheckBoxes = dict()
+		self.AddCheckBoxRow('Show All Commands in KlaRunner', 'ShowAllButtons', self.OnShowAll)
+		self.AddCheckBoxRow('Restart Slots while running MMi alone', 'RestartSlotsForMMiAlone', self.OnRestartSlotsForMMi)
+		self.AddCheckBoxRow('Copy MMi to Icos On AutoTest', 'CopyMmi', self.OnCopyMMiToIcosOnTest)
+		self.AddCheckBoxRow('Generate LicMgrConfig.xml On AutoTest', 'GenerateLicMgrConfigOnTest', self.OnGenerateLicMgrConfigOnTest)
+		self.AddCheckBoxRow('Copy Mock License On AutoTest', 'CopyMockLicenseOnTest', self.OnCopyMockLicenseOnTest)
+		self.AddCheckBoxRow('Copy xPort_IllumReference.xml on AutoTest', 'CopyExportIllumRefOnTest', self.OnCopyExportIllumRefOnTest)
 
 		self.AddBackButton(parent, 2, 0)
 
@@ -590,10 +587,10 @@ class UISettings(UIWindow):
 			if not os.path.isdir(text):
 				print "Given directory doesn't exist : " + text
 			cmd = self.SelectPath
-		textVar = UIFactory.AddLabel(parent, text, self.Row, 1)[1]
+		textVar = UIFactory.AddLabel(parent, text, self.Row, 1)
 		args = (textVar, attrName)
 		UIFactory.AddButton(parent, ' ... ', self.Row, 2, cmd, args)
-		self.AddRow()
+		self.Row += 1
 
 	def SelectPath(self, textVar, attrName):
 		folderSelected = tkFileDialog.askdirectory()
@@ -609,77 +606,45 @@ class UISettings(UIWindow):
 			setattr(self.model, attrName, filename)
 			print '{} Path changed : {}'.format(attrName, filename)
 
-	def AddShowAllCheck(self, parent):
-		txt = 'Show All Commands in KlaRunner'
-		isChecked = self.model.ShowAllButtons
-		self.ChkShowAll = UIFactory.AddCheckBox(parent, txt, isChecked, self.Row, 1, self.OnShowAll)
-		self.AddRow()
+	def AddCheckBoxRow(self, txt, attrName, FunPnt):
+		isChecked = getattr(self.model, attrName) # self.model.__dict__[modelVar] also works
+		args = (FunPnt, attrName)
+		self.CheckBoxes[attrName] = UIFactory.AddCheckBox(self.checkFrame, txt, isChecked, self.Row, 0, self.OnClickCheckBox, args)
+		self.Row += 1
+
+	def OnClickCheckBox(self, FunPnt, attrName):
+		setattr(self.model, attrName, self.CheckBoxes[attrName].get())
+		FunPnt()
 
 	def OnShowAll(self):
-		self.model.ShowAllButtons = self.ChkShowAll.get()
 		MessageBox.ShowMessage('You need to restart the application to update the UI.')
 
-	def AddRestartSlotsForMMiCheck(self, parent):
-		txt = 'Restart Slots while running MMi alone'
-		isChecked = self.model.RestartSlotsForMMiAlone
-		self.ChkRestartSlotsForMMi = UIFactory.AddCheckBox(parent, txt, isChecked, self.Row, 1, self.OnRestartSlotsForMMi)
-		self.AddRow()
-
 	def OnRestartSlotsForMMi(self):
-		self.model.RestartSlotsForMMiAlone = self.ChkRestartSlotsForMMi.get()
 		msg = 'The selected slots will {}be restarted while running MMi alone.'
 		if self.model.RestartSlotsForMMiAlone:
 			print msg.format('')
 		else:
 			print msg.format('NOT ')
 
-	def AddCopyMMiToIcosOnTestCheck(self, parent):
-		txt = 'Copy MMi to Icos On AutoTest'
-		isChecked = self.model.CopyMmi
-		self.ChkCopyMMiToIcosOnTest = UIFactory.AddCheckBox(parent, txt, isChecked, self.Row, 1, self.OnCopyMMiToIcosOnTest)
-		self.AddRow()
-
 	def OnCopyMMiToIcosOnTest(self):
-		self.model.CopyMmi = self.ChkCopyMMiToIcosOnTest.get()
 		if not self.model.CopyMmi:
 			MessageBox.ShowMessage('Do NOT copy the mmi built over the installation in C:/icos.\nThis is NOT RECOMMENDED.')
 		else:
 			print 'Copy the mmi built over the installation in C:/icos.'
 
-	def AddGenerateLicMgrConfigOnTestCheck(self, parent):
-		txt = 'Generate LicMgrConfig.xml On AutoTest'
-		isChecked = self.model.GenerateLicMgrConfigOnTest
-		self.ChkGenerateLicMgrConfigOnTest = UIFactory.AddCheckBox(parent, txt, isChecked, self.Row, 1, self.OnGenerateLicMgrConfigOnTest)
-		self.AddRow()
-
 	def OnGenerateLicMgrConfigOnTest(self):
-		self.model.GenerateLicMgrConfigOnTest = self.ChkGenerateLicMgrConfigOnTest.get()
 		if self.model.GenerateLicMgrConfigOnTest:
 			MessageBox.ShowMessage('The file LicMgrConfig.xml will be created while running auto test.\nThis is NOT RECOMMENDED.')
 		else:
 			print 'The file LicMgrConfig.xml will NOT be created while running auto test.'
 
-	def AddCopyMockLicenseOnTestCheck(self, parent):
-		txt = 'Copy Mock License On AutoTest'
-		isChecked = self.model.CopyMockLicenseOnTest
-		self.ChkCopyMockLicenseOnTest = UIFactory.AddCheckBox(parent, txt, isChecked, self.Row, 1, self.OnCopyMockLicenseOnTest)
-		self.AddRow()
-
 	def OnCopyMockLicenseOnTest(self):
-		self.model.CopyMockLicenseOnTest = self.ChkCopyMockLicenseOnTest.get()
 		if self.model.CopyMockLicenseOnTest:
 			MessageBox.ShowMessage('The file mock License.dll will be copied while running auto test.\nThis is NOT RECOMMENDED.')
 		else:
 			print 'The file mock License.dll will NOT be copied while running auto test.'
 
-	def AddCopyExportIllumRefOnTestCheck(self, parent):
-		txt = 'Copy xPort_IllumReference.xml on AutoTest'
-		isChecked = self.model.CopyExportIllumRefOnTest
-		self.ChkCopyExportIllumRefOnTest = UIFactory.AddCheckBox(parent, txt, isChecked, self.Row, 1, self.OnCopyExportIllumRefOnTest)
-		self.AddRow()
-
 	def OnCopyExportIllumRefOnTest(self):
-		self.model.CopyExportIllumRefOnTest = self.ChkCopyExportIllumRefOnTest.get()
 		if self.model.CopyExportIllumRefOnTest:
 			MessageBox.ShowMessage('The file xPort_IllumReference.xml will be copied while running auto test.\nThis is NOT RECOMMENDED.')
 		else:
@@ -755,7 +720,7 @@ class UISourceSelector(UIWindow):
 		Logger.Log('Source changed to : ' + self.model.Source)
 
 	def AddBranch(self, parent, r, c, source):
-		label = UIFactory.AddLabel(parent, 'Branch Name Updating...', r, c)[1]
+		label = UIFactory.AddLabel(parent, 'Branch Name Updating...', r, c)
 		self.lblBranches.append(label)
 
 	def AddConfig(self, parent, r, c, config):
@@ -764,7 +729,7 @@ class UISourceSelector(UIWindow):
 		self.cboConfig.append(combo)
 
 	def OnConfigChanged(self, row):
-		selectedInx = self.cboConfig[row][0].current()
+		selectedInx = self.cboConfig[row].current()
 		if self.model.UpdateConfig(row, selectedInx):
 			self.model.WriteConfigFile()
 			srcTuple = self.model.Sources[row]
@@ -776,7 +741,7 @@ class UISourceSelector(UIWindow):
 		self.cboPlatform.append(combo)
 
 	def OnPlatformChanged(self, row):
-		selectedInx = self.cboPlatform[row][0].current()
+		selectedInx = self.cboPlatform[row].current()
 		if self.model.UpdatePlatform(row, selectedInx):
 			self.model.WriteConfigFile()
 			srcTuple = self.model.Sources[row]
@@ -785,7 +750,7 @@ class UISourceSelector(UIWindow):
 	def AddActive(self, parent, r, c):
 		Index = r - 1
 		isActive = Index in self.model.ActiveSrcs
-		chk = UIFactory.AddCheckBox(parent, '', isActive, r, c, self.OnActiveSrcChanged, Index, 'ew')
+		chk = UIFactory.AddCheckBox(parent, '', isActive, r, c, self.OnActiveSrcChanged, (Index,), 'ew')
 		self.chkActiveSrcs.append(chk)
 
 	def OnActiveSrcChanged(self, Index):
@@ -853,7 +818,7 @@ class FilterTestSelector:
 		UIFactory.AddButton(frame, 'Add Selected Test', 0, 2, self.OnAddSelectedTest)
 
 	def AddTestCombo(self, parent, c):
-		self.TestCmb = UIFactory.AddCombo(parent, [], -1, 0, c, self.OnChangeTestCmb, None, 50)[0]
+		self.TestCmb = UIFactory.AddCombo(parent, [], -1, 0, c, self.OnChangeTestCmb, None, 50)
 		threading.Thread(target=self.UpdateUI).start()
 
 	def GetAllTests(self):
@@ -911,7 +876,7 @@ class RemoveTestMan:
 		frame = UIFactory.AddFrame(parent, r, c, 0, 0, 2)
 		self.Tests = self.model.AutoTests.GetNames()
 		UIFactory.AddLabel(frame, 'Selected Tests', 0, 0)
-		self.TestCmb = UIFactory.AddCombo(frame, self.Tests, 0, 0, 1, self.OnChangeTestCmb, None, 50)[0]
+		self.TestCmb = UIFactory.AddCombo(frame, self.Tests, 0, 0, 1, self.OnChangeTestCmb, None, 50)
 		if len(self.Tests) > 0:
 			self.TestCmb.current(0)
 		UIFactory.AddButton(frame, 'Remove Test', 0, 2, self.OnRemoveSelectedTest)
@@ -2446,7 +2411,7 @@ class TestSourceCode:
 	def TestClassLineCount(self):
 		data = []
 		for name, obj in inspect.getmembers(sys.modules[__name__]):
-			if inspect.isclass(obj) and str(obj)[:8] == '__main__':
+			if inspect.isclass(obj) and '__main__' in str(obj):
 				lineCnt = len(inspect.getsourcelines(obj)[0])
 				data.append([name, lineCnt])
 		sorted(data, key=lambda x: x[1])
