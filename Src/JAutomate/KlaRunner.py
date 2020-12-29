@@ -330,10 +330,25 @@ class UIViewModel:
 			print 'Slots Updated : ' + str(self.model.slots)
 			self.UpdateSlotsChk(True)
 
+class ControlCollection:
+	def __init__(self):
+		self.Buttons = {}
+
+	def AddButton(self, button, name):
+		name = self.GetValidName(name)
+		self.Buttons[name] = button
+
+	def GetButton(self, name):
+		name = self.GetValidName(name)
+		return self.Buttons[name]
+
+	def GetValidName(self, name):
+		return name.replace(' ', '')
+
 class ThreadHandler:
 	def __init__(self):
 		self.threads = {}
-		self.Buttons = {}
+		self.controlCollection = ControlCollection()
 
 	def Start(self, name, funPnt, args = None, InitFunPnt = None):
 		if InitFunPnt is not None:
@@ -356,22 +371,20 @@ class ThreadHandler:
 		return ' '.join(but.config('text')[-1])
 
 	def SetButtonActive(self, name):
-		self.Buttons[name]['state'] = 'disabled'
-		#for button in self.Buttons.values():
-		#	button['state'] = 'disabled'
-		self.Buttons[name].config(background='red')
+		but = self.controlCollection.GetButton(name)
+		but['state'] = 'disabled'
+		but.config(background='red')
 
 	def SetButtonNormal(self, name):
-		self.Buttons[name]['state'] = 'normal'
-		#for button in self.Buttons.values():
-		#	button['state'] = 'normal'
-		self.Buttons[name].config(background='SystemButtonFace')
+		but = self.controlCollection.GetButton(name)
+		but['state'] = 'normal'
+		but.config(background='SystemButtonFace')
 
 	def AddButton(self, parent, label, r, c, FunPnt, args = None, InitFunPnt = None, width = 19):
 		argSet = (label, FunPnt, args, InitFunPnt)
 		but = UIFactory.AddButton(parent, label, r, c, self.Start, argSet, width)
 		name = self.GetButtonName(but)
-		self.Buttons[name] = but
+		self.controlCollection.AddButton(but, name)
 		return but
 
 class UIGrid:
