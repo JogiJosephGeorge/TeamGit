@@ -807,9 +807,9 @@ class UISourceSelector(UIWindow):
         if self.klaRunner is not None:
             if self.model.ShowAllButtons:
                 self.AddEmptyRow()
-                row1 = self.AddRow()
-                self.threadHandler.AddButton(row1, ' Reset Source ', 0, 0, self.srcBuilder.ResetSource, None, self.srcBuilder.NotifyReset, 19)
-                self.AddCleanDotVsOnReset(row1, 0, 1)
+                self.AddCleanDotVsOnReset(self.AddRow(), 0, 0)
+                self.AddUpdateSubmodulesOnReset(self.AddRow(), 0, 0)
+                self.threadHandler.AddButton(self.AddRow(), ' Reset Source ', 0, 0, self.srcBuilder.ResetSource, None, self.srcBuilder.NotifyReset, 19)
 
         self.AddEmptyRow()
         row2 = self.AddRow()
@@ -828,6 +828,18 @@ class UISourceSelector(UIWindow):
             MessageBox.ShowMessage('All .vs directories in the source will be removed while reseting source.')
         else:
             print 'The .vs directories will NOT be affected while reseting source.'
+
+    def AddUpdateSubmodulesOnReset(self, parent, r, c):
+        txt = 'Update all submodules after reset'
+        isChecked = self.model.UpdateSubmodulesOnReset
+        self.ChkResetSubmodules = UIFactory.AddCheckBox(parent, txt, isChecked, r, c, self.OnResetSubmodules)
+
+    def OnResetSubmodules(self):
+        self.model.UpdateSubmodulesOnReset = self.ChkResetSubmodules.get()
+        if self.model.UpdateSubmodulesOnReset:
+            MessageBox.ShowMessage('All submodules will be updated after reseting source.')
+        else:
+            print 'The submodules will NOT be affected while reseting source.'
 
     def OnAddSource(self):
         folderSelected = tkFileDialog.askdirectory()
@@ -1539,7 +1551,7 @@ class KlaSourceBuilder:
             '/Handler/FabLink/cpp/bin',
             '/Handler/FabLink/FabLinkLib/System32',
             ]
-        if self.model.CleanDotVsOnReset:
+        if not self.model.CleanDotVsOnReset:
             excludeDirs += [
                 '/mmi/mmi/.vs',
                 '/handler/cpp/.vs',
@@ -1558,7 +1570,8 @@ class KlaSourceBuilder:
             Git.ResetHard(src)
             if cnt > 0:
                 Git.RevertLastCommit(src)
-            #Git.SubmoduleUpdate(src)
+            if self.model.UpdateSubmodulesOnReset:
+                Git.SubmoduleUpdate(self.model)
             print 'Cleaning completed for ' + src
 
     def DeleteAllGitIgnoreFiles(self, dirName):

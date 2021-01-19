@@ -143,6 +143,7 @@ class ConfigInfo:
         model.CopyMockLicenseOnTest = self.ReadField(_model, 'CopyMockLicenseOnTest', False)
         model.CopyExportIllumRefOnTest = self.ReadField(_model, 'CopyExportIllumRefOnTest', False)
         model.CleanDotVsOnReset = self.ReadField(_model, 'CleanDotVsOnReset', False)
+        model.UpdateSubmodulesOnReset = self.ReadField(_model, 'UpdateSubmodulesOnReset', False)
 
         model.MMiConfigPath = model.MMiConfigPath.replace('/', '\\')
 
@@ -179,6 +180,7 @@ class ConfigInfo:
         _model['CopyMockLicenseOnTest'] = model.CopyMockLicenseOnTest
         _model['CopyExportIllumRefOnTest'] = model.CopyExportIllumRefOnTest
         _model['CleanDotVsOnReset'] = model.CleanDotVsOnReset
+        _model['UpdateSubmodulesOnReset'] = model.UpdateSubmodulesOnReset
 
         with open(self.FileName, 'w') as f:
             json.dump(_model, f, indent=3)
