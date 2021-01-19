@@ -418,7 +418,7 @@ class UIMainMenu:
 		self.vsSolutions = vsSolutions
 		self.testRunner = testRunner
 		self.mmiSpcTestRunner = MmiSpcTestRunner(self.model)
-		self.appRunner = AppRunner(self.model, self.testRunner)
+		self.appRunner = AppRunner(self.model, testRunner, vsSolutions)
 
 		UI.AddSeparator()
 
@@ -445,7 +445,8 @@ class UIMainMenu:
 		self.uiGrid.CreateColumnFrame()
 		vsSolutions = self.vsSolutions
 		self.uiGrid.AddButton('Open CIT100', vsSolutions.OpenSolution, (0,))
-		self.uiGrid.AddButton('Open Simulator', vsSolutions.OpenSolution, (1,))
+		if self.model.ShowAllButtons:
+			self.uiGrid.AddButton('Open Simulator', vsSolutions.OpenSolution, (1,))
 		self.uiGrid.AddButton('Open Mmi', vsSolutions.OpenSolution, (2,))
 		self.uiGrid.AddButton('Open MockLicense', vsSolutions.OpenSolution, (3,))
 		self.uiGrid.AddButton('Open Converters', vsSolutions.OpenSolution, (4,))
@@ -670,6 +671,7 @@ class UISourceSelector(UIWindow):
 		self.vsSolutions = vsSolutions
 		self.VM = VM
 		self.threadHandler = threadHandler
+		self.srcBuilder = KlaSourceBuilder(self.model, self.klaRunner, self.vsSolutions)
 
 	def CreateUI(self, parent):
 		self.SelectedSrc = tk.IntVar()
@@ -695,14 +697,19 @@ class UISourceSelector(UIWindow):
 			self.AddActive(frameGrid, r, 4)
 			r += 1
 
+		self.AddSolutions()
 		self.AddFunctions()
 
 		threading.Thread(target=self.LazyUiInit).start()
 
-	def AddRow(self, ):
+	def AddRow(self):
 		frame = UIFactory.AddFrame(self.mainFrame, self.Row, 0)
 		self.Row += 1
 		return frame
+
+	def AddEmptyRow(self):
+		frame = self.AddRow()
+		UIFactory.AddLabel(frame, '', 0, 0)
 
 	def LazyUiInit(self):
 		index = 0
@@ -785,21 +792,38 @@ class UISourceSelector(UIWindow):
 			self.model.ActiveSrcs.remove(Index)
 			print 'Disabled the source : ' + str(self.model.Sources[Index][0])
 
+	def AddSolutions(self):
+		self.vsSolutions.SelectedInxs = [True] * len(self.vsSolutions.SlnNames)
+		if self.klaRunner is None:
+			return
+		self.AddEmptyRow()
+		selMsg = 'Select Solutions to build / clean on active sources'
+		UIFactory.AddLabel(self.AddRow(), selMsg, 0, 0)
+		self.slnChks = []
+		row1 = self.AddRow()
+		for inx,sln in enumerate(self.vsSolutions.SlnNames):
+			chk = UIFactory.AddCheckBox(row1, sln, True, 0, inx, self.OnSelectSolution, (inx,))
+			self.slnChks.append(chk)
+		row2 = self.AddRow()
+		self.threadHandler.AddButton(row2, ' Clean Solutions ', 0, 0, self.srcBuilder.CleanSource, None, self.srcBuilder.NotifyClean, 19)
+		self.threadHandler.AddButton(row2, ' Build Solutions ', 0, 1, self.srcBuilder.BuildSource, None, self.srcBuilder.NotifyBuild, 19)
+
+	def OnSelectSolution(self, inx):
+		self.vsSolutions.SelectedInxs[inx] = self.slnChks[inx].get()
+
 	def AddFunctions(self):
 		if self.klaRunner is not None:
-			row1 = self.AddRow()
-			srcBuilder = KlaSourceBuilder(self.model, self.klaRunner, self.vsSolutions)
-			self.threadHandler.AddButton(row1, ' Clean ', 0, 0, srcBuilder.CleanSource, None, srcBuilder.NotifyClean, 19)
-			self.threadHandler.AddButton(row1, ' Build ', 0, 1, srcBuilder.BuildSource, None, srcBuilder.NotifyBuild, 19)
 			if self.model.ShowAllButtons:
-				self.threadHandler.AddButton(row1, ' Reset ', 0, 2, srcBuilder.ResetSource, None, srcBuilder.NotifyReset, 19)
-				row2 = self.AddRow()
-				self.AddCleanDotVsOnReset(row2, 0, 0)
+				self.AddEmptyRow()
+				row1 = self.AddRow()
+				self.threadHandler.AddButton(row1, ' Reset Source ', 0, 0, self.srcBuilder.ResetSource, None, self.srcBuilder.NotifyReset, 19)
+				self.AddCleanDotVsOnReset(row1, 0, 1)
 
-		row3 = self.AddRow()
-		UIFactory.AddButton(row3, 'Add Source', 0, 0, self.OnAddSource, None, 19)
-		UIFactory.AddButton(row3, 'Remove Source', 0, 1, self.OnRemoveSource, None, 19)
-		self.AddBackButton(row3, 0, 2)
+		self.AddEmptyRow()
+		row2 = self.AddRow()
+		UIFactory.AddButton(row2, 'Add Source', 0, 0, self.OnAddSource, None, 19)
+		UIFactory.AddButton(row2, 'Remove Source', 0, 1, self.OnRemoveSource, None, 19)
+		self.AddBackButton(row2, 0, 2)
 
 	def AddCleanDotVsOnReset(self, parent, r, c):
 		txt = 'Remove .vs directories on reseting source'
@@ -1015,23 +1039,19 @@ class KlaRunner:
 		os.chdir(wd)
 
 class AppRunner:
-	def __init__(self, model, testRunner):
+	def __init__(self, model, testRunner, vsSolutions):
 		self.model = model
 		self.testRunner = testRunner
+		self.vsSolutions = vsSolutions
 
 	def RunHandler(self):
 		Logger.Log('Run Handler in ' + self.model.Source)
 		TaskMan.StopTasks()
 
-		config = self.model.Config
-		platform = ConfigEncoder.GetPlatform(self.model.Platform)
-		handlerPath = '{}/handler/cpp/bin/{}/{}/system'.format(self.model.Source, platform, config)
-		consoleExe = handlerPath + '/console.exe'
+		handlerPath,consoleExe = self.vsSolutions.GetHandlerPath()
 		testTempDir = self.model.Source + '/handler/tests/' + self.model.TestName + '~'
 
-		platform = ConfigEncoder.GetPlatform(self.model.Platform, True)
-		simulatorExe = '{}/handler/Simulator/ApplicationFiles/bin/{}/{}/CIT100Simulator.exe'
-		simulatorExe = simulatorExe.format(self.model.Source, platform, config)
+		simulatorExe = self.vsSolutions.GetSimulatorPath()
 
 		for file in [consoleExe, testTempDir, simulatorExe]:
 			if not os.path.exists(file):
@@ -1482,14 +1502,26 @@ class VisualStudioSolutions:
 		self.Solutions = [
 			'/handler/cpp/CIT100.sln',
 			'/handler/Simulator/CIT100Simulator/CIT100Simulator.sln',
-			'/mmi/mmi/Mmi.sln',
-			'/mmi/mmi/MockLicense.sln',
-			'/mmi/mmi/Converters.sln'
+			'/mmi/mmi/Mmi.sln'
 		]
-		self.SlnNames = ['CIT100', 'Simulator', 'MMi', 'Mock', 'Converters']
+		self.OtherSolutions = [
+			'/mmi/mmi/MockLicense.sln',
+			'/mmi/mmi/Converters.sln',
+			'libs/DLStub/DLStub/DLStub.sln',
+		]
+		self.SlnNames = ['CIT100', 'Simulator', 'MMi', 'MockLicense', 'Converters', 'DLStub']
+
+	def GetAllSlnFiles(self):
+		slnFiles = []
+		srcLen = len(self.model.Source) + 1
+		for root, dirs, files in os.walk(self.model.Source):
+			path = root[srcLen:]
+			fis = [[path, fi] for fi in files if fi.endswith('.sln')]
+			slnFiles += fis
+		return slnFiles
 
 	def OpenSolution(self, index):
-		fileName = self.model.Source + self.Solutions[index]
+		fileName = self.model.Source + self.GetSlnPath(index)
 		param = [
 			self.model.DevEnvExe,
 			fileName
@@ -1500,6 +1532,41 @@ class VisualStudioSolutions:
 			msg = 'Please check configuration and platform in Visual Studio'
 			#MessageBox.ShowMessage(msg, 'Visual Studio')
 			print msg
+
+	def GetSelectedSolutions(self):
+		retVal = []
+		for inx,slnName in enumerate(self.SlnNames):
+			if self.SelectedInxs[inx]:
+				sln = self.GetSlnPath(inx)
+				retVal.append((sln, slnName))
+		return retVal
+
+	def GetSlnPath(self, index):
+		if index < len(self.Solutions):
+			return self.Solutions[index]
+		index -= len(self.Solutions)
+		return self.OtherSolutions[index]
+
+	def GetHandlerPath(self):
+		platform = VisualStudioSolutions.GetPlatformStr(self.model.Platform)
+		handlerPath = '{}/handler/cpp/bin/{}/{}/system'.format(self.model.Source, platform, self.model.Config)
+		return (handlerPath, handlerPath + '/console.exe')
+
+	def GetSimulatorPath(self):
+		platform = VisualStudioSolutions.GetPlatformStr(self.model.Platform, True)
+		simulatorExe = '{}/handler/Simulator/ApplicationFiles/bin/{}/{}/CIT100Simulator.exe'
+		return simulatorExe.format(self.model.Source, platform, self.model.Config)
+
+	@classmethod
+	def GetPlatform(cls, slnFile, platform):
+		isSimulator = slnFile.split('/')[-1] == 'CIT100Simulator.sln'
+		return VisualStudioSolutions.GetPlatformStr(platform, isSimulator)
+
+	@classmethod
+	def GetPlatformStr(cls, platform, isSimulator = False):
+		if isSimulator and 'Win32' == platform:
+			platform = 'x86'
+		return platform
 
 class KlaSourceBuilder:
 	def __init__(self, model, klaRunner, vsSolutions):
@@ -1582,17 +1649,16 @@ class KlaSourceBuilder:
 		buildLoger = BuildLoger(self.model, ForCleaning)
 		for source, branch, config, srcPlatform in self.srcTuple:
 			buildLoger.StartSource(source, branch)
-			for inx,sln in enumerate(self.vsSolutions.Solutions):
+			for sln, slnName in self.vsSolutions.GetSelectedSolutions():
 				slnFile = os.path.abspath(source + '/' + sln)
 				if not os.path.exists(slnFile):
 					print "Solution file doesn't exist : " + slnFile
 					continue
-				isSimulator = sln.split('/')[-1] == 'CIT100Simulator.sln'
-				platform = ConfigEncoder.GetPlatform(srcPlatform, isSimulator)
+				platform = VisualStudioSolutions.GetPlatform(sln, srcPlatform)
 				BuildConf = config + '|' + platform
-				outFile = os.path.abspath(source + '/Out_' + self.vsSolutions.SlnNames[inx]) + '.txt'
+				outFile = os.path.abspath(source + '/Out_' + slnName) + '.txt'
 
-				buildLoger.StartSolution(sln, self.vsSolutions.SlnNames[inx], config, platform)
+				buildLoger.StartSolution(sln, slnName, config, platform)
 				params = [self.model.DevEnvCom, slnFile, buildOption, BuildConf, '/out', outFile]
 				OsOperations.Popen(params, buildLoger.PrintMsg)
 				buildLoger.EndSolution()
@@ -2450,12 +2516,6 @@ class ConfigEncoder:
 	@classmethod
 	def EncodeSource(cls, srcSet):
 		return srcSet[1][0] + srcSet[2][-2:] + ' ' + srcSet[0]
-
-	@classmethod
-	def GetPlatform(cls, platform, isSimulator = False):
-		if isSimulator and 'Win32' == platform:
-			platform = 'x86'
-		return platform
 
 	@classmethod
 	def GetBuildConfig(cls, model):
