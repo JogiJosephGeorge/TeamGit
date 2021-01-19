@@ -673,18 +673,18 @@ class UISourceSelector(UIWindow):
         self.Row = 0
         self.mainFrame = parent
         frameGrid = self.AddRow()
-        UIFactory.AddLabel(frameGrid, 'Current Source', 0, 0)
-        UIFactory.AddLabel(frameGrid, 'Branch', 0, 1)
-        UIFactory.AddLabel(frameGrid, 'Configuration', 0, 2)
-        UIFactory.AddLabel(frameGrid, 'Platform', 0, 3)
-        UIFactory.AddLabel(frameGrid, 'Is Active', 0, 4)
+        UIFactory.AddLabel(frameGrid, 'Is Active', 0, 0)
+        UIFactory.AddLabel(frameGrid, 'Current Source', 0, 1)
+        UIFactory.AddLabel(frameGrid, 'Branch', 0, 2)
+        UIFactory.AddLabel(frameGrid, 'Configuration', 0, 3)
+        UIFactory.AddLabel(frameGrid, 'Platform', 0, 4)
         r = 1
         for srcTuple in self.model.Sources:
-            self.AddSource(frameGrid, r, 0, srcTuple[0])
-            self.AddBranch(frameGrid, r, 1, srcTuple[0])
-            self.AddConfig(frameGrid, r, 2, srcTuple[1])
-            self.AddPlatform(frameGrid, r, 3, srcTuple[2])
-            self.AddActive(frameGrid, r, 4)
+            self.AddActive(frameGrid, r, 0)
+            self.AddSource(frameGrid, r, 1, srcTuple[0])
+            self.AddBranch(frameGrid, r, 2, srcTuple[0])
+            self.AddConfig(frameGrid, r, 3, srcTuple[1])
+            self.AddPlatform(frameGrid, r, 4, srcTuple[2])
             r += 1
 
         self.AddSolutions()
@@ -731,7 +731,7 @@ class UISourceSelector(UIWindow):
             variable = self.SelectedSrc,
             command = self.OnSelectSrc,
             value = r-1)
-        rd.grid(row=r, column=0, sticky='w')
+        rd.grid(row=r, column=c, sticky='w')
 
     def OnSelectSrc(self):
         SrcIndex = self.SelectedSrc.get()
