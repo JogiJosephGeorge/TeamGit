@@ -1,10 +1,8 @@
 # coding=utf-8
 import ctypes
-from datetime import datetime, timedelta
+from datetime import datetime
 from xml.dom import minidom
 import time
-import inspect
-import itertools
 import os
 import re
 import subprocess
@@ -14,16 +12,15 @@ import Tkinter as tk
 import ttk
 import tkFileDialog
 
-from Common.DateTimeOps import DateTimeOps
 from Common.Git import Git
 from Common.FileOperations import FileOperations
 from Common.Logger import Logger
 from Common.MessageBox import MessageBox
-from Common.NumValDict import NumValDict, TestNumValDict
 from Common.OsOperations import OsOperations
-from Common.PrettyTable import  TableFormat, PrettyTable, TestPrettyTable
+from Common.PrettyTable import  TableFormat, PrettyTable
 from KLA.LicenseConfigWriter import LicenseConfigWriter
 from Model.Model import ConfigEncoder, Model
+from QuEST.EffortLog import EffortLogger
 
 class UIFactory:
     @classmethod
@@ -437,8 +434,9 @@ class UIMainMenu:
         self.uiGrid.CreateColumnFrame()
         vsSolutions = self.vsSolutions
         self.uiGrid.AddButton('Open Python', self.klaRunner.OpenPython)
-        self.uiGrid.AddButton('Open CIT100', vsSolutions.OpenSolutionIndex, (0,))
-        self.uiGrid.AddButton('Open Mmi', vsSolutions.OpenSolutionIndex, (2,))
+        for inx,sln in enumerate(self.vsSolutions.Solutions):
+            label = 'Open ' + self.vsSolutions.GetSlnName(sln)
+            self.uiGrid.AddButton(label, vsSolutions.OpenSolutionFile, (sln,))
         self.uiGrid.AddButton('Other Solutions', self.ShowOpenSolutionDlg)
 
     def ShowOpenSolutionDlg(self):
@@ -465,14 +463,14 @@ class UIMainMenu:
 
     def AddColumn5(self):
         self.uiGrid.CreateColumnFrame()
-        effortLogger = EffortLogger(self.model)
+        effortLogger = EffortLogger()
         self.uiGrid.AddButton('Settings', self.ShowSettings)
         if self.model.ShowAllButtons:
             self.uiGrid.AddButton('Clear Output', OsOperations.Cls)
         if self.model.ShowAllButtons:
             self.uiGrid.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
-            self.uiGrid.AddButton('Effort Log', effortLogger.PrintEffortLogInDetail)
-            self.uiGrid.AddButton('Daily Log', effortLogger.PrintDailyLog)
+            self.uiGrid.AddButton('Effort Log', effortLogger.PrintEffortLogInDetail, (self.model.EffortLogFile,))
+            self.uiGrid.AddButton('Daily Log', effortLogger.PrintDailyLog, (self.model.EffortLogFile,))
 
     def ShowSettings(self):
         uiSettings = UISettings(self.window, self.model)
@@ -1715,284 +1713,6 @@ class StdOutRedirect(object):
         sys.stdout = self.orig_stdout
         self.IsReset = True
         return self.messages.splitlines()
-
-class EffortReader:
-    def __init__(self):
-        self.LogFileEncode = 'UTF-16'
-        self.DTFormat = '%d-%b-%Y %H:%M:%S'
-        self.DayStarts = timedelta(hours=4) # 4am
-
-    def ReadFile(self, logFile):
-        self.content = []
-        for line in FileOperations.ReadLine(logFile, self.LogFileEncode):
-            if line[:7] == 'Current':
-                continue
-            lineParts = self.FormatText(line).split('$')
-            if len(lineParts) > 2:
-                self.content.append(lineParts)
-            else:
-                print 'Error: ' + line
-
-    def GetDetailedEfforts(self, date):
-        if len(self.content) is 0:
-            return
-        dictAppNameToTime = NumValDict()
-        lastDt = None
-        totalTime = timedelta()
-        for lineParts in self.content:
-            dt = datetime.strptime(lineParts[0], self.DTFormat)
-            if not DateTimeOps.IsSameDate(dt, date, self.DayStarts):
-                continue
-            ts = (dt - lastDt) if lastDt is not None else (dt-dt)
-            txt = self.PrepareDescription(lineParts[1], lineParts[2])
-            dictAppNameToTime.Add(txt, ts)
-            lastDt = dt
-            totalTime += ts
-        return dictAppNameToTime, totalTime
-
-    def GetDailyLog(self):
-        if len(self.content) is 0:
-            return
-        lastDt = None
-        actualTime = None
-        date = None
-        data = []
-        self.weeklyHours = timedelta()
-        self.lastDay = 0
-        def AddRow(d1, t1, isLast):
-            formattedDay = d1.strftime('%d-%b-%Y %a %H:%M')
-            formattedTime = DateTimeOps.Strftime(t1, '{:02}:{:02}')
-            todayInt = int(d1.strftime('%w'))
-            if self.lastDay > todayInt:
-                weeklyTotal = DateTimeOps.Strftime(self.weeklyHours, '{:02}:{:02}')
-                data.append(['', '', weeklyTotal])
-                self.weeklyHours = timedelta()
-            self.weeklyHours += t1
-            self.lastDay = todayInt
-            data.append([formattedDay, formattedTime, ''])
-            if isLast:
-                weeklyTotal = DateTimeOps.Strftime(self.weeklyHours, '{:02}:{:02}')
-                data.append(['', '', weeklyTotal])
-        startDate = datetime.now().today() - timedelta(days=30)
-        for lineParts in self.content:
-            dt = datetime.strptime(lineParts[0], self.DTFormat)
-            if dt > startDate:
-                if DateTimeOps.IsSameDate(dt, date, self.DayStarts):
-                    ts = dt - lastDt
-                    if len(lineParts[1] + lineParts[2]) > 0:
-                        actualTime += ts
-                else:
-                    if date is not None:
-                        AddRow(date, actualTime, False)
-                    date = dt
-                    actualTime = timedelta()
-            lastDt = dt
-        AddRow(date, actualTime, True)
-        return data,actualTime
-
-    def FormatText(self, message):
-        return message.encode('ascii', 'ignore').decode('ascii')
-
-    def PrepareDescription(self, message1, message2):
-        groupNames = [
-            'Google Chrome',
-            'Internet Explorer',
-            'explorer.exe',
-            'OUTLOOK',
-        ]
-        for name in groupNames:
-            if name in message1 or name in message2:
-                return name
-        message = message2 if len(message2) > 50 else message1 + '$' + message2
-        message = message.replace('[Administrator]', '')
-        return message
-
-    def CheckApplication(self):
-        if len(OsOperations.GetProcessIds('EffortCapture_2013.exe')) > 0:
-            print 'Effort logger is running.'
-        else:
-            print 'Effort logger is not running !'
-
-class EffortLogger:
-    def __init__(self, model):
-        self.model = model
-        self.ColWidth = 80
-        self.MinMinutes = 3
-        self.MinTime = timedelta(minutes=self.MinMinutes)
-        self.ShowPrevDaysLogs = 1
-
-    def PrintEffortLogInDetail(self):
-        reader = EffortReader()
-        reader.ReadFile(self.model.EffortLogFile)
-        dateFormat = '%d-%b-%Y'
-        for i in range(self.ShowPrevDaysLogs, 0, -1):
-            prevDay = datetime.now() - timedelta(days=i)
-            formattedDay = prevDay.strftime(dateFormat)
-            self.PrintEffortTable(prevDay, formattedDay, reader)
-        today = datetime.now()
-        self.PrintEffortTable(today, 'Today', reader)
-        reader.CheckApplication()
-
-    def PrintEffortTable(self, date, message, reader):
-        dictAppNameToTime, totalTime = reader.GetDetailedEfforts(date)
-        if dictAppNameToTime is None:
-            return
-        data = []
-        oneMinAppsTime = timedelta()
-        dollarTime = timedelta()
-        for k,v in dictAppNameToTime.items():
-            if v > self.MinTime:
-                data.append([self.Trim(k, self.ColWidth), v])
-            else:
-                oneMinAppsTime += v
-            if k == '$':
-                dollarTime = v
-        minAppDesc = 'Other Apps Less Than {} Minute(s)'.format(self.MinMinutes)
-        data.append([minAppDesc, oneMinAppsTime])
-        data = sorted(data, key = lambda x : x[1], reverse=True)
-        menuData = [[message, 'Time Taken'], ['-']] + data
-        menuData += [['-'], ['Total Time', totalTime]]
-        menuData += [['Actual Time', totalTime - dollarTime]]
-        table = PrettyTable(TableFormat().SetSingleLine()).ToString(menuData)
-        #table = datetime.now().strftime('%Y %b %d %H:%M:%S\n') + table
-        #FileOperations.Append(logFile + '.txt', table)
-        print table,
-
-    def PrintDailyLog(self):
-        reader = EffortReader()
-        reader.ReadFile(self.model.EffortLogFile)
-        data,todaysTime = reader.GetDailyLog()
-        if data is None:
-            return
-        effortData = [['Daily Start Time', 'Log', 'Total'], ['-']] + data
-        table = PrettyTable(TableFormat().SetSingleLine()).ToString(effortData)
-        print table,
-        print (datetime.now() + timedelta(hours=9) - todaysTime).strftime('%H:%M')
-        #csvTable = PrettyTable(TableFormat().SetNoBorder(u',')).ToString(effortData)
-        #print csvTable,
-        reader.CheckApplication()
-
-    def Trim(self, message, width):
-        if len(message) > width:
-            return message[:width / 2 - 1] + '...' + message[2 - width / 2:]
-        return message
-
-class TestEffortLogger:
-    def __init__(self):
-        model = Model()
-        self.EL = EffortLogger(model)
-        self.TestTrim()
-
-    def TestTrim(self):
-        Test.Assert(self.EL.Trim('India is my country', 10), 'Indi...try')
-        Test.Assert(self.EL.Trim('India is my country', 15), 'India ...untry')
-
-class Test:
-    _ok = 0
-    _notOk = 0
-
-    @classmethod
-    def AssertMultiLines(cls, actual, expected, level = 0):
-        isEqual = True
-        clsName, funName = cls._GetClassMethod(level)
-        for lineNum,(act,exp) in enumerate(itertools.izip(actual.splitlines(), expected.splitlines()), 1):
-            if act != exp:
-                message = '{}.{} Line # {}'.format(clsName, funName, lineNum)
-                cls._Print(act, exp, message)
-                return
-        message = '{}.{}'.format(clsName, funName)
-        cls._Print(True, True, message)
-
-    @classmethod
-    def Assert(cls, actual, expected, message = '', level = 0):
-        clsName, funName = cls._GetClassMethod(level)
-        message = '{}.{} {}'.format(clsName, funName, message)
-        cls._Print(actual, expected, message)
-
-    @classmethod
-    def _Print(cls, actual, expected, message):
-        if actual == expected:
-            print 'Test OK      : ' + message
-            cls._ok += 1
-        else:
-            print 'Test Not OK : ' + message
-            print 'Expected     : ' + str(expected)
-            print 'Actual        : ' + str(actual)
-            cls._notOk += 1
-
-    @classmethod
-    def _GetClassMethod(cls, level):
-        stack = inspect.stack()
-        clsName = stack[2 + level][0].f_locals['self'].__class__.__name__
-        funName = stack[2 + level][0].f_code.co_name
-        return (clsName, funName)
-
-    @classmethod
-    def PrintResults(cls):
-        print
-        print 'Tests OK      : ' + str(cls._ok)
-        print 'Tests NOT OK : ' + str(cls._notOk)
-        print 'Total Tests  : ' + str(cls._ok + cls._notOk)
-
-class TestSourceCode:
-    def __init__(self):
-        self.TestClassLineCount()
-
-    def TestClassLineCount(self):
-        data = []
-        for name, obj in inspect.getmembers(sys.modules[__name__]):
-            if inspect.isclass(obj) and '__main__' in str(obj):
-                lineCnt = len(inspect.getsourcelines(obj)[0])
-                data.append([name, lineCnt])
-        sorted(data, key=lambda x: x[1])
-        for item in data:
-            #Test.Assert(item[1] < 100, True, '{:20} {}'.format(item[0], item[1]))
-            #print '{:20} {}'.format(item[0], item[1])
-            if item[1] > 100:
-                Test.Assert(item[1], '< 100', 'Exceeds line count : {}'.format(item[0]))
-
-class UnitTestsRunner:
-    def Run(self):
-        TestNumValDict()
-        TestEffortLogger()
-        TestPrettyTable()
-        TestSourceCode()
-        TestKlaRunnerIni()
-
-        Test.PrintResults()
-
-class TestKlaRunnerIni:
-    def __init__(self):
-        self.model = Model()
-        self.model.ReadConfigFile()
-        self.Source()
-        self.AutoTest()
-        self.FileExists()
-        self.DirectoryExists()
-
-    def Source(self):
-        for srcSet in self.model.Sources:
-            src = srcSet[0]
-            Test.Assert(os.path.isdir(src), True, 'Directory {} exists.'.format(src))
-        self.TestIndex(self.model.Sources, self.model.SrcIndex, 'Index')
-
-    def AutoTest(self):
-        self.TestIndex(self.model.AutoTests.Tests, self.model.TestIndex, 'Index')
-
-    def TestIndex(self, list, index, message):
-        isValidIndex = index >= 0 and index < len(list)
-        Test.Assert(isValidIndex, True, message, 1)
-
-    def FileExists(self):
-        Test.Assert(os.path.isfile(self.model.DevEnvCom), True, 'DevEnv.com')
-        Test.Assert(os.path.isfile(self.model.DevEnvExe), True, 'DevEnv.exe')
-        Test.Assert(os.path.isfile(self.model.EffortLogFile), True, 'EffortLogFile')
-
-    def DirectoryExists(self):
-        Test.Assert(os.path.isdir(self.model.GitBin), True, 'GitBin')
-        Test.Assert(os.path.isdir(self.model.VMwareWS), True, 'VMwareWS')
-        Test.Assert(os.path.isdir(self.model.MMiConfigPath), True, 'MMiConfigPath')
-        Test.Assert(os.path.isdir(self.model.MMiSetupsPath), True, 'MMiSetupsPath')
 
 def main():
     if (len(sys.argv) == 2):
