@@ -110,6 +110,10 @@ class PerformanceTester:
 	lastTime = datetime.now()
 
 	@classmethod
+	def ResetNow(cls):
+		cls.lastTime = datetime.now()
+
+	@classmethod
 	def Print(cls, msg):
 		t = datetime.now()
 		print '{} {}> {}'.format(t.time(), (t - cls.lastTime), msg)
@@ -150,8 +154,7 @@ class UI:
 		self.window.title(title)
 		self.model.Branch = Git.GetBranch(self.model.Source)
 		self.VM.lblBranch.set(self.model.Branch)
-		Git.Git('.', 'pull')
-		OsOperations.Cls()
+		Git.GitSilent('.', 'pull')
 		print title
 
 	def GetVersion(self):
@@ -436,7 +439,7 @@ class UIMainMenu:
 			self.uiGrid.AddButton('Stop MMi alone', self.appRunner.StopMMi)
 			self.uiGrid.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True,))
 			self.uiGrid.AddButton('Run MMi from C:/Icos', self.appRunner.RunMMi, (False,))
-			self.uiGrid.AddButton('Run MMi SPC Tests', self.mmiSpcTestRunner.RunAllTests)
+		self.uiGrid.AddButton('Run MMi SPC Tests', self.mmiSpcTestRunner.RunAllTests)
 
 	def AddColumn2(self):
 		self.uiGrid.CreateColumnFrame()
@@ -703,12 +706,21 @@ class UISourceSelector(UIWindow):
 
 	def LazyUiInit(self):
 		index = 0
+		data = [['Source', 'Branch']]
 		for srcTuple in self.model.Sources:
-			branch = Git.GetBranch(srcTuple[0])
+			data.append(['-'])
+			branch = '' # Git.GetBranch(srcTuple[0])
+			for brn1 in Git.GetLocalBranches(srcTuple[0]):
+				if brn1.startswith('* '):
+					branch = brn1[2:]
+					data.append([srcTuple[0], branch])
+				else:
+					data.append(['', brn1])
 			self.lblBranches[index].set(branch)
 			if index == self.model.SrcIndex:
 				self.model.Branch = branch
 			index += 1
+		print PrettyTable(TableFormat().SetSingleLine()).ToString(data)
 
 	def OnClosing(self):
 		self.model.Branch = self.lblBranches[self.model.SrcIndex].get()
@@ -935,7 +947,7 @@ class KlaRunner:
 		self.SetWorkingDir()
 
 	def OpenPython(self):
-		#FileOperations.Delete('{}/libs/testing/myconfig.py'.format(self.model.Source))
+		FileOperations.Delete('{}/libs/testing/myconfig.py'.format(self.model.Source))
 		fileName = os.path.abspath(self.model.Source + '/libs/testing/my.py')
 		par = 'start python -i ' + fileName
 		OsOperations.System(par, 'Starting my.py')
@@ -1474,7 +1486,8 @@ class VisualStudioSolutions:
 		print 'Open solution : ' + fileName
 		if self.model.Config is not 'Debug' or self.model.Platform is not 'Win32':
 			msg = 'Please check configuration and platform in Visual Studio'
-			MessageBox.ShowMessage(msg, 'Visual Studio')
+			#MessageBox.ShowMessage(msg, 'Visual Studio')
+			print msg
 
 class KlaSourceBuilder:
 	def __init__(self, model, klaRunner, vsSolutions):
@@ -1623,7 +1636,7 @@ class BuildLoger:
 		if not self.ForCleaning:
 			self.logDataTable.append(['-'])
 			self.logDataTable.append([''] * 7 + [timeDelta])
-			table = PrettyTable(TableFormat().SetSingleLine()).ToString(self.logDataTable)
+			table = '\n' + PrettyTable(TableFormat().SetSingleLine()).ToString(self.logDataTable)
 			self.AddOutput(table, True)
 			FileOperations.Append(self.fileName, table)
 
@@ -1799,20 +1812,25 @@ class OsOperations:
 		return raw_input(message)
 
 	@classmethod
-	def Popen(cls, params, callPrint = None):
-		if not callPrint:
+	def Popen(cls, params, callPrint = None, returnOutput = False):
+		if not callPrint and not returnOutput:
 			print params
 			subprocess.Popen(params)
 			return
 		process = subprocess.Popen(params, stdout=subprocess.PIPE)
+		retVal = ''
 		while True:
 			output = process.stdout.readline()
 			if output == '' and process.poll() is not None:
 				break
 			if output:
 				outLine = output.strip()
-				callPrint(output.strip())
+				if callPrint:
+					callPrint(outLine)
+				if returnOutput:
+					retVal += outLine + '\n'
 		process.poll()
+		return retVal
 
 	@classmethod
 	def ProcessOpen(cls, params):
@@ -2010,9 +2028,6 @@ ICOS,12345,False
 class Git:
 	@classmethod
 	def GetBranch(cls, source):
-		#return 'Branch'
-		#PerformanceTester.Print('111 GetBranch' + source)
-		#print 'Git.GetBranch : ' + source
 		params = ['git', '-C', source, 'branch']
 		output = OsOperations.ProcessOpen(params)
 		isCurrent = False
@@ -2021,11 +2036,14 @@ class Git:
 				return part
 			if part == '*':
 				isCurrent = True
-		#PerformanceTester.Print('111 GetBranch')
 
 	@classmethod
 	def Git(cls, source, cmd):
 		OsOperations.Call('git -C {} {}'.format(source, cmd))
+
+	@classmethod
+	def GitSilent(cls, source, cmd):
+		return OsOperations.Popen('git -C {} {}'.format(source, cmd), None, True)
 
 	@classmethod
 	def ModifiedFiles(cls, source):
@@ -2075,6 +2093,13 @@ class Git:
 	@classmethod
 	def RevertLastCommit(cls, source):
 		cls.Git(source, 'reset --mixed HEAD~1')
+
+	@classmethod
+	def GetLocalBranches(cls, source):
+		branches = Git.GitSilent(source, 'branch')
+		if len(branches) == 0:
+			return []
+		return branches.splitlines()
 
 class StdOutRedirect(object):
 	def __init__(self):
