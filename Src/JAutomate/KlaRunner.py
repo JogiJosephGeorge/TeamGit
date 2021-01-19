@@ -947,10 +947,22 @@ class KlaRunner:
 		self.SetWorkingDir()
 
 	def OpenPython(self):
-		FileOperations.Delete('{}/libs/testing/myconfig.py'.format(self.model.Source))
+		#FileOperations.Delete('{}/libs/testing/myconfig.py'.format(self.model.Source))
+		self.CreateMyConfig()
 		fileName = os.path.abspath(self.model.Source + '/libs/testing/my.py')
 		par = 'start python -i ' + fileName
 		OsOperations.System(par, 'Starting my.py')
+
+	def CreateMyConfig(self):
+		config = ConfigEncoder.GetBuildConfig(self.model)
+		data = 'version = 0\n'
+		data += 'console_config = r"{}"\n'.format(config[0])
+		data += 'simulator_config = r"{}"\n'.format(config[0])
+		data += 'mmiBuildConfiguration = r"{}"\n'.format(config)
+		data += 'mmiConfigurationsPath = "{}"\n'.format(self.model.MMiConfigPath.replace('\\', '/'))
+		data += 'platform = r"{}"\n'.format(self.model.Platform)
+		data += 'mmiSetupsPath = "{}"'.format(self.model.MMiSetupsPath.replace('\\', '/'))
+		FileOperations.Write('{}/libs/testing/myconfig.py'.format(self.model.Source), data)
 
 	def GetTestPath(self):
 		return os.path.abspath(self.model.Source + '/handler/tests/' + self.model.TestName)
