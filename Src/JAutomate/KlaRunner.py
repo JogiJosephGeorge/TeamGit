@@ -444,16 +444,16 @@ class UIMainMenu:
 	def AddColumn2(self):
 		self.uiGrid.CreateColumnFrame()
 		vsSolutions = self.vsSolutions
+		self.uiGrid.AddButton('Open Python', self.klaRunner.OpenPython)
 		self.uiGrid.AddButton('Open CIT100', vsSolutions.OpenSolution, (0,))
-		if self.model.ShowAllButtons:
-			self.uiGrid.AddButton('Open Simulator', vsSolutions.OpenSolution, (1,))
 		self.uiGrid.AddButton('Open Mmi', vsSolutions.OpenSolution, (2,))
-		self.uiGrid.AddButton('Open MockLicense', vsSolutions.OpenSolution, (3,))
-		self.uiGrid.AddButton('Open Converters', vsSolutions.OpenSolution, (4,))
+		self.uiGrid.AddButton('Other Solutions', self.ShowOpenSolutionDlg)
+
+	def ShowOpenSolutionDlg(self):
+		UISolutionList(self.window, self.model, self.vsSolutions).Show()
 
 	def AddColumn3(self):
 		self.uiGrid.CreateColumnFrame()
-		self.uiGrid.AddButton('Open Python', self.klaRunner.OpenPython)
 		self.uiGrid.AddButton('Tortoise Git Diff', AppRunner.OpenLocalDif, (self.model,))
 		if self.model.ShowAllButtons:
 			self.uiGrid.AddButton('Git GUI', Git.OpenGitGui, (self.model,))
@@ -793,7 +793,8 @@ class UISourceSelector(UIWindow):
 			print 'Disabled the source : ' + str(self.model.Sources[Index][0])
 
 	def AddSolutions(self):
-		self.vsSolutions.SelectedInxs = [True] * len(self.vsSolutions.SlnNames)
+		allSlns = self.vsSolutions.GetAllSlnFiles()
+		self.vsSolutions.SelectedInxs = [True] * len(allSlns)
 		if self.klaRunner is None:
 			return
 		self.AddEmptyRow()
@@ -801,8 +802,9 @@ class UISourceSelector(UIWindow):
 		UIFactory.AddLabel(self.AddRow(), selMsg, 0, 0)
 		self.slnChks = []
 		row1 = self.AddRow()
-		for inx,sln in enumerate(self.vsSolutions.SlnNames):
-			chk = UIFactory.AddCheckBox(row1, sln, True, 0, inx, self.OnSelectSolution, (inx,))
+		for inx,sln in enumerate(allSlns):
+			slnName = self.vsSolutions.GetSlnName(sln)
+			chk = UIFactory.AddCheckBox(row1, slnName, True, 0, inx, self.OnSelectSolution, (inx,))
 			self.slnChks.append(chk)
 		row2 = self.AddRow()
 		self.threadHandler.AddButton(row2, ' Clean Solutions ', 0, 0, self.srcBuilder.CleanSource, None, self.srcBuilder.NotifyClean, 19)
@@ -854,6 +856,22 @@ class UISourceSelector(UIWindow):
 			del self.cboPlatform[self.model.SrcIndex]
 			self.model.SrcCnf.UpdateSource(self.model.SrcIndex - 1, False)
 			print msg
+
+class UISolutionList(UIWindow):
+	def __init__(self, parent, model, vsSolutions):
+		super(UISolutionList, self).__init__(parent, model, 'Visutal Studio Solutions')
+		self.vsSolutions = vsSolutions
+
+	def CreateUI(self, parent):
+		frame = UIFactory.AddFrame(parent, 0, 0, 50)
+
+		for inx,sln in enumerate(self.vsSolutions.OtherSolutions):
+			label = 'Open ' + self.vsSolutions.GetSlnName(sln)
+			UIFactory.AddButton(frame, label, inx, 0, self.OnOpenSolution, (sln,), 19)
+		self.AddBackButton(frame, 8, 0)
+
+	def OnOpenSolution(self, sln):
+		self.vsSolutions.OpenSolution(sln)
 
 class FilterTestSelector:
 	def AddUI(self, parent, model, r, c, updateCombo):
@@ -1501,27 +1519,30 @@ class VisualStudioSolutions:
 		self.model = model
 		self.Solutions = [
 			'/handler/cpp/CIT100.sln',
-			'/handler/Simulator/CIT100Simulator/CIT100Simulator.sln',
 			'/mmi/mmi/Mmi.sln'
 		]
 		self.OtherSolutions = [
+			'/handler/Simulator/CIT100Simulator/CIT100Simulator.sln',
 			'/mmi/mmi/MockLicense.sln',
 			'/mmi/mmi/Converters.sln',
-			'libs/DLStub/DLStub/DLStub.sln',
+			'/libs/DLStub/DLStub/DLStub.sln',
 		]
-		self.SlnNames = ['CIT100', 'Simulator', 'MMi', 'MockLicense', 'Converters', 'DLStub']
 
 	def GetAllSlnFiles(self):
-		slnFiles = []
-		srcLen = len(self.model.Source) + 1
-		for root, dirs, files in os.walk(self.model.Source):
-			path = root[srcLen:]
-			fis = [[path, fi] for fi in files if fi.endswith('.sln')]
-			slnFiles += fis
-		return slnFiles
+		#slnFiles = []
+		#srcLen = len(self.model.Source) + 1
+		#for root, dirs, files in os.walk(self.model.Source):
+		#	path = root[srcLen:]
+		#	fis = [[path, fi] for fi in files if fi.endswith('.sln')]
+		#	slnFiles += fis
+		#return slnFiles
+		return self.Solutions + self.OtherSolutions
 
 	def OpenSolution(self, index):
-		fileName = self.model.Source + self.GetSlnPath(index)
+		self.OpenSolution(self.GetSlnPath(index))
+
+	def OpenSolution(self, slnFileName):
+		fileName = self.model.Source + slnFileName
 		param = [
 			self.model.DevEnvExe,
 			fileName
@@ -1535,9 +1556,10 @@ class VisualStudioSolutions:
 
 	def GetSelectedSolutions(self):
 		retVal = []
-		for inx,slnName in enumerate(self.SlnNames):
+		allSlns = self.GetAllSlnFiles()
+		for inx,sln in enumerate(allSlns):
 			if self.SelectedInxs[inx]:
-				sln = self.GetSlnPath(inx)
+				slnName = self.vsSolutions.GetSlnName(sln)
 				retVal.append((sln, slnName))
 		return retVal
 
@@ -1546,6 +1568,12 @@ class VisualStudioSolutions:
 			return self.Solutions[index]
 		index -= len(self.Solutions)
 		return self.OtherSolutions[index]
+
+	def GetSlnName(self, slnFile):
+		slnName = slnFile.split('/')[-1][:-4]
+		if slnName == 'CIT100Simulator':
+			return 'Simulator'
+		return slnName
 
 	def GetHandlerPath(self):
 		platform = VisualStudioSolutions.GetPlatformStr(self.model.Platform)
