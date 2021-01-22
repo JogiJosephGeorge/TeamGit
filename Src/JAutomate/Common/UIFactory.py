@@ -11,7 +11,7 @@ class UIFactory:
             parent.withdraw()
             window = tk.Toplevel(parent)
         window.title(title)
-        iconPath = startPath + r'\Plus.ico'
+        iconPath = startPath + r'/DataFiles/Plus.ico'
         #window.geometry('750x350')
         #window.resizable(0, 0) # To Disable Max button, Then half screen won't work
         #window.overrideredirect(1) # Remove Window border

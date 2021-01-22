@@ -25,7 +25,7 @@ class PreTestActions:
 
     @classmethod
     def CopyxPortIllumRef(cls, model, delay = False):
-        src = model.StartPath + '\\xPort_IllumReference.xml'
+        src = model.StartPath + '/DataFiles/xPort_IllumReference.xml'
         des = 'C:/icos/xPort/'
         if delay:
             TaskMan.AddTimer('xport', FileOperations.Copy(src, des, 8, 3))
@@ -38,13 +38,13 @@ class PreTestActions:
 
     @classmethod
     def GenerateLicMgrConfig(cls, model):
-        src = model.StartPath + '\\LicMgrConfig.xml'
+        src = model.StartPath + '/DataFiles/LicMgrConfig.xml'
         LicenseConfigWriter(model.Source, src)
         print 'LicMgrConfig.xml has been created from source and placed on ' + src
 
     @classmethod
     def CopyLicMgrConfig(cls, model, delay = False):
-        src = model.StartPath + '\\LicMgrConfig.xml'
+        src = model.StartPath + '/DataFiles/LicMgrConfig.xml'
         #des = cls.GetTestPath(model) + '~/'
         des = 'C:/Icos'
         if delay:

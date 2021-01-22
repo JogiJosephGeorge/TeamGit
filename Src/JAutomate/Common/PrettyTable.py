@@ -137,7 +137,7 @@ class TestPrettyTable:
 │ColA│Col B│Col C│
 ├────┼─────┼─────┤
 │KLA │  2  │True │
-│     │      │      │
+│    │     │     │
 │ICOS│12345│False│
 └────┴─────┴─────┘
 '''[1:]
