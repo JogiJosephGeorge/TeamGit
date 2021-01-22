@@ -1,4 +1,6 @@
 # coding=utf-8
+from Common.Test import Test
+
 
 class TableLineRow:
     def __init__(self, left, mid, fill, right):
@@ -12,6 +14,7 @@ class TableLineRow:
         yield self.chMid
         yield self.chRig
         yield self.chFil
+
 
 class TableFormat:
     def SetSingleLine(self):
@@ -45,6 +48,7 @@ class TableFormat:
         self.Ver = TableLineRow(u'', sep, u'', u'')
         self.Bot = TableLineRow(u'', u'', u'', u'')
         return self
+
 
 class PrettyTable:
     def __init__(self, format):
@@ -113,6 +117,7 @@ class PrettyTable:
             if inx % colCnt == 0:
                 print
             print item,
+
 
 class TestPrettyTable:
     def __init__(self):

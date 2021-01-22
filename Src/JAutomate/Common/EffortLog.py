@@ -4,7 +4,9 @@ from Common.DateTimeOps import DateTimeOps
 from Common.FileOperations import FileOperations
 from Common.NumValDict import NumValDict
 from Common.OsOperations import OsOperations
-from Common.PrettyTable import  TableFormat, PrettyTable
+from Common.PrettyTable import TableFormat, PrettyTable
+from Common.Test import Test
+
 
 class EffortReader:
     def __init__(self):
@@ -103,6 +105,7 @@ class EffortReader:
         else:
             print 'Effort logger is not running !'
 
+
 class EffortLogger:
     def __init__(self):
         self.ColWidth = 80
@@ -165,6 +168,7 @@ class EffortLogger:
         if len(message) > width:
             return message[:width / 2 - 1] + '...' + message[2 - width / 2:]
         return message
+
 
 class TestEffortLogger:
     def __init__(self):

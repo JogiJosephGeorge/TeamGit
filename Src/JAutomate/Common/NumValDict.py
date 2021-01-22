@@ -1,3 +1,5 @@
+from Common.Test import Test
+
 
 class NumValDict(dict):
     def Add(self, key, value):

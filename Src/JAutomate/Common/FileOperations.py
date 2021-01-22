@@ -1,5 +1,6 @@
 import os
 
+
 class FileOperations:
     @classmethod
     def ReadLine(cls, fileName, utf = 'utf-8'):

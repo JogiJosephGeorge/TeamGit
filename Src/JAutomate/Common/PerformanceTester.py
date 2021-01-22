@@ -1,5 +1,6 @@
 from datetime import datetime
 
+
 class PerformanceTester:
     lastTime = datetime.now()
 

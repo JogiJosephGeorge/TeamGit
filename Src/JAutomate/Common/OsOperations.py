@@ -1,5 +1,7 @@
+import msvcrt
 import os
 import subprocess
+
 
 class OsOperations:
     @classmethod
