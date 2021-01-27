@@ -12,7 +12,7 @@ class UnitTestsRunner:
         TestNumValDict()
         TestEffortLogger()
         TestPrettyTable()
-        #TestSourceCode()
+        TestSourceCode()
         TestKlaRunnerIni()
         FilterTestSelector_UT()
 
