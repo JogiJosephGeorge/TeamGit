@@ -4,6 +4,7 @@ import sys
 
 from Common.Logger import Logger
 from Common.OsOperations import OsOperations
+from Common.FileOperations import FileOperations
 from KLA.PreTestActions import PreTestActions
 from KLA.TaskMan import TaskMan
 from KLA.VMWareRunner import VMWareRunner
@@ -36,9 +37,12 @@ class AppRunner:
         TaskMan.StopTask('MMi.exe')
         VMWareRunner.RunSlots(self.model)
 
-    def RunMMi(self, fromSrc):
+    def RunMMi(self, fromSrc, removePrevInst):
         if self.model.RestartSlotsForMMiAlone:
             self.StopMMi()
+
+        if removePrevInst:
+            FileOperations.Delete('C:/icos/started.txt')
 
         mmiPath = PreTestActions.GetMmiPath(self.model, fromSrc)
         Logger.Log('Run MMi from ' + mmiPath)
@@ -61,7 +65,7 @@ class AppRunner:
 
     def RunHandlerMMi(self):
         self.RunHandler()
-        self.RunMMi(True)
+        self.RunMMi(True, False)
 
     def RunToollinkHost(self):
         sys.path.append('C:\Handler\\testing')

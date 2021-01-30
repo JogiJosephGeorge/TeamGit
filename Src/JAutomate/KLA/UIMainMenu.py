@@ -39,8 +39,8 @@ class UIMainMenu:
         if self.model.ShowAllButtons:
             self.uiGrid.AddButton('Run Handler', self.appRunner.RunHandler)
             self.uiGrid.AddButton('Stop MMi alone', self.appRunner.StopMMi)
-            self.uiGrid.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True,))
-            self.uiGrid.AddButton('Run MMi from C:/Icos', self.appRunner.RunMMi, (False,))
+            self.uiGrid.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True, True))
+            self.uiGrid.AddButton('Run MMi from C:/Icos', self.appRunner.RunMMi, (False, True))
         self.uiGrid.AddButton('Run MMi SPC Tests', self.mmiSpcTestRunner.RunAllTests)
 
     def AddColumn2(self):
