@@ -9,13 +9,18 @@ class ConfigInfo:
     def __init__(self, fileName):
         self.FileName = fileName
 
-    def Read(self, model):
+    def ReadIni(self):
+        _model = {}
         if os.path.exists(self.FileName):
-            with open(self.FileName) as f:
-                _model = json.load(f)
-        else:
-            _model = {}
+            try:
+                with open(self.FileName) as f:
+                    _model = json.load(f)
+            except:
+                print 'There are issues in reading ' + self.FileName
+        return _model
 
+    def Read(self, model):
+        _model = self.ReadIni()
         model.Source = ''
         model.Branch = ''
         model.slots = []

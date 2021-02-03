@@ -86,6 +86,8 @@ class UISourceGrid:
         self.lblBranches[index].set(branch)
 
     def GetBranch(self, index):
+        if len(self.lblBranches) == 0:
+            return ''
         return self.lblBranches[index].get()
 
     def AddConfig(self, r, c, config):
@@ -129,6 +131,7 @@ class UISourceGrid:
 class UISourceSelector(UIWindow):
     def __init__(self, parent, model, klaRunner, vsSolutions, VM, threadHandler):
         super(UISourceSelector, self).__init__(parent, model, 'Source Manager')
+        self.IsFirstTime = parent is None
         self.klaRunner = klaRunner
         self.vsSolutions = vsSolutions
         self.VM = VM
@@ -173,15 +176,15 @@ class UISourceSelector(UIWindow):
         print PrettyTable(TableFormat().SetSingleLine()).ToString(data)
 
     def OnClosing(self):
-        self.model.Branch = self.SourceGrid.GetBranch(self.model.SrcIndex)
-        if self.VM is not None:
+        if not self.IsFirstTime:
+            self.model.Branch = self.SourceGrid.GetBranch(self.model.SrcIndex)
             self.VM.UpdateSourceBranch()
         super(UISourceSelector, self).OnClosing()
 
     def AddSolutions(self):
         allSlns = self.vsSolutions.GetAllSlnFiles()
         self.vsSolutions.SelectedInxs = [True] * len(allSlns)
-        if self.klaRunner is None:
+        if self.IsFirstTime:
             return
         self.AddEmptyRow()
         selMsg = 'Select Solutions to build / clean on active sources'
@@ -200,7 +203,7 @@ class UISourceSelector(UIWindow):
         self.vsSolutions.SelectedInxs[inx] = self.slnChks[inx].get()
 
     def AddFunctions(self):
-        if self.klaRunner is not None:
+        if not self.IsFirstTime:
             if self.model.ShowAllButtons:
                 self.AddEmptyRow()
                 self.AddCleanDotVsOnReset(self.AddRow(), 0, 0)
@@ -211,7 +214,8 @@ class UISourceSelector(UIWindow):
         row2 = self.AddRow()
         UIFactory.AddButton(row2, 'Add Source', 0, 0, self.OnAddSource, None, 19)
         UIFactory.AddButton(row2, 'Remove Source', 0, 1, self.OnRemoveSource, None, 19)
-        self.AddBackButton(row2, 0, 2)
+        if not self.IsFirstTime:
+            self.AddBackButton(row2, 0, 2)
 
     def AddCleanDotVsOnReset(self, parent, r, c):
         txt = 'Remove .vs directories on reseting source'
@@ -257,6 +261,8 @@ class UISourceSelector(UIWindow):
         return True
 
     def OnRemoveSource(self):
+        if self.model.SrcIndex < 0:
+            return
         src = self.model.Sources[self.model.SrcIndex][0]
         if MessageBox.YesNoQuestion('Remove Source', 'Do you want to remove source ' + src):
             if self.model.SrcCnf.UpdateSource(self.model.SrcIndex - 1, False):

@@ -30,9 +30,6 @@ class UIMain:
         self.model.ReadConfigFile()
         vsSolutions = VisualStudioSolutions(self.model)
         threadHandler = ThreadHandler()
-        if not os.path.exists(self.model.ConfigInfo.FileName):
-            UISourceSelector(None, self.model, None, vsSolutions, None, threadHandler).Show()
-            return
         fileName = self.model.StartPath + '/' + self.model.LogFileName
         Logger.Init(fileName)
         klaRunner = KlaRunner(self.model)

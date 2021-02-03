@@ -39,7 +39,7 @@ class KlaRunner:
         if not os.path.isdir(dirPath):
             msg = 'Test folder does not exists : ' + dirPath
             print msg
-            MessageBox.ShowMessage('KLA Runner', msg)
+            MessageBox.ShowMessage(msg)
             return
         subprocess.Popen(['Explorer', dirPath])
         print 'Open directory : ' + dirPath

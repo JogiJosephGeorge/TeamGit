@@ -22,7 +22,7 @@ class AutoTestRunner:
             self.lastSrc = self.model.Source
         elif self.lastSrc != self.model.Source:
             msg = 'Test has already been executed with {}. So please restart KLA Runner.'.format(self.lastSrc)
-            MessageBox.ShowMessage('KLA Runner', msg)
+            MessageBox.ShowMessage(msg)
             return False
         TaskMan.StopTasks()
         return VMWareRunner.RunSlots(self.model)
