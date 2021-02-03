@@ -28,14 +28,14 @@ class UIMain:
         self.model = Model()
         self.VM = UIViewModel(self.model)
         self.model.ReadConfigFile()
+        vsSolutions = VisualStudioSolutions(self.model)
+        threadHandler = ThreadHandler()
         if not os.path.exists(self.model.ConfigInfo.FileName):
-            UISourceSelector(None, self.model).Show()
+            UISourceSelector(None, self.model, None, vsSolutions, None, threadHandler).Show()
             return
         fileName = self.model.StartPath + '/' + self.model.LogFileName
         Logger.Init(fileName)
         klaRunner = KlaRunner(self.model)
-        vsSolutions = VisualStudioSolutions(self.model)
-        threadHandler = ThreadHandler()
         testRunner = AutoTestRunner(self.model, self.VM)
 
         title = 'KLA Application Runner'
