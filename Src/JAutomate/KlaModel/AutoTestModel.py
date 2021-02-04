@@ -21,11 +21,9 @@ class AutoTestModel:
     def GetNames(self):
         return [item[0] for item in self.Tests]
 
-    def GetNameSlots(self, index):
-        return self.Tests[index]
-
     def SetNameSlots(self, index, name, slots):
-        self.Tests[index] = [name, slots]
+        if self.IsValidIndex(index):
+            self.Tests[index] = [name, slots]
 
     def Contains(self, testName):
         for inx, item in self.Tests:

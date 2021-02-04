@@ -31,6 +31,8 @@ class Model:
         self.SrcCnf = SourceConfig(self)
         self.Config = ConfigEncoder.Configs[0]
         self.Platform = ConfigEncoder.Platforms[0]
+        self.TestName = ''
+        self.slots = []
 
     def ReadConfigFile(self):
         self.ConfigInfo.Read(self)
@@ -44,7 +46,7 @@ class Model:
         if self.TestIndex == index:
             return False
         self.TestIndex = index
-        [self.TestName, self.slots] = self.AutoTests.GetNameSlots(self.TestIndex)
+        [self.TestName, self.slots] = self.AutoTests.Tests[self.TestIndex]
         if writeToFile:
             self.WriteConfigFile()
         return True
