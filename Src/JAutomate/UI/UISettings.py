@@ -25,14 +25,32 @@ class UISettings(UIWindow):
         self.checkFrame = UIFactory.AddFrame(parent, 1, 0)
         self.Row = 0
         self.CheckBoxes = dict()
-        self.AddCheckBoxRow('Show All Commands in KlaRunner', 'ShowAllButtons', self.OnShowAll)
-        self.AddCheckBoxRow('Restart Slots while running MMi alone', 'RestartSlotsForMMiAlone', self.OnRestartSlotsForMMi)
-        self.AddCheckBoxRow('Copy MMi to Icos On AutoTest', 'CopyMmi', self.OnCopyMMiToIcosOnTest)
-        self.AddCheckBoxRow('Generate LicMgrConfig.xml On AutoTest', 'GenerateLicMgrConfigOnTest', self.OnGenerateLicMgrConfigOnTest)
-        self.AddCheckBoxRow('Copy Mock License On AutoTest', 'CopyMockLicenseOnTest', self.OnCopyMockLicenseOnTest)
-        self.AddCheckBoxRow('Copy xPort_IllumReference.xml on AutoTest', 'CopyExportIllumRefOnTest', self.OnCopyExportIllumRefOnTest)
+        self.AddCheckBoxRow('Show All Commands in KlaRunner', 'ShowAllButtons', True, True)
+        self.AddCheckBoxRow('Restart Slots while running MMi alone', 'RestartSlotsForMMiAlone', False, False)
+        self.AddCheckBoxRow('Copy MMi to Icos On AutoTest', 'CopyMmi', False, True)
+        self.AddCheckBoxRow('Generate LicMgrConfig.xml On AutoTest', 'GenerateLicMgrConfigOnTest', True, False)
+        self.AddCheckBoxRow('Copy Mock License On AutoTest', 'CopyMockLicenseOnTest', True, False)
+        self.AddCheckBoxRow('Copy xPort_IllumReference.xml on AutoTest', 'CopyExportIllumRefOnTest', True, False)
 
         self.AddBackButton(parent, 2, 0)
+        self.messages = {
+            'ShowAllButtons': ['You need to restart the application to update the UI.'] * 2,
+            'RestartSlotsForMMiAlone': [
+                'The selected slots will be restarted while running MMi alone.',
+                'The selected slots will NOT be restarted while running MMi alone.'],
+            'CopyMmi': [
+                'Copy the mmi built over the installation in C:/icos.',
+                'Do NOT copy the mmi built over the installation in C:/icos.\nThis is NOT RECOMMENDED.'],
+            'GenerateLicMgrConfigOnTest': [
+                'The file LicMgrConfig.xml will be created while running auto test.\nThis is NOT RECOMMENDED.',
+                'The file LicMgrConfig.xml will NOT be created while running auto test.'],
+            'CopyMockLicenseOnTest': [
+                'The file mock License.dll will be copied while running auto test.\nThis is NOT RECOMMENDED.',
+                'The file mock License.dll will NOT be copied while running auto test.'],
+            'CopyExportIllumRefOnTest': [
+                'The file xPort_IllumReference.xml will be copied while running auto test.\nThis is NOT RECOMMENDED.',
+                'The file xPort_IllumReference.xml will NOT be copied while running auto test.']
+        }
 
     def AddSelectPathRow(self, parent, label, attrName):
         self.AddSelectItemRow(parent, label, attrName, False)
@@ -70,46 +88,17 @@ class UISettings(UIWindow):
             setattr(self.model, attrName, filename)
             print '{} Path changed : {}'.format(attrName, filename)
 
-    def AddCheckBoxRow(self, txt, attrName, FunPnt):
+    def AddCheckBoxRow(self, txt, attrName, showMsgOnEnable, showMsgOnDisable):
         isChecked = getattr(self.model, attrName) # self.model.__dict__[modelVar] also works
-        args = (FunPnt, attrName)
+        args = (attrName, showMsgOnEnable, showMsgOnDisable)
         self.CheckBoxes[attrName] = UIFactory.AddCheckBox(self.checkFrame, txt, isChecked, self.Row, 0, self.OnClickCheckBox, args)
         self.Row += 1
 
-    def OnClickCheckBox(self, FunPnt, attrName):
-        setattr(self.model, attrName, self.CheckBoxes[attrName].get())
-        FunPnt()
-
-    def OnShowAll(self):
-        MessageBox.ShowMessage('You need to restart the application to update the UI.')
-
-    def OnRestartSlotsForMMi(self):
-        msg = 'The selected slots will {}be restarted while running MMi alone.'
-        if self.model.RestartSlotsForMMiAlone:
-            print msg.format('')
+    def OnClickCheckBox(self, attrName, showMsgOnEnable, showMsgOnDisable):
+        isChecked = self.CheckBoxes[attrName].get()
+        setattr(self.model, attrName, isChecked)
+        msg = self.messages[attrName][not isChecked]
+        if (isChecked and showMsgOnEnable) or ((not isChecked) and showMsgOnDisable):
+            MessageBox.ShowMessage(msg)
         else:
-            print msg.format('NOT ')
-
-    def OnCopyMMiToIcosOnTest(self):
-        if not self.model.CopyMmi:
-            MessageBox.ShowMessage('Do NOT copy the mmi built over the installation in C:/icos.\nThis is NOT RECOMMENDED.')
-        else:
-            print 'Copy the mmi built over the installation in C:/icos.'
-
-    def OnGenerateLicMgrConfigOnTest(self):
-        if self.model.GenerateLicMgrConfigOnTest:
-            MessageBox.ShowMessage('The file LicMgrConfig.xml will be created while running auto test.\nThis is NOT RECOMMENDED.')
-        else:
-            print 'The file LicMgrConfig.xml will NOT be created while running auto test.'
-
-    def OnCopyMockLicenseOnTest(self):
-        if self.model.CopyMockLicenseOnTest:
-            MessageBox.ShowMessage('The file mock License.dll will be copied while running auto test.\nThis is NOT RECOMMENDED.')
-        else:
-            print 'The file mock License.dll will NOT be copied while running auto test.'
-
-    def OnCopyExportIllumRefOnTest(self):
-        if self.model.CopyExportIllumRefOnTest:
-            MessageBox.ShowMessage('The file xPort_IllumReference.xml will be copied while running auto test.\nThis is NOT RECOMMENDED.')
-        else:
-            print 'The file xPort_IllumReference.xml will NOT be copied while running auto test.'
+            print msg
