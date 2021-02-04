@@ -55,9 +55,9 @@ class UIMain:
         print title
 
     def GetVersion(self):
-        commitCnt = OsOperations.ProcessOpen('git rev-list --all --count')
+        commitCnt = Git.ProcessOpen('rev-list --all --count')
         revision = int(re.sub('\W+', '', commitCnt)) - 165
-        desStr = OsOperations.ProcessOpen('git describe --always')
+        desStr = Git.ProcessOpen('describe --always')
         hash = re.sub('\W+', '', desStr)
         return '1.3.{}.{}'.format(revision, hash)
 

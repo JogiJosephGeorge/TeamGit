@@ -43,7 +43,7 @@ class TestKlaRunnerIni:
         Test.Assert(os.path.isfile(self.model.EffortLogFile), True, 'EffortLogFile')
 
     def DirectoryExists(self):
-        Test.Assert(os.path.isdir(self.model.GitBin), True, 'GitBin')
+        Test.Assert(os.path.isdir(self.model.GitPath), True, 'GitPath')
         Test.Assert(os.path.isdir(self.model.VMwareWS), True, 'VMwareWS')
         Test.Assert(os.path.isdir(self.model.MMiConfigPath), True, 'MMiConfigPath')
         Test.Assert(os.path.isdir(self.model.MMiSetupsPath), True, 'MMiSetupsPath')

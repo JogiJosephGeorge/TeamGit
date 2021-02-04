@@ -2,6 +2,7 @@ import json
 import os
 from collections import OrderedDict
 
+from Common.Git import Git
 from KlaModel.ConfigEncoder import ConfigEncoder
 
 
@@ -38,7 +39,7 @@ class ConfigInfo:
         model.ActiveSrcs = self.ReadField(_model, 'ActiveSrcs', [])
         model.DevEnvCom = self.ReadField(_model, 'DevEnvCom', 'C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com')
         model.DevEnvExe = self.ReadField(_model, 'DevEnvExe', 'C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/Common7/IDE/devenv.exe')
-        model.GitBin = self.ReadField(_model, 'GitBin', 'C:/Program Files/Git/bin')
+        model.GitPath = self.ReadField(_model, 'GitPath', 'C:/Program Files/Git')
         model.VMwareWS = self.ReadField(_model, 'VMwareWS', 'C:/Program Files (x86)/VMware/VMware Workstation')
         model.EffortLogFile = self.ReadField(_model, 'EffortLogFile', 'D:/QuEST/Tools/EffortCapture_2013/timeline.log')
         model.BCompare = self.ReadField(_model, 'BCompare', 'C:/Program Files (x86)/Beyond Compare 4/BCompare.exe')
@@ -61,6 +62,13 @@ class ConfigInfo:
 
         model.MMiConfigPath = model.MMiConfigPath.replace('/', '\\')
 
+        Git.GitPath = self.GetShortPath(model.GitPath + '/cmd/git')
+        Git.GitBin = self.GetShortPath(model.GitPath + '/bin')
+
+    def GetShortPath(self, path):
+        path = path.replace('Program Files (x86)', 'PROGRA~2')
+        return path.replace('Program Files', 'PROGRA~1')
+
     def ReadField(self, model, key, defValue):
         if key in model:
             return model[key]
@@ -75,7 +83,7 @@ class ConfigInfo:
         _model['TestIndex'] = model.TestIndex
         _model['DevEnvCom'] = model.DevEnvCom
         _model['DevEnvExe'] = model.DevEnvExe
-        _model['GitBin'] = model.GitBin
+        _model['GitPath'] = model.GitPath
         _model['VMwareWS'] = model.VMwareWS
         _model['EffortLogFile'] = model.EffortLogFile
         _model['BCompare'] = model.BCompare

@@ -15,7 +15,7 @@ class UISettings(UIWindow):
         self.Row = 0
         self.AddSelectFileRow(pathFrame, 'DevEnv.com', 'DevEnvCom')
         self.AddSelectFileRow(pathFrame, 'DevEnv.exe', 'DevEnvExe')
-        self.AddSelectPathRow(pathFrame, 'Git Bin', 'GitBin')
+        self.AddSelectPathRow(pathFrame, 'Git Path', 'GitPath')
         self.AddSelectPathRow(pathFrame, 'VM ware WS', 'VMwareWS')
         self.AddSelectFileRow(pathFrame, 'Effort Log File', 'EffortLogFile')
         self.AddSelectPathRow(pathFrame, 'MMi Config Path', 'MMiConfigPath')

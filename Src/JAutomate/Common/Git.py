@@ -3,9 +3,12 @@ import subprocess
 from OsOperations import OsOperations
 
 class Git:
+    GitPath = 'C:/PROGRA~1/Git/cmd/git'
+    GitBin = 'C:/PROGRA~1/Git/bin'
+
     @classmethod
     def GetBranch(cls, source):
-        params = ['git', '-C', source, 'branch']
+        params = [cls.GitPath, '-C', source, 'branch']
         output = OsOperations.ProcessOpen(params)
         isCurrent = False
         for part in output.split():
@@ -16,15 +19,20 @@ class Git:
 
     @classmethod
     def Git(cls, source, cmd):
-        OsOperations.Call('git -C {} {}'.format(source, cmd))
+        OsOperations.Call(cls.GitPath + ' -C {} {}'.format(source, cmd))
+
+    @classmethod
+    def ProcessOpen(cls, cmd):
+        return OsOperations.ProcessOpen(cls.GitPath + ' {}'.format(cmd))
 
     @classmethod
     def GitSilent(cls, source, cmd):
-        return OsOperations.Popen('git -C {} {}'.format(source, cmd), None, True)
+        params = cls.GitPath + ' -C {} {}'.format(source, cmd)
+        return OsOperations.Popen(params, None, True)
 
     @classmethod
     def ModifiedFiles(cls, source):
-        params = ['git', '-C', source, 'status', '-s']
+        params = [cls.GitPath, '-C', source, 'status', '-s']
         return OsOperations.ProcessOpen(params).split('\n')[:-1]
 
     @classmethod
@@ -46,15 +54,13 @@ class Git:
 
     @classmethod
     def OpenGitGui(cls, model):
-        param = [ 'git-gui', '--working-dir', model.Source ]
+        param = [ cls.GitPath + '-gui', '--working-dir', model.Source ]
         print 'Staring Git GUI'
         subprocess.Popen(param)
 
     @classmethod
     def OpenGitBash(cls, model):
-        gitBin = model.GitBin.replace('Program Files (x86)', 'PROGRA~2')
-        gitBin = gitBin.replace('Program Files', 'PROGRA~1')
-        par = 'start {}/sh.exe --cd={}'.format(gitBin, model.Source)
+        par = 'start {}/sh.exe --cd={}'.format(cls.GitBin, model.Source)
         OsOperations.System(par, 'Staring Git Bash')
 
     @classmethod
