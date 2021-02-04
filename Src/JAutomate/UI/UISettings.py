@@ -13,13 +13,14 @@ class UISettings(UIWindow):
     def CreateUI(self, parent):
         pathFrame = UIFactory.AddFrame(parent, 0, 0)
         self.Row = 0
+        self.AddSelectPathRow(pathFrame, 'MMi Setups Path', 'MMiSetupsPath')
+        self.AddSelectPathRow(pathFrame, 'MMi Config Path', 'MMiConfigPath')
+        self.AddSelectFileRow(pathFrame, 'Effort Log File', 'EffortLogFile')
         self.AddSelectFileRow(pathFrame, 'DevEnv.com', 'DevEnvCom')
         self.AddSelectFileRow(pathFrame, 'DevEnv.exe', 'DevEnvExe')
         self.AddSelectPathRow(pathFrame, 'Git Path', 'GitPath')
-        self.AddSelectPathRow(pathFrame, 'VM ware WS', 'VMwareWS')
-        self.AddSelectFileRow(pathFrame, 'Effort Log File', 'EffortLogFile')
-        self.AddSelectPathRow(pathFrame, 'MMi Config Path', 'MMiConfigPath')
-        self.AddSelectPathRow(pathFrame, 'MMi Setups Path', 'MMiSetupsPath')
+        self.AddSelectFileRow(pathFrame, 'VMware.exe', 'VMwareExe')
+        self.AddSelectFileRow(pathFrame, 'Beyond Compare', 'BCompare')
 
         self.checkFrame = UIFactory.AddFrame(parent, 1, 0)
         self.Row = 0

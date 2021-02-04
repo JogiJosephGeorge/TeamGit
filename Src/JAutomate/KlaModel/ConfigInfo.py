@@ -40,7 +40,7 @@ class ConfigInfo:
         model.DevEnvCom = self.ReadField(_model, 'DevEnvCom', 'C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com')
         model.DevEnvExe = self.ReadField(_model, 'DevEnvExe', 'C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/Common7/IDE/devenv.exe')
         model.GitPath = self.ReadField(_model, 'GitPath', 'C:/Program Files/Git')
-        model.VMwareWS = self.ReadField(_model, 'VMwareWS', 'C:/Program Files (x86)/VMware/VMware Workstation')
+        model.VMwareExe = self.ReadField(_model, 'VMwareExe', 'C:/Program Files (x86)/VMware/VMware Workstation/vmware.exe')
         model.EffortLogFile = self.ReadField(_model, 'EffortLogFile', 'D:/QuEST/Tools/EffortCapture_2013/timeline.log')
         model.BCompare = self.ReadField(_model, 'BCompare', 'C:/Program Files (x86)/Beyond Compare 4/BCompare.exe')
         model.MMiConfigPath = self.ReadField(_model, 'MMiConfigPath', 'D:\\')
@@ -84,7 +84,7 @@ class ConfigInfo:
         _model['DevEnvCom'] = model.DevEnvCom
         _model['DevEnvExe'] = model.DevEnvExe
         _model['GitPath'] = model.GitPath
-        _model['VMwareWS'] = model.VMwareWS
+        _model['VMwareExe'] = model.VMwareExe
         _model['EffortLogFile'] = model.EffortLogFile
         _model['BCompare'] = model.BCompare
         _model['MMiConfigPath'] = model.MMiConfigPath

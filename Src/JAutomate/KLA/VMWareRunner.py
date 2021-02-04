@@ -26,14 +26,13 @@ class VMWareRunner:
 
     @classmethod
     def RunSlots(cls, model, startSlot = True, showMessage = True):
-        vMwareWS = model.VMwareWS
+        vmWareExe = model.VMwareExe
         slots = model.slots
         if len(slots) == 0:
             if showMessage:
                 MessageBox.ShowMessage('Please select necessary slot(s).')
             return False
-        vmRunExe = vMwareWS + '/vmrun.exe'
-        vmWareExe = vMwareWS + '/vmware.exe'
+        vmRunExe = os.path.dirname(vmWareExe) + '/vmrun.exe'
         vmxGenericPath = r'C:\\MVS8000\\slot{}\\MVS8000_stage2.vmx'
         par = [vmRunExe, '-vp', '1', 'list']
         output = OsOperations.ProcessOpen(par)
