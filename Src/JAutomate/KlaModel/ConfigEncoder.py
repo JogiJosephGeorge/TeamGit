@@ -31,3 +31,20 @@ class ConfigEncoder:
         model.Source = newSrcPath
         if model.SrcIndex < 0:
             model.SrcIndex = 0
+
+    @classmethod
+    def OnAddSource(cls, model, folderSelected):
+        if ConfigEncoder.IsValidSource(model, folderSelected):
+            ConfigEncoder.AddSrc(model, folderSelected)
+            print 'New source added : ' + folderSelected
+            return True
+        return False
+
+    @classmethod
+    def IsValidSource(cls, model, newSrcDir):
+        if len(newSrcDir) == 0:
+            return False
+        for src, cnfg, pf in model.Sources:
+            if src == newSrcDir:
+                return False
+        return True

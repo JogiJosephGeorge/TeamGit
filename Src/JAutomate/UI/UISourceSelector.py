@@ -2,7 +2,7 @@ import threading
 import Tkinter as tk
 import tkFileDialog
 
-from Common.UIFactory import UIFactory
+from Common.UIFactory import UIFactory, CheckBoxCreator
 from Common.Git import Git
 from Common.Logger import Logger
 from Common.MessageBox import MessageBox
@@ -131,7 +131,7 @@ class UISourceGrid:
 class UISourceSelector(UIWindow):
     def __init__(self, parent, model, klaRunner, vsSolutions, VM, threadHandler):
         super(UISourceSelector, self).__init__(parent, model, 'Source Manager')
-        self.IsFirstTime = parent is None
+        self.checkBoxCreator = CheckBoxCreator()
         self.klaRunner = klaRunner
         self.vsSolutions = vsSolutions
         self.VM = VM
@@ -176,16 +176,13 @@ class UISourceSelector(UIWindow):
         print PrettyTable(TableFormat().SetSingleLine()).ToString(data)
 
     def OnClosing(self):
-        if not self.IsFirstTime:
-            self.model.Branch = self.SourceGrid.GetBranch(self.model.SrcIndex)
-            self.VM.UpdateSourceBranch()
+        self.model.Branch = self.SourceGrid.GetBranch(self.model.SrcIndex)
+        self.VM.UpdateSourceBranch()
         super(UISourceSelector, self).OnClosing()
 
     def AddSolutions(self):
         allSlns = self.vsSolutions.GetAllSlnFiles()
         self.vsSolutions.SelectedInxs = [True] * len(allSlns)
-        if self.IsFirstTime:
-            return
         self.AddEmptyRow()
         selMsg = 'Select Solutions to build / clean on active sources'
         UIFactory.AddLabel(self.AddRow(), selMsg, 0, 0)
@@ -203,62 +200,38 @@ class UISourceSelector(UIWindow):
         self.vsSolutions.SelectedInxs[inx] = self.slnChks[inx].get()
 
     def AddFunctions(self):
-        if not self.IsFirstTime:
-            if self.model.ShowAllButtons:
-                self.AddEmptyRow()
-                self.AddCleanDotVsOnReset(self.AddRow(), 0, 0)
-                self.AddUpdateSubmodulesOnReset(self.AddRow(), 0, 0)
-                self.threadHandler.AddButton(self.AddRow(), ' Reset Source ', 0, 0, self.srcBuilder.ResetSource, None, self.srcBuilder.NotifyReset, 19)
+        if self.model.ShowAllButtons:
+            self.AddEmptyRow()
+            self.AddCleanDotVsOnReset(self.AddRow(), 0, 0)
+            self.AddUpdateSubmodulesOnReset(self.AddRow(), 0, 0)
+            self.threadHandler.AddButton(self.AddRow(), ' Reset Source ', 0, 0, self.srcBuilder.ResetSource, None, self.srcBuilder.NotifyReset, 19)
 
         self.AddEmptyRow()
         row2 = self.AddRow()
         UIFactory.AddButton(row2, 'Add Source', 0, 0, self.OnAddSource, None, 19)
         UIFactory.AddButton(row2, 'Remove Source', 0, 1, self.OnRemoveSource, None, 19)
-        if not self.IsFirstTime:
-            self.AddBackButton(row2, 0, 2)
+        self.AddBackButton(row2, 0, 2)
 
     def AddCleanDotVsOnReset(self, parent, r, c):
         txt = 'Remove .vs directories on reseting source'
-        isChecked = self.model.CleanDotVsOnReset
-        self.ChkCleanDotVsOnReset = UIFactory.AddCheckBox(parent, txt, isChecked, r, c, self.OnCleanDotVsOnReset)
-
-    def OnCleanDotVsOnReset(self):
-        self.model.CleanDotVsOnReset = self.ChkCleanDotVsOnReset.get()
-        if self.model.CleanDotVsOnReset:
-            MessageBox.ShowMessage('All .vs directories in the source will be removed while reseting source.')
-        else:
-            print 'The .vs directories will NOT be affected while reseting source.'
+        msgOn = 'All .vs directories in the source will be removed while reseting source.'
+        msgOff = 'The .vs directories will NOT be affected while reseting source.'
+        self.checkBoxCreator.AddCheckBox(parent, r, c, txt, self.model, 'CleanDotVsOnReset', msgOn, msgOff, True, False)
 
     def AddUpdateSubmodulesOnReset(self, parent, r, c):
         txt = 'Update all submodules after reset'
-        isChecked = self.model.UpdateSubmodulesOnReset
-        self.ChkResetSubmodules = UIFactory.AddCheckBox(parent, txt, isChecked, r, c, self.OnResetSubmodules)
-
-    def OnResetSubmodules(self):
-        self.model.UpdateSubmodulesOnReset = self.ChkResetSubmodules.get()
-        if self.model.UpdateSubmodulesOnReset:
-            MessageBox.ShowMessage('All submodules will be updated after reseting source.')
-        else:
-            print 'The submodules will NOT be affected while reseting source.'
+        msgOn = 'All submodules will be updated after reseting source.'
+        msgOff = 'The submodules will NOT be affected while reseting source.'
+        self.checkBoxCreator.AddCheckBox(parent, r, c, txt, self.model, 'UpdateSubmodulesOnReset', msgOn, msgOff, True, False)
 
     def OnAddSource(self):
         folderSelected = tkFileDialog.askdirectory()
-        if self.IsValidSource(folderSelected):
-            ConfigEncoder.AddSrc(self.model, folderSelected)
+        if ConfigEncoder(self.model, folderSelected):
             row = len(self.model.Sources)
             srcTuple = self.model.Sources[row - 1]
             self.SourceGrid.AddSrcRow(row, srcTuple)
-            print 'New source added : ' + folderSelected
             branch = Git.GetBranch(srcTuple[0])
             self.SourceGrid.SetBranch(row - 1, branch)
-
-    def IsValidSource(self, newSrcDir):
-        if len(newSrcDir) == 0:
-            return False
-        for src, cnfg, pf in self.model.Sources:
-            if src == newSrcDir:
-                return False
-        return True
 
     def OnRemoveSource(self):
         if self.model.SrcIndex < 0:

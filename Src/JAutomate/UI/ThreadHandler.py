@@ -13,7 +13,6 @@ class ControlCollection:
         self.Buttons[name] = button
         if name in self.ActiveButtons:
             self.SetButtonActive(name)
-        print 'Active Buttons : ' + str(self.ActiveButtons)
 
     def GetValidName(self, name):
         return name.replace(' ', '')

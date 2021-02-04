@@ -13,8 +13,8 @@ class TestSourceCode:
         for name, lineCnt in self.GetAllClasses():
             #Test.Assert(lineCnt < 100, True, '{:20} {}'.format(name, lineCnt))
             #print '{:20} {}'.format(name, lineCnt)
-            if lineCnt > 100:
-                Test.Assert(lineCnt, '< 100', 'Exceeds line count : {}'.format(name))
+            if lineCnt > 120:
+                Test.Assert(lineCnt, '< 120', 'Exceeds line count : {}'.format(name))
 
     def GetAllClasses(self):
         for modName in self.GetModules():

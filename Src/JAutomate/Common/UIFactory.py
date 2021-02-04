@@ -2,6 +2,9 @@ import os
 import Tkinter as tk
 import ttk
 
+from Common.MessageBox import MessageBox
+
+
 class UIFactory:
     @classmethod
     def CreateWindow(cls, parent, title, startPath):
@@ -87,3 +90,22 @@ class UIFactory:
     @classmethod
     def GetTextValue(cls, textBox):
         return textBox.get('1.0', 'end-1c')
+
+
+class CheckBoxCreator:
+    def __init__(self):
+        self.CheckBoxes = dict()
+
+    def AddCheckBox(self, parent, r, c, txt, model, attrName, msgOn, msgOff, showMsgOn, showMsgOff):
+        isChecked = getattr(model, attrName) # self.model.__dict__[modelVar] also works
+        args = (model, attrName, msgOn, msgOff, showMsgOn, showMsgOff)
+        self.CheckBoxes[attrName] = UIFactory.AddCheckBox(parent, txt, isChecked, r, c, self.OnClickCheckBox, args)
+
+    def OnClickCheckBox(self, model, attrName, msgOn, msgOff, showMsgOn, showMsgOff):
+        isChecked = self.CheckBoxes[attrName].get()
+        setattr(model, attrName, isChecked)
+        msg = msgOn if isChecked else msgOff
+        if (isChecked and showMsgOn) or ((not isChecked) and showMsgOff):
+            MessageBox.ShowMessage(msg)
+        else:
+            print msg
