@@ -1,4 +1,8 @@
 import os
+import time
+
+from Common.MyTimer import MyTimer
+from Common.OsOperations import OsOperations
 
 
 class FileOperations:
@@ -45,6 +49,8 @@ class FileOperations:
 
     @classmethod
     def _Copy(cls, src, des, inter = 0):
+        src = src.replace('/', '\\')
+        des = des.replace('/', '\\')
         while not os.path.exists(des):
             if inter > 0:
                 print '({}) not existing. Try to Copy({}) after {} seconds.'.format(des, src, inter)
