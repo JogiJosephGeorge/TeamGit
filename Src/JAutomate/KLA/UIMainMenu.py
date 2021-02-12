@@ -35,13 +35,16 @@ class UIMainMenu:
 
     def AddColumn1(self):
         self.uiGrid.CreateColumnFrame()
-        self.uiGrid.AddButton('Stop All KLA Apps', self.VM.StopTasks)
+        self.uiGrid.AddButton('STOP All KLA Apps', self.VM.StopTasks)
         if self.model.ShowAllButtons:
+            self.uiGrid.AddButton('STOP MMi alone', self.appRunner.StopMMi)
             self.uiGrid.AddButton('Run Handler', self.appRunner.RunHandler)
-            self.uiGrid.AddButton('Stop MMi alone', self.appRunner.StopMMi)
-            self.uiGrid.AddButton('Run MMi from Source', self.appRunner.RunMMi, (True, True))
-            self.uiGrid.AddButton('Run MMi from C:/Icos', self.appRunner.RunMMi, (False, True))
+            self.uiGrid.AddButton('Run MMi from Source', self.RunMMi, (True,))
+            self.uiGrid.AddButton('Run MMi from C:/Icos', self.RunMMi, (False,))
         self.uiGrid.AddButton('Run MMi SPC Tests', self.mmiSpcTestRunner.RunAllTests)
+
+    def RunMMi(self, fromSrc):
+        self.appRunner.RunMMi(fromSrc, self.model.RemoveStartedTXT)
 
     def AddColumn2(self):
         self.uiGrid.CreateColumnFrame()

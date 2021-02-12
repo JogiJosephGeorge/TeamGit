@@ -71,8 +71,8 @@ class KlaRunner:
                 sets.append((lastId + 1, id - 1))
             lastId = max(lastId, id)
         PrettyTable.PrintArray([str(id).rjust(5) for id in singles], 15)
-        pr = lambda st : '{:>6}, {:<6}'.format('[' + str(st[0]), str(st[1]) + ']')
-        PrettyTable.PrintArray([pr(st) for st in sets], 6)
+        pr = lambda st : '{:>6}, {:<6}{:<7}'.format('[' + str(st[0]), str(st[1]) + ']', '(' + str(st[1] - st[0]) + ')')
+        PrettyTable.PrintArray([pr(st) for st in sets], 5)
         print
 
     def SetWorkingDir(self):

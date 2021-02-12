@@ -60,7 +60,7 @@ class FilterTestSelector:
         UIFactory.AddButton(frame, 'Add Selected Test', 0, 2, self.OnAddSelectedTest)
 
     def AddTestCombo(self, parent, c):
-        self.TestCmb = UIFactory.AddCombo(parent, [], -1, 0, c, self.OnChangeTestCmb, None, 50)
+        self.TestCmb = UIFactory.AddCombo(parent, [], -1, 0, c, self.OnChangeTestCmb, None, 150)
         threading.Thread(target=self.UpdateUI).start()
 
     def GetAllTests(self):

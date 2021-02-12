@@ -57,6 +57,7 @@ class ConfigInfo:
         model.GenerateLicMgrConfigOnTest = self.ReadField(_model, 'GenerateLicMgrConfigOnTest', False)
         model.CopyMockLicenseOnTest = self.ReadField(_model, 'CopyMockLicenseOnTest', False)
         model.CopyExportIllumRefOnTest = self.ReadField(_model, 'CopyExportIllumRefOnTest', False)
+        model.RemoveStartedTXT = self.ReadField(_model, 'RemoveStartedTXT', False)
         model.CleanDotVsOnReset = self.ReadField(_model, 'CleanDotVsOnReset', False)
         model.UpdateSubmodulesOnReset = self.ReadField(_model, 'UpdateSubmodulesOnReset', False)
 
@@ -101,6 +102,7 @@ class ConfigInfo:
         _model['GenerateLicMgrConfigOnTest'] = model.GenerateLicMgrConfigOnTest
         _model['CopyMockLicenseOnTest'] = model.CopyMockLicenseOnTest
         _model['CopyExportIllumRefOnTest'] = model.CopyExportIllumRefOnTest
+        _model['RemoveStartedTXT'] = model.RemoveStartedTXT
         _model['CleanDotVsOnReset'] = model.CleanDotVsOnReset
         _model['UpdateSubmodulesOnReset'] = model.UpdateSubmodulesOnReset
 

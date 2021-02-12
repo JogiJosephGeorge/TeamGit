@@ -41,6 +41,9 @@ class UISettings(UIWindow):
         msgOn = 'The file xPort_IllumReference.xml will be copied while running auto test.\nThis is NOT RECOMMENDED.'
         msgOff = 'The file xPort_IllumReference.xml will NOT be copied while running auto test.'
         self.checkBoxCreator.AddCheckBox(checkFrame, 5, 0, 'Copy xPort_IllumReference.xml on AutoTest', self.model, 'CopyExportIllumRefOnTest', msgOn, msgOff, True, False)
+        msgOn = 'The file C:\icos\Started.txt will be removed while running MMi.\nThis is NOT RECOMMENDED.'
+        msgOff = 'The file C:\icos\Started.txt will NOT be removed while running MMi.'
+        self.checkBoxCreator.AddCheckBox(checkFrame, 5, 0, 'Remove C:\icos\Started.txt on starting MMI', self.model, 'RemoveStartedTXT', msgOn, msgOff, True, False)
 
         self.AddBackButton(parent, 2, 0)
 

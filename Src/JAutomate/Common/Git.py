@@ -46,10 +46,10 @@ class Git:
     @classmethod
     def SubmoduleUpdate(cls, model):
         source = model.Source
-        cls.Git(source, 'submodule update --init --recursive')
-        cls.Git(source, 'submodule foreach git reset --hard') # It seems this is not working
         cls.Git(source, 'submodule sync --recursive')
-        cls.Git(source, 'submodule update')
+        cls.Git(source, 'submodule update --init --recursive')
+        #cls.Git(source, 'submodule foreach git reset --hard') # It seems this is not working
+        #cls.Git(source, 'submodule update')
         print 'Git All Submodules Updated.'
 
     @classmethod
