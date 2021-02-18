@@ -23,6 +23,18 @@ class KlaSourceBuilder:
         return self.NotifyUser('Build')
 
     def NotifyReset(self):
+        modifiedSrcs = []
+        for activeSrc in self.model.ActiveSrcs:
+            source, config, platform = self.model.Sources[activeSrc]
+            cnt = len(Git.ModifiedFiles(source))
+            if cnt > 0:
+                modifiedSrcs.append(source)
+        if len(modifiedSrcs) > 0:
+            msg = "The following source(s) contains local modifications. So can't reset"
+            for src in modifiedSrcs:
+                msg += '\n' + src
+            MessageBox.ShowMessage(msg)
+            return False
         return self.NotifyUser('Reset')
 
     def NotifyUser(self, message):

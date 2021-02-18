@@ -2,9 +2,10 @@ import os
 import subprocess
 import sys
 
-from Common.Logger import Logger
-from Common.OsOperations import OsOperations
 from Common.FileOperations import FileOperations
+from Common.Logger import Logger
+from Common.MessageBox import MessageBox
+from Common.OsOperations import OsOperations
 from KLA.PreTestActions import PreTestActions
 from KLA.TaskMan import TaskMan
 from KLA.VMWareRunner import VMWareRunner
@@ -27,7 +28,7 @@ class AppRunner:
 
         for file in [consoleExe, testTempDir, simulatorExe]:
             if not os.path.exists(file):
-                print 'File not found : ' + file
+                MessageBox.ShowMessage('File not found : ' + file)
                 return
 
         OsOperations.System('start ' + consoleExe + ' ' + testTempDir)
@@ -58,7 +59,7 @@ class AppRunner:
 
         mmiExe = os.path.abspath(mmiPath + '/Mmi.exe')
         if not os.path.exists(mmiExe):
-            print 'File not found : ' + mmiExe
+            MessageBox.ShowMessage('File not found : ' + mmiExe)
             return
 
         OsOperations.System('start ' + mmiExe)
