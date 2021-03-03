@@ -1,8 +1,6 @@
 import os
-import subprocess
 
 from Common.FileOperations import FileOperations
-from Common.MessageBox import MessageBox
 from Common.OsOperations import OsOperations
 from Common.PrettyTable import PrettyTable
 from KlaModel.ConfigEncoder import ConfigEncoder
@@ -30,27 +28,6 @@ class KlaRunner:
         data += 'platform = r"{}"\n'.format(self.model.Platform)
         data += 'mmiSetupsPath = "{}"'.format(self.model.MMiSetupsPath.replace('\\', '/'))
         FileOperations.Write('{}/libs/testing/myconfig.py'.format(self.model.Source), data)
-
-    def GetTestPath(self):
-        return os.path.abspath(self.model.Source + '/handler/tests/' + self.model.TestName)
-
-    def OpenTestFolder(self):
-        dirPath = self.GetTestPath()
-        if not os.path.isdir(dirPath):
-            msg = 'Test folder does not exists : ' + dirPath
-            print msg
-            MessageBox.ShowMessage(msg)
-            return
-        subprocess.Popen(['Explorer', dirPath])
-        print 'Open directory : ' + dirPath
-
-    def CompareMmiReports(self):
-        if not os.path.isfile(self.model.BCompare):
-            print 'Beyond compare does not exist in the given path : ' + self.model.BCompare
-            return
-        leftFolder = self.GetTestPath() + '/GoldenReports'
-        rightFolder = self.GetTestPath() + '~/_results'
-        subprocess.Popen([self.model.BCompare, leftFolder, rightFolder])
 
     def PrintMissingIds(self):
         fileName = os.path.abspath(self.model.Source + '/mmi/mmi/mmi_lang/mmi.h')

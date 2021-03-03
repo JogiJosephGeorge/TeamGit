@@ -1,6 +1,7 @@
 import os
 
 from Common.FileOperations import FileOperations
+from KlaModel.ConfigEncoder import ConfigEncoder
 from KLA.LicenseConfigWriter import LicenseConfigWriter
 from KLA.TaskMan import TaskMan
 
@@ -22,6 +23,18 @@ class PreTestActions:
         else:
             mmiPath = 'C:/icos'
         return mmiPath
+
+    @classmethod
+    def GetAllMmiPaths(cls, model):
+        mmiPaths = []
+        for src,a,b in model.Sources:
+            for pf in ConfigEncoder.Platforms:
+                for cfg in ConfigEncoder.Configs:
+                    mmiPath = '{}/mmi/mmi/Bin/{}/{}/mmi.exe'.format(src,pf,cfg)
+                    if os.path.exists(mmiPath):
+                        mmiPaths.append(mmiPath)
+        for mmiPath in mmiPaths:
+            print mmiPath
 
     @classmethod
     def CopyxPortIllumRef(cls, model, delay = False):

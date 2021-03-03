@@ -31,7 +31,7 @@ class AutoTestModel:
                 return inx
 
     def AddTestToModel(self, testName):
-        slots = [1, 2, 3, 4]
+        slots = [1, 2]
         for item in self.Tests:
             if item[0] == testName:
                 return -1

@@ -1,4 +1,5 @@
 from Common.UIFactory import UIFactory
+from KLA.GoldenReportComparer import GoldenReportComparer
 from KLA.VMWareRunner import VMWareRunner
 from UI.UIAutoTestSettings import UIAutoTestSettings
 
@@ -13,6 +14,7 @@ class UITestGroup:
         self.vsSolutions = vsSolutions
         self.threadHandler = threadHandler
         self.tr = tr
+        self.grComparer = GoldenReportComparer(self.model)
 
         UI.AddSeparator()
 
@@ -24,8 +26,8 @@ class UITestGroup:
         row2 = UI.AddRow()
         self.AddStartOnly(row2, 0, 0)
         self.AddAttachMmi(row2, 0, 1)
-        UIFactory.AddButton(row2, 'Open Test Folder', 0, 2, self.klaRunner.OpenTestFolder)
-        UIFactory.AddButton(row2, 'Compare Test Results', 0, 3, self.klaRunner.CompareMmiReports)
+        UIFactory.AddButton(row2, 'Open Test Folder', 0, 2, self.grComparer.OpenTestFolder)
+        UIFactory.AddButton(row2, 'Compare Test Results', 0, 3, self.grComparer.CompareMmiReports)
 
         row3 = UI.AddRow()
         UIFactory.AddLabel(row3, 'Slots', 0, 0)

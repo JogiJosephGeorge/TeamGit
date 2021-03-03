@@ -7,6 +7,7 @@ from Common.Git import Git
 from Common.Logger import Logger
 from Common.MessageBox import MessageBox
 from KLA.KlaSourceBuilder import KlaSourceBuilder
+from KLA.PreTestActions import PreTestActions
 from KlaModel.ConfigEncoder import ConfigEncoder
 from UI.UIWindow import UIWindow
 from Common.PrettyTable import PrettyTable, TableFormat
@@ -35,15 +36,15 @@ class UISourceGrid:
         UIFactory.AddLabel(self.ParentFrame, 'Is Active', 0, 0)
         UIFactory.AddLabel(self.ParentFrame, 'Current Source', 0, 1)
         UIFactory.AddLabel(self.ParentFrame, 'Branch', 0, 2)
-        UIFactory.AddLabel(self.ParentFrame, 'Configuration', 0, 3)
-        UIFactory.AddLabel(self.ParentFrame, 'Platform', 0, 4)
+        UIFactory.AddLabel(self.ParentFrame, 'Platform', 0, 3)
+        UIFactory.AddLabel(self.ParentFrame, 'Configuration', 0, 4)
 
     def AddSrcRow(self, r, srcTuple):
         self.AddActive(r, 0)
         self.AddSource(r, 1, srcTuple[0])
         self.AddBranch(r, 2)
-        self.AddConfig(r, 3, srcTuple[1])
-        self.AddPlatform(r, 4, srcTuple[2])
+        self.AddPlatform(r, 3, srcTuple[2])
+        self.AddConfig(r, 4, srcTuple[1])
 
     def AddActive(self, r, c):
         Index = r - 1
@@ -195,6 +196,8 @@ class UISourceSelector(UIWindow):
         row2 = self.AddRow()
         self.threadHandler.AddButton(row2, ' Clean Solutions ', 0, 0, self.srcBuilder.CleanSource, None, self.srcBuilder.NotifyClean, 19)
         self.threadHandler.AddButton(row2, ' Build Solutions ', 0, 1, self.srcBuilder.BuildSource, None, self.srcBuilder.NotifyBuild, 19)
+        if self.model.ShowAllButtons:
+            UIFactory.AddButton(row2, 'Available MMI', 0, 2, PreTestActions.GetAllMmiPaths, (self.model,), 19)
 
     def OnSelectSolution(self, inx):
         self.vsSolutions.SelectedInxs[inx] = self.slnChks[inx].get()
