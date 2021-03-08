@@ -1,7 +1,8 @@
 import os
+import shutil
 import subprocess
 from Common.MessageBox import MessageBox
-
+from Common.Test import Test
 
 class GoldenReportComparer:
     def __init__(self, model):
@@ -26,7 +27,85 @@ class GoldenReportComparer:
             return
         leftFolder = self.GetTestPath() + '/GoldenReports'
         rightFolder = self.GetTestPath() + '~/_results'
-        subprocess.Popen([self.model.BCompare, leftFolder, rightFolder])
+        newRightFolder = self.GetTestPath() + '~/NewGoldenReports'
+        self.CopyResultFiles(leftFolder, rightFolder, newRightFolder)
+        subprocess.Popen([self.model.BCompare, leftFolder, newRightFolder])
 
-    def SplitCsvToMultipleFiles(self, fileName):
-        dirPath = fileName[:-4]
+    def CopyResultFiles(self, leftFolder, rightFolder, newRightFolder):
+        leftFiles = self.GetAllFileNames(leftFolder)
+        rightFiles = self.GetAllFileNames(rightFolder)
+        print leftFiles
+        print rightFiles
+        matchedFiles = []
+        for left in leftFiles:
+            print left
+            matchName = self.GetMatchedFile(left, rightFiles)
+            if matchName:
+                matchedFiles.append(matchName)
+                print matchName
+                self.CopyFile(rightFolder + matchName, newRightFolder + left)
+            else:
+                MessageBox.ShowMessage('Equivalent file Not found')
+
+    def CopyFile(self, Src, Dst):
+        Src = Src.replace('/', '\\')
+        Dst = Dst.replace('/', '\\')
+        dirs = Dst.split('\\')
+        fullPath = ''
+        for dir in dirs[:-1]:
+            fullPath += dir + '\\'
+            if not os.path.isdir(fullPath):
+                os.mkdir(fullPath)
+        print 'Src : ' + Src
+        print 'Dst : ' + Dst
+        shutil.copy(Src, Dst)
+
+    def GetAllFileNames(self, path):
+        allFileNames = []
+        leftLen = len(path)
+        for (dirPath, dirNames, fileNames) in os.walk(path):
+            for f in fileNames:
+                relPath = dirPath[leftLen:] + '\\' + f
+                allFileNames.append(relPath)
+        return allFileNames
+
+    def GetMatchedFile(self, name, names):
+        for n in names:
+            if self.AreSame(name, n):
+                return n
+        return None
+
+    def AreSame(self, left, right):
+        if len(left) != len(right):
+            return False
+        for l, r in zip(left, right):
+            if l != "'" and l != r:
+                return False
+        return True
+
+class GoldenReportComparerTest:
+    def __init__(self):
+        path = r'D:\CI\Src4\handler\tests\CDA\Mmi\SurfaceReport'
+        self.comparer = GoldenReportComparer(self.CreateModel())
+        self.TestAreSame()
+
+    def CreateModel(self):
+        class Model:
+            pass
+        model = Model()
+        model.Source = r'D:\CI\Src4'
+        model.TestName = r'CDA\Mmi\SurfaceReport'
+        model.BCompare = ''
+        return model
+
+    def TestAreSame(self):
+        a = r"batchAllRejects_pvi_'''.txt"
+        b = r'batchAllRejects_pvi_cda.txt'
+        Test.Assert(self.comparer.AreSame(a, b), True, 'PathAreSame 1')
+
+        a = r'\ascii\PVI\batchAllRejects_pvi_cda.txt'
+        b = r'\ascii\PVI\batchAllRejects_pvi_cda.txt'
+        Test.Assert(self.comparer.AreSame(a, b), True, 'PathAreSame 1')
+
+if __name__ == '__main__':
+    GoldenReportComparerTest()
