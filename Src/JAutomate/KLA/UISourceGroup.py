@@ -25,5 +25,5 @@ class UISourceGroup:
         UISourceSelector(self.window, self.model, self.klaRunner, self.vsSolutions, self.VM, self.threadHandler).Show()
 
     def AddParallelButton(self, label, FunPnt, InitFunPnt):
-        self.threadHandler.AddButton(self.frame, label, 0, self.ColInx, FunPnt, None, InitFunPnt, 0)
+        self.threadHandler.AddButton(self.frame, label, 0, self.ColInx, FunPnt, None, InitFunPnt, None, 0)
         self.ColInx += 1

@@ -194,8 +194,8 @@ class UISourceSelector(UIWindow):
             chk = UIFactory.AddCheckBox(row1, slnName, True, 0, inx, self.OnSelectSolution, (inx,))
             self.slnChks.append(chk)
         row2 = self.AddRow()
-        self.threadHandler.AddButton(row2, ' Clean Solutions ', 0, 0, self.srcBuilder.CleanSource, None, self.srcBuilder.NotifyClean, 19)
-        self.threadHandler.AddButton(row2, ' Build Solutions ', 0, 1, self.srcBuilder.BuildSource, None, self.srcBuilder.NotifyBuild, 19)
+        self.threadHandler.AddButton(row2, ' Clean Solutions ', 0, 0, self.srcBuilder.CleanSource, None, self.srcBuilder.NotifyClean, None, 19)
+        self.threadHandler.AddButton(row2, ' Build Solutions ', 0, 1, self.srcBuilder.BuildSource, None, self.srcBuilder.NotifyBuild, None, 19)
         if self.model.ShowAllButtons:
             UIFactory.AddButton(row2, 'Available MMI', 0, 2, PreTestActions.GetAllMmiPaths, (self.model,), 19)
 
@@ -207,7 +207,7 @@ class UISourceSelector(UIWindow):
             self.AddEmptyRow()
             self.AddCleanDotVsOnReset(self.AddRow(), 0, 0)
             self.AddUpdateSubmodulesOnReset(self.AddRow(), 0, 0)
-            self.threadHandler.AddButton(self.AddRow(), ' Reset Source ', 0, 0, self.srcBuilder.ResetSource, None, self.srcBuilder.NotifyReset, 19)
+            self.threadHandler.AddButton(self.AddRow(), ' Reset Source ', 0, 0, self.srcBuilder.ResetSource, None, self.srcBuilder.NotifyReset, None, 19)
 
         self.AddEmptyRow()
         row2 = self.AddRow()

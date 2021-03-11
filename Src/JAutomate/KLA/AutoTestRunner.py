@@ -47,8 +47,8 @@ class AutoTestRunner:
         FileOperations.Delete('{}/libs/testing/myconfig.py'.format(self.model.Source))
 
         libsPath = AutoTestRunner.UpdateLibsTestingPath(self.model.Source)
-        tests = AutoTestRunner.SearchInTests(libsPath, self.model.TestName)
-        if len(tests) == 0:
+        self.tests = AutoTestRunner.SearchInTests(libsPath, self.model.TestName)
+        if len(self.tests) == 0:
             return
         import my
         #print 'Module location of my : ' + my.__file__
@@ -60,10 +60,15 @@ class AutoTestRunner:
         my.c.platform = self.model.Platform
         my.c.mmiConfigurationsPath = self.model.MMiConfigPath
         my.c.mmiSetupsPath = self.model.MMiSetupsPath
-        my.run(tests[0][0])
+        my.run(self.tests[0][0])
         if self.VM is not None:
             self.VM.UpdateSlots()
-        print 'Completed Auto Test : {} : {}'.format(tests[0][0], tests[0][1])
+
+    def EndAutoTest(self):
+        msg = 'Completed Auto Test : {} : {}'.format(self.tests[0][0], self.tests[0][1])
+        #MessageBox.ShowMessage(msg)
+        print msg
+        self.VM.window.focus_force()
 
     @classmethod
     def SearchInTests(cls, libsPath, text):

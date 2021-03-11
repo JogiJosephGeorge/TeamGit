@@ -37,6 +37,7 @@ class UIMain:
 
         title = 'KLA Application Runner'
         self.window = UIFactory.CreateWindow(None, title, self.model.StartPath)
+        self.VM.window = self.window
         self.mainFrame = UIFactory.AddFrame(self.window, 0, 0, 20, 0)
         self.Row = 0
         UISourceGroup(self, klaRunner, vsSolutions, threadHandler)

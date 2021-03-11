@@ -13,7 +13,7 @@ class UIGrid:
         self.RowInx = 0
 
     def AddParallelButton(self, label, FunPnt, args = None, InitFunPnt = None):
-        self.threadHandler.AddButton(self.ColFrame, label, self.RowInx, 0, FunPnt, args, InitFunPnt)
+        self.threadHandler.AddButton(self.ColFrame, label, self.RowInx, 0, FunPnt, args, InitFunPnt, None)
         self.RowInx += 1
 
     def AddButton(self, label, FunPnt, args = None):

@@ -37,7 +37,7 @@ class ThreadHandler: # Name is not correct
         self.threads = {}
         self.controlCollection = ControlCollection()
 
-    def Start(self, name, funPnt, args = None, InitFunPnt = None):
+    def Start(self, name, funPnt, args = None, InitFunPnt = None, ExitFunPnt = None):
         if InitFunPnt is not None:
             if not InitFunPnt():
                 return
@@ -47,18 +47,20 @@ class ThreadHandler: # Name is not correct
             self.threads[name] = threading.Thread(target=funPnt, args=args)
         self.threads[name].start()
         self.controlCollection.SetButtonActive(name)
-        threading.Thread(target=self.WaitForThread, args=(name,)).start()
+        threading.Thread(target=self.WaitForThread, args=(name, ExitFunPnt)).start()
 
-    def WaitForThread(self, name):
+    def WaitForThread(self, name, ExitFunPnt):
         self.threads[name].join()
         self.controlCollection.SetButtonNormal(name)
         del self.threads[name]
+        if ExitFunPnt:
+            ExitFunPnt()
 
     def GetButtonName(self, but):
         return ' '.join(but.config('text')[-1])
 
-    def AddButton(self, parent, label, r, c, FunPnt, args = None, InitFunPnt = None, width = 19):
-        argSet = (label, FunPnt, args, InitFunPnt)
+    def AddButton(self, parent, label, r, c, FunPnt, args = None, InitFunPnt = None, ExitFunPnt = None, width = 19):
+        argSet = (label, FunPnt, args, InitFunPnt, ExitFunPnt)
         but = UIFactory.AddButton(parent, label, r, c, self.Start, argSet, width)
         name = self.GetButtonName(but)
         self.controlCollection.AddButton(but, name)

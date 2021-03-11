@@ -37,7 +37,7 @@ class UITestGroup:
 
     def AddRunTestButton(self, parent, r, c):
         label = self.GetLabel()
-        self.RunTestBut = self.threadHandler.AddButton(parent, label, r, c, self.tr.RunAutoTest, None, self.tr.InitAutoTest)
+        self.RunTestBut = self.threadHandler.AddButton(parent, label, r, c, self.tr.RunAutoTest, None, self.tr.InitAutoTest, self.tr.EndAutoTest)
 
     def GetLabel(self):
         return 'Start Test' if self.model.StartOnly else 'Run Test'
