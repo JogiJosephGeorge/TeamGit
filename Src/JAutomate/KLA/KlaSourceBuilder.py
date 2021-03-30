@@ -198,3 +198,30 @@ class BuildLoger:
         s = delta.seconds
         t = '{:02}:{:02}:{:02}'.format(s // 3600, s % 3600 // 60, s % 60)
         return t
+
+
+class KlaSourceCleaner:
+    def __init__(self, model):
+        self.model = model
+
+    def RemoveHandlerTemp(self):
+        path = self.model.Source + '/handler'
+        print 'Removing remp files from : ' + path
+        tempFileTypes3 = [
+            '.pdb',
+            '.obj',
+            '.pch',
+            '.exp'
+        ]
+        tempFileTypes4 = [
+            '.tlog'
+        ]
+        filesToDelete = []
+        for root, dirs, files in os.walk(path):
+            for file in files:
+                if file[-4:] in tempFileTypes3 or file[-5:] in tempFileTypes4:
+                    fileToDelete = os.path.join(root, file).replace('\\', '/')
+                    filesToDelete.append(fileToDelete)
+        for file in filesToDelete:
+            os.remove(file)
+        print '{} files have been removed'.format(len(filesToDelete))

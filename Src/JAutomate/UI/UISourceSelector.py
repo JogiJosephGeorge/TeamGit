@@ -6,7 +6,7 @@ from Common.UIFactory import UIFactory, CheckBoxCreator
 from Common.Git import Git
 from Common.Logger import Logger
 from Common.MessageBox import MessageBox
-from KLA.KlaSourceBuilder import KlaSourceBuilder
+from KLA.KlaSourceBuilder import KlaSourceBuilder, KlaSourceCleaner
 from KLA.PreTestActions import PreTestActions
 from KlaModel.ConfigEncoder import ConfigEncoder
 from UI.UIWindow import UIWindow
@@ -138,6 +138,7 @@ class UISourceSelector(UIWindow):
         self.VM = VM
         self.threadHandler = threadHandler
         self.srcBuilder = KlaSourceBuilder(self.model, self.klaRunner, self.vsSolutions)
+        self.srcCleaner = KlaSourceCleaner(self.model)
 
     def CreateUI(self, parent):
         self.Row = 0
@@ -198,6 +199,9 @@ class UISourceSelector(UIWindow):
         self.threadHandler.AddButton(row2, ' Build Solutions ', 0, 1, self.srcBuilder.BuildSource, None, self.srcBuilder.NotifyBuild, None, 19)
         if self.model.ShowAllButtons:
             UIFactory.AddButton(row2, 'Available MMI', 0, 2, PreTestActions.GetAllMmiPaths, (self.model,), 19)
+
+            row3 = self.AddRow()
+            self.threadHandler.AddButton(row3, ' Remove Handler Temps ', 0, 0, self.srcCleaner.RemoveHandlerTemp, None, None, None, 19)
 
     def OnSelectSolution(self, inx):
         self.vsSolutions.SelectedInxs[inx] = self.slnChks[inx].get()
