@@ -234,7 +234,7 @@ class UISourceSelector(UIWindow):
 
     def OnAddSource(self):
         folderSelected = tkFileDialog.askdirectory()
-        if ConfigEncoder(self.model, folderSelected):
+        if ConfigEncoder.OnAddSource(self.model, folderSelected):
             row = len(self.model.Sources)
             srcTuple = self.model.Sources[row - 1]
             self.SourceGrid.AddSrcRow(row, srcTuple)
