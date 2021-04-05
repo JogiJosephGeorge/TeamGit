@@ -202,6 +202,7 @@ class UISourceSelector(UIWindow):
 
             row3 = self.AddRow()
             self.threadHandler.AddButton(row3, ' Remove Handler Temps ', 0, 0, self.srcCleaner.RemoveHandlerTemp, None, None, None, 19)
+            self.threadHandler.AddButton(row3, ' Remove MVS Temps ', 0, 1, self.srcCleaner.RemoveMvsTemp, None, None, None, 19)
 
     def OnSelectSolution(self, inx):
         self.vsSolutions.SelectedInxs[inx] = self.slnChks[inx].get()

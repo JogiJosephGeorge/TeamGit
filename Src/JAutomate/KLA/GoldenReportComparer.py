@@ -61,6 +61,9 @@ class GoldenReportComparer:
         shutil.copy(Src, Dst)
 
     def GetAllFileNames(self, path):
+        if not os.path.isdir(path):
+            print "Path doesn't exist: " + path
+            return []
         allFileNames = []
         leftLen = len(path)
         for (dirPath, dirNames, fileNames) in os.walk(path):
@@ -107,5 +110,21 @@ class GoldenReportComparerTest:
         b = r'\ascii\PVI\batchAllRejects_pvi_cda.txt'
         Test.Assert(self.comparer.AreSame(a, b), True, 'PathAreSame 1')
 
+class TempCopy:
+    def __init__(self):
+        self.TestCopy()
+
+    def TestCopy(self):
+        basePath = 'D:/33812/Cda_tests_20210311_1_artifacts/tests'
+        testPath = '/CDA/Mmi/SurfaceReport~2'
+        fullTestPath = basePath + testPath
+        newRightFolder = 'D:/33812/Cda_tests_20210311_1_artifacts/aa' + testPath
+
+        leftFolder = fullTestPath + '/GoldenReports'
+        rightFolder = fullTestPath + '/_results'
+        comparer = GoldenReportComparer(None)
+        comparer.CopyResultFiles(leftFolder, rightFolder, newRightFolder)
+
 if __name__ == '__main__':
-    GoldenReportComparerTest()
+    #GoldenReportComparerTest()
+    TempCopy()

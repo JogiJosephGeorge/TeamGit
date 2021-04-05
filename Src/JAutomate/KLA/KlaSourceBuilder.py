@@ -216,12 +216,25 @@ class KlaSourceCleaner:
         tempFileTypes4 = [
             '.tlog'
         ]
-        filesToDelete = []
-        for root, dirs, files in os.walk(path):
-            for file in files:
-                if file[-4:] in tempFileTypes3 or file[-5:] in tempFileTypes4:
-                    fileToDelete = os.path.join(root, file).replace('\\', '/')
-                    filesToDelete.append(fileToDelete)
+        filterFun = lambda f : f[-4:] in tempFileTypes3 or f[-5:] in tempFileTypes4
+        filesToDelete = FileOperations.GetAllFiles(path, filterFun)
         for file in filesToDelete:
             os.remove(file)
         print '{} files have been removed'.format(len(filesToDelete))
+
+    def RemoveMvsTemp(self):
+        path = 'C:/MVS8000'
+        print 'Removing remp files from : ' + path
+        tempFileTypes3 = [
+            '.log',
+            '.obj',
+            '.pch',
+            '.exp'
+        ]
+        tempFileTypes4 = [
+            '.tlog'
+        ]
+        filterFun = lambda f : f[-4:] in tempFileTypes3 or f[-5:] in tempFileTypes4
+        filesToDelete = FileOperations.GetAllFiles(path, filterFun)
+        for file in filesToDelete:
+            print file

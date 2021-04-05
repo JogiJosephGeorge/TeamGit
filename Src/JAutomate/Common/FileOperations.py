@@ -66,3 +66,13 @@ class FileOperations:
             print 'Wrong input - Neither file nor directory : ' + src
             return False
         return True
+
+    @classmethod
+    def GetAllFiles(cls, path, filterFun):
+        selectedFiles = []
+        for root, dirs, files in os.walk(path):
+            for file in files:
+                if filterFun(file):
+                    selectedFile = os.path.join(root, file).replace('\\', '/')
+                    selectedFiles.append(selectedFile)
+        return selectedFiles
