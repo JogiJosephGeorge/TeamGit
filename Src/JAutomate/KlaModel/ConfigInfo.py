@@ -41,6 +41,7 @@ class ConfigInfo:
         model.DevEnvExe = self.ReadField(_model, 'DevEnvExe', 'C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/Common7/IDE/devenv.exe')
         model.GitPath = self.ReadField(_model, 'GitPath', 'C:/Program Files/Git')
         model.VMwareExe = self.ReadField(_model, 'VMwareExe', 'C:/Program Files (x86)/VMware/VMware Workstation/vmware.exe')
+        model.VMwarePwd = self.ReadField(_model, 'VMwarePwd', '1')
         model.EffortLogFile = self.ReadField(_model, 'EffortLogFile', 'D:/QuEST/Tools/EffortCapture_2013/timeline.log')
         model.BCompare = self.ReadField(_model, 'BCompare', 'C:/Program Files (x86)/Beyond Compare 4/BCompare.exe')
         model.MMiConfigPath = self.ReadField(_model, 'MMiConfigPath', 'D:\\')

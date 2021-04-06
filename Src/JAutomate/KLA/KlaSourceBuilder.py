@@ -206,7 +206,7 @@ class KlaSourceCleaner:
 
     def RemoveHandlerTemp(self):
         path = self.model.Source + '/handler'
-        print 'Removing remp files from : ' + path
+        print 'Removing temp files from : ' + path
         tempFileTypes3 = [
             '.pdb',
             '.obj',
@@ -223,18 +223,22 @@ class KlaSourceCleaner:
         print '{} files have been removed'.format(len(filesToDelete))
 
     def RemoveMvsTemp(self):
-        path = 'C:/MVS8000'
-        print 'Removing remp files from : ' + path
+        path = 'C:/MVS7000'
+        print 'Removing temp files from : ' + path
         tempFileTypes3 = [
-            '.log',
-            '.obj',
-            '.pch',
-            '.exp'
+            '.log'
         ]
         tempFileTypes4 = [
-            '.tlog'
+            '.dump'
         ]
+
+        # filterFun = lambda f : f[:4] == 'logs'
+        # dirsToDelete = FileOperations.GetAllDirs(path, filterFun)
+        # for dir in dirsToDelete:
+        #     print dir
+
         filterFun = lambda f : f[-4:] in tempFileTypes3 or f[-5:] in tempFileTypes4
         filesToDelete = FileOperations.GetAllFiles(path, filterFun)
         for file in filesToDelete:
-            print file
+            os.remove(file)
+        print '{} files have been removed'.format(len(filesToDelete))

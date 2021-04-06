@@ -53,6 +53,14 @@ class UIFactory:
         entry.config(validate='key', validatecommand=(reg, '%P'))
 
     @classmethod
+    def AddTextBox(cls, parent, text, r, c, width = 0):
+        txtVar = tk.StringVar()
+        entry = tk.Entry(parent, width=width, textvariable = txtVar)
+        txtVar.set(text)
+        entry.grid(row=r, column=c, sticky='w')
+        return txtVar
+
+    @classmethod
     def AddCombo(cls, parent, values, inx, r, c, cmd, arg = None, width = 0):
         combo = ttk.Combobox(parent)
         combo['state'] = 'readonly'
@@ -109,3 +117,18 @@ class CheckBoxCreator:
             MessageBox.ShowMessage(msg)
         else:
             print msg
+
+
+class TextBoxCreator:
+    def __init__(self, model):
+        self.model = model
+        self.TextVars = dict()
+
+    def Add(self, parent, r, c, attrName):
+        txt = getattr(self.model, attrName, '-')
+        self.TextVars[attrName] = UIFactory.AddTextBox(parent, txt, r, c, 19)
+
+    def UpdateModel(self):
+        for key in self.TextVars:
+            txt = self.TextVars[key].get()
+            setattr(self.model, key, txt)

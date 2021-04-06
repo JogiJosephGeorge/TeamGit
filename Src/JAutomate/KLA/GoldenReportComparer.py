@@ -115,10 +115,11 @@ class TempCopy:
         self.TestCopy()
 
     def TestCopy(self):
-        basePath = 'D:/33812/Cda_tests_20210311_1_artifacts/tests'
-        testPath = '/CDA/Mmi/SurfaceReport~2'
+        basePath = 'D:/33812/25Feb2058/tests'
+        basePath = 'D:/CI/Src3/handler/tests'
+        testPath = '/CDA/Mmi/SurfaceReport~'
         fullTestPath = basePath + testPath
-        newRightFolder = 'D:/33812/Cda_tests_20210311_1_artifacts/aa' + testPath
+        newRightFolder = 'D:/33812/ccc' + testPath
 
         leftFolder = fullTestPath + '/GoldenReports'
         rightFolder = fullTestPath + '/_results'

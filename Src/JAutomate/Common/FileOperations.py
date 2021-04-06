@@ -76,3 +76,13 @@ class FileOperations:
                     selectedFile = os.path.join(root, file).replace('\\', '/')
                     selectedFiles.append(selectedFile)
         return selectedFiles
+
+    @classmethod
+    def GetAllDirs(cls, path, filterFun):
+        selectedDirs = []
+        for root, dirs, files in os.walk(path):
+            for dir in dirs:
+                if filterFun(dir):
+                    selectedDir = os.path.join(root, dir).replace('\\', '/')
+                    selectedDirs.append(selectedDir)
+        return selectedDirs

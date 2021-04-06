@@ -1,7 +1,7 @@
 import os
 import tkFileDialog
 
-from Common.UIFactory import UIFactory, CheckBoxCreator
+from Common.UIFactory import UIFactory, CheckBoxCreator, TextBoxCreator
 from UI.UIWindow import UIWindow
 
 
@@ -11,7 +11,8 @@ class UISettings(UIWindow):
 
     def CreateUI(self, parent):
         self.checkBoxCreator = CheckBoxCreator()
-        pathFrame = UIFactory.AddFrame(parent, 0, 0)
+        grpRow = 0
+        pathFrame = UIFactory.AddFrame(parent, grpRow, 0)
         self.Row = 0
         self.AddSelectPathRow(pathFrame, 'MMi Setups Path', 'MMiSetupsPath')
         self.AddSelectPathRow(pathFrame, 'MMi Config Path', 'MMiConfigPath')
@@ -22,8 +23,13 @@ class UISettings(UIWindow):
         self.AddSelectFileRow(pathFrame, 'VMware.exe', 'VMwareExe')
         self.AddSelectFileRow(pathFrame, 'Beyond Compare', 'BCompare')
 
-        checkFrame = UIFactory.AddFrame(parent, 1, 0)
-        self.Row = 0
+        self.textBoxCreator = TextBoxCreator(self.model)
+        grpRow += 1
+        textFrame = UIFactory.AddFrame(parent, grpRow, 0)
+        self.AddTextRow(textFrame, 'VM Ware Password', 'VMwarePwd')
+
+        grpRow += 1
+        checkFrame = UIFactory.AddFrame(parent, grpRow, 0)
         msgOn = msgOff = 'You need to restart the application to update the UI.'
         self.checkBoxCreator.AddCheckBox(checkFrame, 0, 0, 'Show All Commands in KlaRunner', self.model, 'ShowAllButtons', msgOn, msgOff, True, True)
         msgOn = 'The selected slots will be restarted while running MMi alone.'
@@ -45,7 +51,12 @@ class UISettings(UIWindow):
         msgOff = 'The file C:\icos\Started.txt will NOT be removed while running MMi.'
         self.checkBoxCreator.AddCheckBox(checkFrame, 5, 0, 'Remove C:\icos\Started.txt on starting MMI', self.model, 'RemoveStartedTXT', msgOn, msgOff, True, False)
 
-        self.AddBackButton(parent, 2, 0)
+        grpRow += 1
+        self.AddBackButton(parent, grpRow, 0)
+
+    def OnClosing(self):
+        self.textBoxCreator.UpdateModel()
+        super(UISettings, self).OnClosing()
 
     def AddSelectPathRow(self, parent, label, attrName):
         self.AddSelectItemRow(parent, label, attrName, False)
@@ -82,3 +93,7 @@ class UISettings(UIWindow):
             textVar.set(filename)
             setattr(self.model, attrName, filename)
             print '{} Path changed : {}'.format(attrName, filename)
+
+    def AddTextRow(self, parent, label, attrName):
+        UIFactory.AddLabel(parent, label, self.Row, 0)
+        self.textBoxCreator.Add(parent, self.Row, 1, attrName)

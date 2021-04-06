@@ -27,6 +27,7 @@ class VMWareRunner:
     @classmethod
     def RunSlots(cls, model, startSlot = True, showMessage = True):
         vmWareExe = model.VMwareExe
+        pwd = model.VMwarePwd
         slots = model.slots
         if len(slots) == 0:
             if showMessage:
@@ -34,7 +35,7 @@ class VMWareRunner:
             return False
         vmRunExe = os.path.dirname(vmWareExe) + '/vmrun.exe'
         vmxGenericPath = r'C:\\MVS8000\\slot{}\\MVS8000_stage2.vmx'
-        par = [vmRunExe, '-vp', '1', 'list']
+        par = [vmRunExe, '-vp', pwd, 'list']
         output = OsOperations.ProcessOpen(par)
         runningSlots = []
         searchPattern = r'C:\\MVS8000\\slot(\d*)\\MVS8000_stage2\.vmx'
@@ -48,7 +49,7 @@ class VMWareRunner:
             slotName = 'VMware Slot ' + str(slot)
             if slot in runningSlots:
                 print slotName + ' : Restarted.'
-                subprocess.Popen([vmRunExe, '-vp', '1', 'reset', vmxPath])
+                subprocess.Popen([vmRunExe, '-vp', pwd, 'reset', vmxPath])
             else:
                 if startSlot:
                     subprocess.Popen([vmWareExe, vmxPath])
