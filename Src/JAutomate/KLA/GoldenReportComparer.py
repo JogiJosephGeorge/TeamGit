@@ -37,15 +37,19 @@ class GoldenReportComparer:
         print leftFiles
         print rightFiles
         matchedFiles = []
+        missingFiles = ''
         for left in leftFiles:
-            print left
             matchName = self.GetMatchedFile(left, rightFiles)
             if matchName:
                 matchedFiles.append(matchName)
-                print matchName
+                print 'Left  : ' + left
+                print 'Right : ' + matchName
                 self.CopyFile(rightFolder + matchName, newRightFolder + left)
             else:
-                MessageBox.ShowMessage('Equivalent file Not found')
+                missingFiles += left + '\n'
+
+        if missingFiles is not None:
+            MessageBox.ShowMessage('Equivalent file Not found for the following:\n' + missingFiles)
 
     def CopyFile(self, Src, Dst):
         Src = Src.replace('/', '\\')
