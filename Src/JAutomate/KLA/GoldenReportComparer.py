@@ -48,7 +48,7 @@ class GoldenReportComparer:
             else:
                 missingFiles += left + '\n'
 
-        if missingFiles is not None:
+        if len(missingFiles) > 0:
             MessageBox.ShowMessage('Equivalent file Not found for the following:\n' + missingFiles)
 
     def CopyFile(self, Src, Dst):
