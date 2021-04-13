@@ -217,7 +217,7 @@ class UISourceSelector(UIWindow):
         self.AddEmptyRow()
         row2 = self.AddRow()
         UIFactory.AddButton(row2, 'Add Source', 0, 0, self.OnAddSource, None, 19)
-        UIFactory.AddButton(row2, 'Remove Source', 0, 1, self.OnRemoveSource, None, 19)
+        UIFactory.AddButton(row2, 'Remove Current Source', 0, 1, self.OnRemoveSource, None, 19)
         self.AddBackButton(row2, 0, 2)
 
     def AddCleanDotVsOnReset(self, parent, r, c):
@@ -246,7 +246,10 @@ class UISourceSelector(UIWindow):
             return
         src = self.model.Sources[self.model.SrcIndex][0]
         if MessageBox.YesNoQuestion('Remove Source', 'Do you want to remove source ' + src):
-            msg = 'The source ' + src + ' has been removed.'
-            del self.model.Sources[self.model.SrcIndex]
-            self.SourceGrid.DeleteRow(self.model.SrcIndex)
-            print msg
+            if self.model.SrcCnf.RemoveSource(self.model.SrcIndex):
+                msg = 'The source ' + src + ' has been removed.'
+                self.SourceGrid.DeleteRow(self.model.SrcIndex)
+                print msg
+                self.OnClosing() # After removing grid row, this line can be omitted
+            else:
+                print 'The source can not be removed.'

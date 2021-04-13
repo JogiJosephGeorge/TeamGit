@@ -21,6 +21,20 @@ class SourceConfig:
             self.model.WriteConfigFile()
         return True
 
+    def RemoveSource(self, index):
+        srcCnt = len(self.model.Sources)
+        if index < 0 or index >= srcCnt:
+            return False
+        del self.model.Sources[index]
+        if index + 1 >= srcCnt:
+            index -= 1
+        self.model.SrcIndex = index
+        if index >= 0:
+            self.model.Source, self.model.Config, self.model.Platform = self.model.Sources[self.model.SrcIndex]
+        else:
+            self.model.Source = ''
+        return True
+
 
 class Model:
     def __init__(self):
