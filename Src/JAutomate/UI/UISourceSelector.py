@@ -246,10 +246,7 @@ class UISourceSelector(UIWindow):
             return
         src = self.model.Sources[self.model.SrcIndex][0]
         if MessageBox.YesNoQuestion('Remove Source', 'Do you want to remove source ' + src):
-            if self.model.SrcCnf.UpdateSource(self.model.SrcIndex - 1, False):
-                msg = 'The source ' + src + ' has been removed.'
-                del self.model.Sources[self.model.SrcIndex]
-                self.SourceGrid.DeleteRow(self.model.SrcIndex)
-                print msg
-            else:
-                print 'The source can not be removed.'
+            msg = 'The source ' + src + ' has been removed.'
+            del self.model.Sources[self.model.SrcIndex]
+            self.SourceGrid.DeleteRow(self.model.SrcIndex)
+            print msg
