@@ -27,20 +27,20 @@ class PreTestActions:
 
     @classmethod
     def PrintAvailableExes(cls, model):
-        data = [['Source', 'Available EXEs']]
+        data = [['Source', 'Available EXEs', 'Platform', 'Config']]
         for src,a,b in model.Sources:
             data.append(['-'])
-            data.append([src, ''])
+            data.append([src])
             exePaths = []
             for pf in ConfigEncoder.Platforms:
                 for cfg in ConfigEncoder.Configs:
-                    exePaths.append(IcosPaths.GetMmiExePath(src, pf, cfg))
-                    exePaths.append(IcosPaths.GetConsolePath(src, pf, cfg))
-                    exePaths.append(IcosPaths.GetSimulatorPath(src, pf, cfg))
-                    exePaths.append(IcosPaths.GetMockLicensePath(src, pf, cfg))
-            for exePath in exePaths:
+                    exePaths.append((IcosPaths.GetMmiExePath(src, pf, cfg), pf, cfg))
+                    exePaths.append((IcosPaths.GetConsolePath(src, pf, cfg), pf, cfg))
+                    exePaths.append((IcosPaths.GetSimulatorPath(src, pf, cfg), pf, cfg))
+                    exePaths.append((IcosPaths.GetMockLicensePath(src, pf, cfg), pf, cfg))
+            for exePath, pf, cfg in exePaths:
                 if os.path.exists(exePath):
-                    data.append(['', exePath])
+                    data.append(['', exePath, pf, cfg])
         PrettyTable(TableFormat().SetSingleLine()).PrintTable(data)
 
     @classmethod
