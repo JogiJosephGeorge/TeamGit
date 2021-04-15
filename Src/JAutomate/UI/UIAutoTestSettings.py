@@ -3,6 +3,7 @@ import threading
 import tkFileDialog
 
 from Common.UIFactory import UIFactory
+from KLA.IcosPaths import IcosPaths
 from UI.UIWindow import UIWindow
 
 
@@ -42,7 +43,7 @@ class UIAutoTestSettings(UIWindow):
         UIFactory.AddButton(frame, 'Add Test', 0, 0, self.AddTestUI, None, 19)
 
     def AddTestUI(self):
-        dir = self.model.Source + '/handler/tests'
+        dir = IcosPaths.GetCommonTestPath(self.model.Source)
         ftypes=[('Script Files', 'Script.py')]
         title = "Select Script file"
         filename = tkFileDialog.askopenfilename(initialdir=dir, filetypes=ftypes, title=title)
@@ -65,7 +66,7 @@ class FilterTestSelector:
 
     def GetAllTests(self):
         allFiles = []
-        dir = self.model.Source + '/handler/tests'
+        dir = IcosPaths.GetCommonTestPath(self.model.Source)
         dirLen = len(dir) + 1
         for root, dirs, files in os.walk(dir):
             if 'script.py' in files and not root[-1:] == '~':

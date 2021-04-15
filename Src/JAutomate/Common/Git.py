@@ -36,8 +36,8 @@ class Git:
         return OsOperations.ProcessOpen(params).split('\n')[:-1]
 
     @classmethod
-    def Clean(cls, source, options):
-        cls.Git(source, 'clean ' + options)
+    def Clean(cls, source):
+        cls.Git(source, 'clean -fd')
 
     @classmethod
     def ResetHard(cls, source):

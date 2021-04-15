@@ -198,7 +198,7 @@ class UISourceSelector(UIWindow):
         self.threadHandler.AddButton(row2, ' Clean Solutions ', 0, 0, self.srcBuilder.CleanSource, None, self.srcBuilder.NotifyClean, None, 19)
         self.threadHandler.AddButton(row2, ' Build Solutions ', 0, 1, self.srcBuilder.BuildSource, None, self.srcBuilder.NotifyBuild, None, 19)
         if self.model.ShowAllButtons:
-            UIFactory.AddButton(row2, 'Available MMI', 0, 2, PreTestActions.GetAllMmiPaths, (self.model,), 19)
+            UIFactory.AddButton(row2, 'Available Sources', 0, 2, PreTestActions.PrintAvailableExes, (self.model,), 19)
 
             row3 = self.AddRow()
             self.threadHandler.AddButton(row3, ' Remove Handler Temps ', 0, 0, self.srcCleaner.RemoveHandlerTemp, None, None, None, 19)

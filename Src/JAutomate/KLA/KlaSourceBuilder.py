@@ -78,7 +78,7 @@ class KlaSourceBuilder:
             self.DeleteAllGitIgnoreFiles(src)
             with open(src + '/.gitignore', 'w') as f:
                 f.writelines(str.join('\n', excludeDirs))
-            Git.Clean(src, '-fd')
+            Git.Clean(src)
             print 'Reseting files in ' + src
             Git.ResetHard(src)
             if cnt > 0:

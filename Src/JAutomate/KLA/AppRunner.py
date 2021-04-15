@@ -6,6 +6,7 @@ from Common.FileOperations import FileOperations
 from Common.Logger import Logger
 from Common.MessageBox import MessageBox
 from Common.OsOperations import OsOperations
+from KLA.IcosPaths import IcosPaths
 from KLA.PreTestActions import PreTestActions
 from KLA.TaskMan import TaskMan
 from KLA.VMWareRunner import VMWareRunner
@@ -21,10 +22,11 @@ class AppRunner:
         Logger.Log('Run Handler in ' + self.model.Source)
         TaskMan.StopTasks()
 
-        handlerPath,consoleExe = self.vsSolutions.GetHandlerPath()
-        testTempDir = self.model.Source + '/handler/tests/' + self.model.TestName + '~'
+        handlerPath = IcosPaths.GetHandlerPath(self.model.Source, self.model.Platform, self.model.Config)
+        consoleExe = IcosPaths.GetConsolePath(self.model.Source, self.model.Platform, self.model.Config)
+        testTempDir = IcosPaths.GetTestPathTemp(self.model.Source, self.model.TestName)
 
-        simulatorExe = self.vsSolutions.GetSimulatorPath()
+        simulatorExe = IcosPaths.GetSimulatorPath(self.model.Source, self.model.Platform, self.model.Config)
 
         for file in [consoleExe, testTempDir, simulatorExe]:
             if not os.path.exists(file):

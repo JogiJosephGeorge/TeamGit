@@ -1,5 +1,6 @@
 import subprocess
 
+
 class VisualStudioSolutions:
     def __init__(self, model):
         self.model = model
@@ -60,16 +61,6 @@ class VisualStudioSolutions:
         if slnName == 'CIT100Simulator':
             return 'Simulator'
         return slnName
-
-    def GetHandlerPath(self):
-        platform = VisualStudioSolutions.GetPlatformStr(self.model.Platform)
-        handlerPath = '{}/handler/cpp/bin/{}/{}/system'.format(self.model.Source, platform, self.model.Config)
-        return (handlerPath, handlerPath + '/console.exe')
-
-    def GetSimulatorPath(self):
-        platform = VisualStudioSolutions.GetPlatformStr(self.model.Platform, True)
-        simulatorExe = '{}/handler/Simulator/ApplicationFiles/bin/{}/{}/CIT100Simulator.exe'
-        return simulatorExe.format(self.model.Source, platform, self.model.Config)
 
     @classmethod
     def GetPlatform(cls, slnFile, platform):

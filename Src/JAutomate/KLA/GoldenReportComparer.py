@@ -3,13 +3,15 @@ import shutil
 import subprocess
 from Common.MessageBox import MessageBox
 from Common.Test import Test
+from KLA.IcosPaths import IcosPaths
+
 
 class GoldenReportComparer:
     def __init__(self, model):
         self.model = model
 
     def GetTestPath(self):
-        return os.path.abspath(self.model.Source + '/handler/tests/' + self.model.TestName)
+        return IcosPaths.GetTestPath(self.model.Source, self.model.TestName)
 
     def OpenTestFolder(self):
         dirPath = self.GetTestPath()

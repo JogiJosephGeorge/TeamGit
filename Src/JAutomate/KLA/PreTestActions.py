@@ -1,7 +1,9 @@
 import os
 
 from Common.FileOperations import FileOperations
+from Common.PrettyTable import PrettyTable, TableFormat
 from KlaModel.ConfigEncoder import ConfigEncoder
+from KLA.IcosPaths import IcosPaths
 from KLA.LicenseConfigWriter import LicenseConfigWriter
 from KLA.TaskMan import TaskMan
 
@@ -10,8 +12,7 @@ class PreTestActions:
     @classmethod
     def CopyMockLicense(cls, model, toSrc = True):
         args = (model.Source, model.Platform, model.Config)
-        licencePath = '{}/mmi/mmi/mmi_stat/integration/code/MockLicenseDll/{}/{}/License.dll'
-        licenseFile = os.path.abspath(licencePath.format(*args))
+        licenseFile = os.path.abspath(IcosPaths.GetMockLicensePath(*args))
         mmiPath = PreTestActions.GetMmiPath(model, toSrc)
         FileOperations.Copy(licenseFile, mmiPath)
 
@@ -19,22 +20,28 @@ class PreTestActions:
     def GetMmiPath(cls, model, toSrc = True):
         args = (model.Source, model.Platform, model.Config)
         if toSrc:
-            mmiPath = os.path.abspath('{}/mmi/mmi/Bin/{}/{}'.format(*args))
+            mmiPath = os.path.abspath(IcosPaths.GetMmiPath(*args))
         else:
             mmiPath = 'C:/icos'
         return mmiPath
 
     @classmethod
-    def GetAllMmiPaths(cls, model):
-        mmiPaths = []
+    def PrintAvailableExes(cls, model):
+        data = [['Source', 'Available EXEs']]
         for src,a,b in model.Sources:
+            data.append(['-'])
+            data.append([src, ''])
+            exePaths = []
             for pf in ConfigEncoder.Platforms:
                 for cfg in ConfigEncoder.Configs:
-                    mmiPath = '{}/mmi/mmi/Bin/{}/{}/mmi.exe'.format(src,pf,cfg)
-                    if os.path.exists(mmiPath):
-                        mmiPaths.append(mmiPath)
-        for mmiPath in mmiPaths:
-            print mmiPath
+                    exePaths.append(IcosPaths.GetMmiExePath(src, pf, cfg))
+                    exePaths.append(IcosPaths.GetConsolePath(src, pf, cfg))
+                    exePaths.append(IcosPaths.GetSimulatorPath(src, pf, cfg))
+                    exePaths.append(IcosPaths.GetMockLicensePath(src, pf, cfg))
+            for exePath in exePaths:
+                if os.path.exists(exePath):
+                    data.append(['', exePath])
+        PrettyTable(TableFormat().SetSingleLine()).PrintTable(data)
 
     @classmethod
     def CopyxPortIllumRef(cls, model, delay = False):
@@ -47,7 +54,7 @@ class PreTestActions:
 
     @classmethod
     def GetTestPath(cls, model):
-        return os.path.abspath(model.Source + '/handler/tests/' + model.TestName)
+        return IcosPaths.GetTestPath(model.Source, model.TestName)
 
     @classmethod
     def GenerateLicMgrConfig(cls, model):
@@ -67,10 +74,8 @@ class PreTestActions:
 
     @classmethod
     def CopyMmiSaveLogExe(cls, model):
-        destin = os.path.abspath("{}/handler/tests/{}~/Icos".format(
-            model.Source, model.TestName))
-        src = os.path.abspath('{}/mmi/mmi/Bin/{}/{}/MmiSaveLogs.exe'.format(
-            model.Source, model.Platform, model.Config))
+        destin = IcosPaths.GetTestPathTemp(model.Source, model.TestName) + '/Icos'
+        src = os.path.abspath(IcosPaths.GetMmiSaveLogsPath(model.Source, model.Platform, model.Config))
         FileOperations.Copy(src, destin)
 
     @classmethod
