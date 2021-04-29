@@ -39,7 +39,7 @@ class AppRunner:
             self.RunHostCam()
 
     def RunHostCam(self):
-        fileName = FileOperations.ReadLine('C:/MVS8000/slot1/software_link.cfg')[0]
+        fileName = FileOperations.ReadLine('C:/MVS8000/slot1/software_link.cfg', 'utf-8')[0]
         fileName += '/hostsw/hostcam/HostCamServer.exe'
         OsOperations.System('start ' + fileName)
 

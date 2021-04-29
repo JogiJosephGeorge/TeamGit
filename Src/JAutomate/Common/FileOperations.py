@@ -7,14 +7,16 @@ from Common.OsOperations import OsOperations
 
 class FileOperations:
     @classmethod
-    def ReadLine(cls, fileName, utf = 'utf-8'):
+    def ReadLine(cls, fileName, utf = None):
         if not os.path.exists(fileName):
             print "File doesn't exist : " + fileName
             return []
         f = open(fileName, 'rb')
         data = f.read()
         f.close()
-        return data.decode(utf).splitlines()
+        if utf:
+            data = data.decode(utf)
+        return data.splitlines()
 
     @classmethod
     def Append(cls, fileName, message):
@@ -75,6 +77,13 @@ class FileOperations:
                 if filterFun(file):
                     selectedFile = os.path.join(root, file).replace('\\', '/')
                     selectedFiles.append(selectedFile)
+        return selectedFiles
+
+    @classmethod
+    def GetAllFilesFromList(cls, paths, filterFun):
+        selectedFiles = []
+        for path in paths:
+            selectedFiles += cls.GetAllFiles(path, filterFun)
         return selectedFiles
 
     @classmethod

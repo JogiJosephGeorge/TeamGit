@@ -7,13 +7,13 @@ from KLA.UIViewModel import UIViewModel
 
 from Common.Git import Git
 from Common.Logger import Logger
-from Common.OsOperations import OsOperations
 from Common.UIFactory import UIFactory
 from KLA.PreTestActions2 import KlaRunner
 from KLA.UIMainMenu import UIMainMenu
 from KLA.UISourceGroup import UISourceGroup
 from KLA.UITestGroup import UITestGroup
 from KLA.VisualStudioSolutions import VisualStudioSolutions
+from KLA.VMWareRunner import VMWareRunner
 from KlaModel.Model import Model
 from UI.ThreadHandler import ThreadHandler
 from UI.UISourceSelector import UISourceSelector
@@ -54,6 +54,7 @@ class UIMain:
         self.VM.lblBranch.set(self.model.Branch)
         Git.GitSilent('.', 'pull')
         print title
+        VMWareRunner.CheckLicense(self.model)
 
     def GetVersion(self):
         commitCnt = Git.ProcessOpen('rev-list --all --count')

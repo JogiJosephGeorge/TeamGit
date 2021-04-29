@@ -17,7 +17,7 @@ class LicenseConfigWriter:
     def ReadLicense(self, fileName):
         self.IdNameMap = {}
         self.IdKeyMap = {}
-        lines = FileOperations.ReadLine(fileName)
+        lines = FileOperations.ReadLine(fileName, 'utf-8')
         lineType = self.LineType.Initial
         for line in lines:
             if lineType == self.LineType.Initial:

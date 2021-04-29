@@ -1,8 +1,10 @@
+import datetime
 import os
 import re
 import subprocess
 from xml.dom import minidom
 
+from Common.FileOperations import FileOperations
 from Common.MessageBox import MessageBox
 from Common.OsOperations import OsOperations
 from KLA.TaskMan import TaskMan
@@ -75,3 +77,24 @@ class VMWareRunner:
             cmd = 'slot{}.bat'.format(slot)
             OsOperations.System(cmd)
         OsOperations.ChDir(cd1)
+
+    @classmethod
+    def CheckLicense(cls, model):
+        dates = dict()
+        for mvs in ['MVS7000', 'MVS8000']:
+            for i in range(1, model.MaxSlots + 1):
+                licenseFileName = 'C:/{}/slot{}/license.dat'.format(mvs, i)
+                firstLine = FileOperations.ReadLine(licenseFileName)[0]
+                dt = firstLine.split(' ')[-2]
+                dates[dt] = '{} Slot{}'.format(mvs, i)
+        if not len(dates) is 1:
+            for dt in dates:
+                print dates[dt] + ' expires on ' + dt
+        else:
+            dt = datetime.datetime.strptime(dates.keys()[0], '%Y-%b-%d')
+            today = datetime.datetime.now()
+            if dt < today:
+                MessageBox.ShowMessage('MVS License expired')
+            else:
+                remainingDays = (dt - today).days
+                print 'MVS License will expire in {} days'.format(remainingDays)

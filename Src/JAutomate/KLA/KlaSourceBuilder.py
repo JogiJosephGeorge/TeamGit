@@ -223,8 +223,8 @@ class KlaSourceCleaner:
         print '{} files have been removed'.format(len(filesToDelete))
 
     def RemoveMvsTemp(self):
-        path = 'C:/MVS7000'
-        print 'Removing temp files from : ' + path
+        paths = ['C:/MVS7000', 'C:/MVS8000']
+        print 'Removing temp files from : ' + str(paths)
         tempFileTypes3 = [
             '.log'
         ]
@@ -238,7 +238,7 @@ class KlaSourceCleaner:
         #     print dir
 
         filterFun = lambda f : f[-4:] in tempFileTypes3 or f[-5:] in tempFileTypes4
-        filesToDelete = FileOperations.GetAllFiles(path, filterFun)
+        filesToDelete = FileOperations.GetAllFilesFromList(paths, filterFun)
         for file in filesToDelete:
             os.remove(file)
         print '{} files have been removed'.format(len(filesToDelete))
