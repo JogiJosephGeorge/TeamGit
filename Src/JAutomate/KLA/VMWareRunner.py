@@ -80,6 +80,7 @@ class VMWareRunner:
 
     @classmethod
     def CheckLicense(cls, model):
+        errMsg = None
         dates = dict()
         for mvs in ['MVS6000', 'MVS7000', 'MVS8000', 'MVS8100']:
             mvsPath = 'C:/' + mvs
@@ -91,13 +92,18 @@ class VMWareRunner:
                         dt = firstLine.split(' ')[-2]
                         dates[dt] = '{} Slot{}'.format(mvs, i)
         if not len(dates) is 1:
-            for dt in dates:
-                print dates[dt] + ' expires on ' + dt
+            errMsg = [dates[dt] + ' expires on ' + dt for dt in dates]
+            errMsg = '\n'.join(errMsg)
         else:
             dt = datetime.datetime.strptime(dates.keys()[0], '%Y-%b-%d')
             today = datetime.datetime.now()
             if dt < today:
-                MessageBox.ShowMessage('MVS License expired')
+                errMsg = 'MVS License expired'
             else:
                 remainingDays = (dt - today).days
-                print 'MVS License will expire in {} days'.format(remainingDays)
+                msg = 'MVS License will expire in {} days'.format(remainingDays)
+                print msg
+                if remainingDays < 5:
+                    errMsg = msg
+        if errMsg:
+            MessageBox.ShowMessage(errMsg)
