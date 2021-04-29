@@ -81,12 +81,15 @@ class VMWareRunner:
     @classmethod
     def CheckLicense(cls, model):
         dates = dict()
-        for mvs in ['MVS7000', 'MVS8000']:
-            for i in range(1, model.MaxSlots + 1):
-                licenseFileName = 'C:/{}/slot{}/license.dat'.format(mvs, i)
-                firstLine = FileOperations.ReadLine(licenseFileName)[0]
-                dt = firstLine.split(' ')[-2]
-                dates[dt] = '{} Slot{}'.format(mvs, i)
+        for mvs in ['MVS6000', 'MVS7000', 'MVS8000', 'MVS8100']:
+            mvsPath = 'C:/' + mvs
+            if os.path.exists(mvsPath):
+                for i in range(1, model.MaxSlots + 1):
+                    licenseFileName = '{}/slot{}/license.dat'.format(mvsPath, i)
+                    if os.path.exists(licenseFileName):
+                        firstLine = FileOperations.ReadLine(licenseFileName)[0]
+                        dt = firstLine.split(' ')[-2]
+                        dates[dt] = '{} Slot{}'.format(mvs, i)
         if not len(dates) is 1:
             for dt in dates:
                 print dates[dt] + ' expires on ' + dt

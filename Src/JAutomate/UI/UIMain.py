@@ -1,12 +1,13 @@
 import ctypes
-import os
 import re
+import threading
 
 from KLA.AutoTestRunner import AutoTestRunner
 from KLA.UIViewModel import UIViewModel
 
 from Common.Git import Git
 from Common.Logger import Logger
+#from Common.PerformanceTester import PerformanceTester
 from Common.UIFactory import UIFactory
 from KLA.PreTestActions2 import KlaRunner
 from KLA.UIMainMenu import UIMainMenu
@@ -16,7 +17,6 @@ from KLA.VisualStudioSolutions import VisualStudioSolutions
 from KLA.VMWareRunner import VMWareRunner
 from KlaModel.Model import Model
 from UI.ThreadHandler import ThreadHandler
-from UI.UISourceSelector import UISourceSelector
 
 
 class UIMain:
@@ -48,20 +48,39 @@ class UIMain:
         self.window.mainloop()
 
     def LazyInit(self):
-        title = 'KLA Application Runner ' + self.GetVersion()
+        class LazyData:
+            pass
+        self.LazyData = LazyData()
+        threads = []
+        threads.append(threading.Thread(target=self.GetVersion))
+        threads.append(threading.Thread(target=self.GetBranch))
+        threads.append(threading.Thread(target=self.UpdateSource))
+
+        [t.start() for t in threads]
+        [t.join() for t in threads]
+
+        title = 'KLA Application Runner ' + self.LazyData.Version
         self.window.title(title)
-        self.model.Branch = Git.GetBranch(self.model.Source)
+        self.model.Branch = self.LazyData.Branch
         self.VM.lblBranch.set(self.model.Branch)
-        Git.GitSilent('.', 'pull')
         print title
-        VMWareRunner.CheckLicense(self.model)
+        self.CheckLicense()
 
     def GetVersion(self):
         commitCnt = Git.ProcessOpen('rev-list --all --count')
         revision = int(re.sub('\W+', '', commitCnt)) - 165
         desStr = Git.ProcessOpen('describe --always')
         hash = re.sub('\W+', '', desStr)
-        return '1.3.{}.{}'.format(revision, hash)
+        self.LazyData.Version = '1.3.{}.{}'.format(revision, hash)
+
+    def GetBranch(self):
+        self.LazyData.Branch = Git.GetBranch(self.model.Source)
+
+    def CheckLicense(self):
+        VMWareRunner.CheckLicense(self.model)
+
+    def UpdateSource(self):
+        Git.GitSilent('.', 'pull')
 
     def AddRow(self):
         frame = UIFactory.AddFrame(self.mainFrame, self.Row, 0)
