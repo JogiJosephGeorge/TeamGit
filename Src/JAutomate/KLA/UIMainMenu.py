@@ -38,10 +38,13 @@ class UIMainMenu:
         self.uiGrid.AddButton('STOP All KLA Apps', self.VM.StopTasks)
         if self.model.ShowAllButtons:
             self.uiGrid.AddButton('STOP MMi alone', self.appRunner.StopMMi)
-            self.uiGrid.AddButton('Run Handler', self.appRunner.RunHandler)
+            self.uiGrid.AddButton('Run Handler', self.RunHandler)
             self.uiGrid.AddButton('Run MMi from Source', self.RunMMi, (True,))
             self.uiGrid.AddButton('Run MMi from C:/Icos', self.RunMMi, (False,))
         self.uiGrid.AddButton('Run MMi SPC Tests', self.mmiSpcTestRunner.RunAllTests)
+
+    def RunHandler(self):
+        self.appRunner.RunHandler(self.model.RunHostCam)
 
     def RunMMi(self, fromSrc):
         self.appRunner.RunMMi(fromSrc, self.model.RemoveStartedTXT)

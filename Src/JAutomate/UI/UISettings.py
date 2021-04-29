@@ -30,26 +30,49 @@ class UISettings(UIWindow):
 
         grpRow += 1
         checkFrame = UIFactory.AddFrame(parent, grpRow, 0)
+        self.chkRow = 0
+        def AddCheckBox(txt, modelParam, msgOn, msgOff, showMsgOn, showMsgOff):
+            self.checkBoxCreator.AddCheckBox(checkFrame, self.chkRow, 0, txt, self.model, modelParam, msgOn, msgOff, showMsgOn, showMsgOff)
+            self.chkRow += 1
+
+        txt = 'Show All Commands in KlaRunner'
         msgOn = msgOff = 'You need to restart the application to update the UI.'
-        self.checkBoxCreator.AddCheckBox(checkFrame, 0, 0, 'Show All Commands in KlaRunner', self.model, 'ShowAllButtons', msgOn, msgOff, True, True)
+        AddCheckBox(txt, 'ShowAllButtons', msgOn, msgOff, True, True)
+
+        txt = 'Run Host Cam while running Handler alone'
+        msgOn = 'Run Host Cam while running Handler alone.'
+        msgOff = 'Do NOT run Host Cam while running Handler alone.'
+        AddCheckBox(txt, 'RunHostCam', msgOn, msgOff, False, False)
+
+        txt = 'Restart Slots while running MMi alone'
         msgOn = 'The selected slots will be restarted while running MMi alone.'
         msgOff = 'The selected slots will NOT be restarted while running MMi alone.'
-        self.checkBoxCreator.AddCheckBox(checkFrame, 1, 0, 'Restart Slots while running MMi alone', self.model, 'RestartSlotsForMMiAlone', msgOn, msgOff, False, False)
+        AddCheckBox(txt, 'RestartSlotsForMMiAlone', msgOn, msgOff, False, False)
+
+        txt = 'Copy MMi to Icos On AutoTest'
         msgOn = 'Copy the mmi built over the installation in C:/icos.'
         msgOff = 'Do NOT copy the mmi built over the installation in C:/icos.\nThis is NOT RECOMMENDED.'
-        self.checkBoxCreator.AddCheckBox(checkFrame, 2, 0, 'Copy MMi to Icos On AutoTest', self.model, 'CopyMmi', msgOn, msgOff, False, True)
+        AddCheckBox(txt, 'CopyMmi', msgOn, msgOff, False, True)
+
+        txt = 'Generate LicMgrConfig.xml On AutoTest'
         msgOn = 'The file LicMgrConfig.xml will be created while running auto test.\nThis is NOT RECOMMENDED.'
         msgOff = 'The file LicMgrConfig.xml will NOT be created while running auto test.'
-        self.checkBoxCreator.AddCheckBox(checkFrame, 3, 0, 'Generate LicMgrConfig.xml On AutoTest', self.model, 'GenerateLicMgrConfigOnTest', msgOn, msgOff, True, False)
+        AddCheckBox(txt, 'GenerateLicMgrConfigOnTest', msgOn, msgOff, True, False)
+
+        txt = 'Copy Mock License On AutoTest'
         msgOn = 'The file mock License.dll will be copied while running auto test.\nThis is NOT RECOMMENDED.'
         msgOff = 'The file mock License.dll will NOT be copied while running auto test.'
-        self.checkBoxCreator.AddCheckBox(checkFrame, 4, 0, 'Copy Mock License On AutoTest', self.model, 'CopyMockLicenseOnTest', msgOn, msgOff, True, False)
+        AddCheckBox(txt, 'CopyMockLicenseOnTest', msgOn, msgOff, True, False)
+
+        txt = 'Copy xPort_IllumReference.xml on AutoTest'
         msgOn = 'The file xPort_IllumReference.xml will be copied while running auto test.\nThis is NOT RECOMMENDED.'
         msgOff = 'The file xPort_IllumReference.xml will NOT be copied while running auto test.'
-        self.checkBoxCreator.AddCheckBox(checkFrame, 5, 0, 'Copy xPort_IllumReference.xml on AutoTest', self.model, 'CopyExportIllumRefOnTest', msgOn, msgOff, True, False)
+        AddCheckBox(txt, 'CopyExportIllumRefOnTest', msgOn, msgOff, True, False)
+
+        txt = 'Remove C:\icos\Started.txt on starting MMI'
         msgOn = 'The file C:\icos\Started.txt will be removed while running MMi.\nThis is NOT RECOMMENDED.'
         msgOff = 'The file C:\icos\Started.txt will NOT be removed while running MMi.'
-        self.checkBoxCreator.AddCheckBox(checkFrame, 5, 0, 'Remove C:\icos\Started.txt on starting MMI', self.model, 'RemoveStartedTXT', msgOn, msgOff, True, False)
+        AddCheckBox(txt, 'RemoveStartedTXT', msgOn, msgOff, True, False)
 
         grpRow += 1
         self.AddBackButton(parent, grpRow, 0)

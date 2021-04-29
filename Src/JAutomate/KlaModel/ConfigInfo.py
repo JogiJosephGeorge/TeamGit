@@ -61,6 +61,7 @@ class ConfigInfo:
         model.RemoveStartedTXT = self.ReadField(_model, 'RemoveStartedTXT', False)
         model.CleanDotVsOnReset = self.ReadField(_model, 'CleanDotVsOnReset', False)
         model.UpdateSubmodulesOnReset = self.ReadField(_model, 'UpdateSubmodulesOnReset', False)
+        model.RunHostCam = self.ReadField(_model, 'RunHostCam', False)
 
         model.MMiConfigPath = model.MMiConfigPath.replace('/', '\\')
 
@@ -106,6 +107,7 @@ class ConfigInfo:
         _model['RemoveStartedTXT'] = model.RemoveStartedTXT
         _model['CleanDotVsOnReset'] = model.CleanDotVsOnReset
         _model['UpdateSubmodulesOnReset'] = model.UpdateSubmodulesOnReset
+        _model['RunHostCam'] = model.RunHostCam
 
         with open(self.FileName, 'w') as f:
             json.dump(_model, f, indent=3)
