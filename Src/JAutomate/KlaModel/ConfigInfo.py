@@ -51,7 +51,7 @@ class ConfigInfo:
         model.CopyMmi = self.ReadField(_model, 'CopyMmi', True)
         model.TempDir = self.ReadField(_model, 'TempDir', 'bin')
         model.LogFileName = self.ReadField(_model, 'LogFileName', 'bin/Log.txt')
-        model.MaxSlots = self.ReadField(_model, 'MaxSlots', 8)
+        model.MaxSlots = self.ReadInt(_model, 'MaxSlots', 8)
         model.ShowAllButtons = self.ReadField(_model, 'ShowAllButtons', False)
         model.RestartSlotsForMMiAlone = self.ReadField(_model, 'RestartSlotsForMMiAlone', False)
         model.GenerateLicMgrConfigOnTest = self.ReadField(_model, 'GenerateLicMgrConfigOnTest', False)
@@ -75,6 +75,10 @@ class ConfigInfo:
         if key in model:
             return model[key]
         return defValue
+
+    def ReadInt(self, model, key, defValue):
+        value = self.ReadField(model, key, defValue)
+        return int(value)
 
     def Write(self, model):
         _model = OrderedDict()

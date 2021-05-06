@@ -8,12 +8,13 @@ from UI.UIWindow import UIWindow
 class UISettings(UIWindow):
     def __init__(self, parent, model):
         super(UISettings, self).__init__(parent, model, 'Settings')
+        self.GrpRow = 0
+        self.Row = 0
 
     def CreateUI(self, parent):
         self.checkBoxCreator = CheckBoxCreator()
-        grpRow = 0
-        pathFrame = UIFactory.AddFrame(parent, grpRow, 0)
-        self.Row = 0
+
+        pathFrame = self.AddGroup(parent)
         self.AddSelectPathRow(pathFrame, 'MMi Setups Path', 'MMiSetupsPath')
         self.AddSelectPathRow(pathFrame, 'MMi Config Path', 'MMiConfigPath')
         self.AddSelectFileRow(pathFrame, 'Effort Log File', 'EffortLogFile')
@@ -24,12 +25,11 @@ class UISettings(UIWindow):
         self.AddSelectFileRow(pathFrame, 'Beyond Compare', 'BCompare')
 
         self.textBoxCreator = TextBoxCreator(self.model)
-        grpRow += 1
-        textFrame = UIFactory.AddFrame(parent, grpRow, 0)
+        textFrame = self.AddGroup(parent)
         self.AddTextRow(textFrame, 'VM Ware Password', 'VMwarePwd')
+        self.AddTextRow(textFrame, 'Number of Slots', 'MaxSlots')
 
-        grpRow += 1
-        checkFrame = UIFactory.AddFrame(parent, grpRow, 0)
+        checkFrame = self.AddGroup(parent)
         self.chkRow = 0
         def AddCheckBox(txt, modelParam, msgOn, msgOff, showMsgOn, showMsgOff):
             self.checkBoxCreator.AddCheckBox(checkFrame, self.chkRow, 0, txt, self.model, modelParam, msgOn, msgOff, showMsgOn, showMsgOff)
@@ -74,8 +74,13 @@ class UISettings(UIWindow):
         msgOff = 'The file C:\icos\Started.txt will NOT be removed while running MMi.'
         AddCheckBox(txt, 'RemoveStartedTXT', msgOn, msgOff, True, False)
 
-        grpRow += 1
-        self.AddBackButton(parent, grpRow, 0)
+        self.AddBackButton(parent, self.GrpRow, 0)
+
+    def AddGroup(self, parent):
+        frame = UIFactory.AddFrame(parent, self.GrpRow, 0)
+        self.GrpRow += 1
+        self.Row = 0
+        return frame
 
     def OnClosing(self):
         self.textBoxCreator.UpdateModel()
@@ -120,3 +125,4 @@ class UISettings(UIWindow):
     def AddTextRow(self, parent, label, attrName):
         UIFactory.AddLabel(parent, label, self.Row, 0)
         self.textBoxCreator.Add(parent, self.Row, 1, attrName)
+        self.Row += 1
