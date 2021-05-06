@@ -5,8 +5,11 @@ class FilterTestSelector_UT:
     def __init__(self):
         allFiles = self.CreateFilterTestSelector().GetAllTests()
         Test.Assert(len(allFiles) > 1000, True, 'TestCount')
-        #Test.Assert(allFiles[2], 'Bora/changeRejectBinConfigurationForRescanBatch', 'TestName')
-        Test.Assert(allFiles[2], 'Bora/ColorCheckOnX1loader', 'TestName')
+        possibleThirdTest = [
+            'Bora/changeRejectBinConfigurationForRescanBatch',
+            'Bora/ColorCheckOnX1loader'
+        ]
+        Test.Assert(allFiles[2] in possibleThirdTest, True, 'TestName')
 
     class Model_UT:
         def __init__(self):

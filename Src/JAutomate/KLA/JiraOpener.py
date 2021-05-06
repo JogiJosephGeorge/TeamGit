@@ -47,17 +47,17 @@ class JiraOpenerTest:
     def TestFeatureBranch(self):
         jio = self.GetInstance('feature/mmi/10.5a2/mci-33771')
 
-        p1 = 'http://icoslx01/teamcity/buildConfiguration/CiSw_IntegrationTests_FeatureBranches_IntegrationTestOverview?branch=mmi%2F10.5a2%2Fmci-33771&mode=builds'
+        p1 = jio.TeamCity + 'CiSw_IntegrationTests_FeatureBranches_IntegrationTestOverview?branch=mmi%2F10.5a2%2Fmci-33771&mode=builds'
         Test.Assert(p1, jio.GetPath(False), 'Integration Tests')
 
-        p2 = 'http://icoslx01/teamcity/buildConfiguration/Git_Test_MmiVscppunitTests?branch=feature%2Fmmi%2F10.5a2%2Fmci-33771&mode=builds'
+        p2 = jio.TeamCity + 'Git_Test_MmiVscppunitTests?branch=feature%2Fmmi%2F10.5a2%2Fmci-33771&mode=builds'
         Test.Assert(p2, jio.GetPath(True), 'Unit Tests')
 
     def TestCandidateBranch(self):
         jio = self.GetInstance('candidate/10.5_11.0a11')
 
-        p1 = 'http://icoslx01/teamcity/buildConfiguration/Git_Test_TestWithMmiSetup_CandidateBranchesRealMmiTestsWithSetup?branch=candidate%2F10.5_11.0a11&buildTypeTab=overview&mode=builds#all-projects'
+        p1 = jio.TeamCity + 'Git_Test_TestWithMmiSetup_CandidateBranchesRealMmiTestsWithSetup?branch=candidate%2F10.5_11.0a11&buildTypeTab=overview&mode=builds#all-projects'
         Test.Assert(p1, jio.GetPath(False), 'Integration Tests')
 
-        p2 = 'http://icoslx01/teamcity/buildConfiguration/Git_Test_MmiVscppunitTests?branch=candidate%2F10.5_11.0a11&buildTypeTab=overview&mode=builds#all-projects'
+        p2 = jio.TeamCity + 'Git_Test_MmiVscppunitTests?branch=candidate%2F10.5_11.0a11&buildTypeTab=overview&mode=builds#all-projects'
         Test.Assert(p2, jio.GetPath(True), 'Unit Tests')

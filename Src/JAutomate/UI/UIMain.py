@@ -67,8 +67,8 @@ class UIMain:
         self.CheckLicense()
 
     def GetVersion(self):
-        commitCnt = Git.ProcessOpen('rev-list --all --count')
-        revision = int(re.sub('\W+', '', commitCnt)) - 165
+        commitCnt = Git.ProcessOpen('rev-list master --count --no-merges')
+        revision = int(re.sub('\W+', '', commitCnt)) - 160
         desStr = Git.ProcessOpen('describe --always')
         hash = re.sub('\W+', '', desStr)
         self.LazyData.Version = '1.3.{}.{}'.format(revision, hash)

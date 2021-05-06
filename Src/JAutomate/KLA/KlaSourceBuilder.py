@@ -8,6 +8,7 @@ from Common.MessageBox import MessageBox
 from Common.OsOperations import OsOperations
 from Common.PrettyTable import TableFormat, PrettyTable
 from KLA.VisualStudioSolutions import VisualStudioSolutions
+from KLA.VMWareRunner import VMWareRunner
 
 
 class KlaSourceBuilder:
@@ -223,7 +224,7 @@ class KlaSourceCleaner:
         print '{} files have been removed'.format(len(filesToDelete))
 
     def RemoveMvsTemp(self):
-        paths = ['C:/MVS7000', 'C:/MVS8000']
+        paths = VMWareRunner.GetAllMvsPaths()
         print 'Removing temp files from : ' + str(paths)
         tempFileTypes3 = [
             '.log'

@@ -12,6 +12,19 @@ from KLA.TaskMan import TaskMan
 
 class VMWareRunner:
     @classmethod
+    def GetAllMvsPaths(cls):
+        for mvs in ['MVS6000', 'MVS7000', 'MVS8000', 'MVS8100']:
+            mvsPath = 'C:/' + mvs
+            if os.path.exists(mvsPath):
+                yield mvsPath
+
+    @classmethod
+    def GetVmxSlotInfo(cls):
+        vmxGenericPath = r'C:\\MVS8000\\slot{}\\MVS8000_stage2.vmx'
+        searchPattern = vmxGenericPath.format('(\d*)').replace('.', '\\.')
+        return vmxGenericPath, searchPattern
+
+    @classmethod
     def SelectSlots(cls, model):
         fileName = 'C:/Icos/Mmi_Cnf.xml'
         if not os.path.isfile(fileName):
@@ -36,11 +49,10 @@ class VMWareRunner:
                 MessageBox.ShowMessage('Please select necessary slot(s).')
             return False
         vmRunExe = os.path.dirname(vmWareExe) + '/vmrun.exe'
-        vmxGenericPath = r'C:\\MVS8000\\slot{}\\MVS8000_stage2.vmx'
+        (vmxGenericPath, searchPattern) = cls.GetVmxSlotInfo()
         par = [vmRunExe, '-vp', pwd, 'list']
         output = OsOperations.ProcessOpen(par)
         runningSlots = []
-        searchPattern = r'C:\\MVS8000\\slot(\d*)\\MVS8000_stage2\.vmx'
         for line in output.split():
             m = re.search(searchPattern, line, re.IGNORECASE)
             if m:
@@ -82,15 +94,13 @@ class VMWareRunner:
     def CheckLicense(cls, model):
         errMsg = None
         dates = dict()
-        for mvs in ['MVS6000', 'MVS7000', 'MVS8000', 'MVS8100']:
-            mvsPath = 'C:/' + mvs
-            if os.path.exists(mvsPath):
-                for i in range(1, model.MaxSlots + 1):
-                    licenseFileName = '{}/slot{}/license.dat'.format(mvsPath, i)
-                    if os.path.exists(licenseFileName):
-                        firstLine = FileOperations.ReadLine(licenseFileName)[0]
-                        dt = firstLine.split(' ')[-2]
-                        dates[dt] = '{} Slot{}'.format(mvs, i)
+        for mvsPath in cls.GetAllMvsPaths():
+            for i in range(1, model.MaxSlots + 1):
+                licenseFileName = '{}/slot{}/license.dat'.format(mvsPath, i)
+                if os.path.exists(licenseFileName):
+                    firstLine = FileOperations.ReadLine(licenseFileName)[0]
+                    dt = firstLine.split(' ')[-2]
+                    dates[dt] = '{} Slot{}'.format(mvsPath, i)
         if not len(dates) is 1:
             errMsg = [dates[dt] + ' expires on ' + dt for dt in dates]
             errMsg = '\n'.join(errMsg)
