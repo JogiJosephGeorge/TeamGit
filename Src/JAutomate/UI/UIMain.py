@@ -2,21 +2,20 @@ import ctypes
 import re
 import threading
 
-from KLA.AutoTestRunner import AutoTestRunner
-from KLA.UIViewModel import UIViewModel
-
 from Common.Git import Git
 from Common.Logger import Logger
-#from Common.PerformanceTester import PerformanceTester
+# from Common.PerformanceTester import PerformanceTester
 from Common.UIFactory import UIFactory
+from KLA.AutoTestRunner import AutoTestRunner
 from KLA.PreTestActions2 import KlaRunner
-from KLA.UIMainMenu import UIMainMenu
-from KLA.UISourceGroup import UISourceGroup
-from KLA.UITestGroup import UITestGroup
-from KLA.VisualStudioSolutions import VisualStudioSolutions
+from KLA.UIViewModel import UIViewModel
 from KLA.VMWareRunner import VMWareRunner
+from KLA.VisualStudioSolutions import VisualStudioSolutions
 from KlaModel.Model import Model
 from UI.ThreadHandler import ThreadHandler
+from UI.UIMainMenu import UIMainMenu
+from UI.UISourceGroup import UISourceGroup
+from UI.UITestGroup import UITestGroup
 
 
 class UIMain:

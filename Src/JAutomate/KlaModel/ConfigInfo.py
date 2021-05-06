@@ -51,7 +51,6 @@ class ConfigInfo:
         model.CopyMmi = self.ReadField(_model, 'CopyMmi', True)
         model.TempDir = self.ReadField(_model, 'TempDir', 'bin')
         model.LogFileName = self.ReadField(_model, 'LogFileName', 'bin/Log.txt')
-        model.MenuColCnt = self.ReadField(_model, 'MenuColCnt', 4)
         model.MaxSlots = self.ReadField(_model, 'MaxSlots', 8)
         model.ShowAllButtons = self.ReadField(_model, 'ShowAllButtons', False)
         model.RestartSlotsForMMiAlone = self.ReadField(_model, 'RestartSlotsForMMiAlone', False)
@@ -98,7 +97,6 @@ class ConfigInfo:
         _model['CopyMmi'] = model.CopyMmi
         _model['TempDir'] = model.TempDir
         _model['LogFileName'] = model.LogFileName
-        _model['MenuColCnt'] = model.MenuColCnt
         _model['MaxSlots'] = model.MaxSlots
         _model['ShowAllButtons'] = model.ShowAllButtons
         _model['RestartSlotsForMMiAlone'] = model.RestartSlotsForMMiAlone

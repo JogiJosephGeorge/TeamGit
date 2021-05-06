@@ -20,6 +20,7 @@ class GoldenReportComparer:
             print msg
             MessageBox.ShowMessage(msg)
             return
+        dirPath = dirPath.replace('/', '\\')
         subprocess.Popen(['Explorer', dirPath])
         print 'Open directory : ' + dirPath
 
