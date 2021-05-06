@@ -88,6 +88,7 @@ class ConfigInfo:
         _model['DevEnvExe'] = model.DevEnvExe
         _model['GitPath'] = model.GitPath
         _model['VMwareExe'] = model.VMwareExe
+        _model['VMwarePwd'] = model.VMwarePwd
         _model['EffortLogFile'] = model.EffortLogFile
         _model['BCompare'] = model.BCompare
         _model['MMiConfigPath'] = model.MMiConfigPath

@@ -58,18 +58,25 @@ class VMWareRunner:
             if m:
                 runningSlots.append(int(m.group(1)))
 
+        errMsg = ''
         for slot in slots:
             vmxPath = vmxGenericPath.format(slot)
             slotName = 'VMware Slot ' + str(slot)
             if slot in runningSlots:
                 print slotName + ' : Restarted.'
-                subprocess.Popen([vmRunExe, '-vp', pwd, 'reset', vmxPath])
+                par = [vmRunExe, '-vp', pwd, 'reset', vmxPath]
+                output = OsOperations.Popen(par, None, True)
+                for line in output.split('\n'):
+                    if line.startswith('Error:'):
+                        errMsg += line[7:] + '\n'
             else:
                 if startSlot:
                     subprocess.Popen([vmWareExe, vmxPath])
                     if showMessage:
                         msg = 'Please start ' + slotName
                         MessageBox.ShowMessage(msg)
+        if len(errMsg) > 0:
+            MessageBox.ShowMessage(errMsg)
         return True
 
     @classmethod
