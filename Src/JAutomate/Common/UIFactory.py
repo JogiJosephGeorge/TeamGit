@@ -123,12 +123,20 @@ class TextBoxCreator:
     def __init__(self, model):
         self.model = model
         self.TextVars = dict()
+        self.Validators = dict()
 
-    def Add(self, parent, r, c, attrName):
+    def Add(self, parent, r, c, attrName, validate):
         txt = getattr(self.model, attrName, '-')
         self.TextVars[attrName] = UIFactory.AddTextBox(parent, txt, r, c, 19)
+        self.Validators[attrName] = validate
 
     def UpdateModel(self):
         for key in self.TextVars:
             txt = self.TextVars[key].get()
-            setattr(self.model, key, txt)
+            validate = self.Validators[key]
+            if validate:
+                val = validate(txt)
+                if val:
+                    setattr(self.model, key, val)
+            else:
+                setattr(self.model, key, txt)

@@ -26,8 +26,10 @@ class UISettings(UIWindow):
 
         self.textBoxCreator = TextBoxCreator(self.model)
         textFrame = self.AddGroup(parent)
-        self.AddTextRow(textFrame, 'VM Ware Password', 'VMwarePwd')
-        self.AddTextRow(textFrame, 'Number of Slots', 'MaxSlots')
+        self.AddTextRow(textFrame, 'VM Ware Password', 'VMwarePwd', None)
+        def ValidateMaxSlot(slot):
+            return int(slot)
+        self.AddTextRow(textFrame, 'Number of Slots', 'MaxSlots', ValidateMaxSlot)
 
         checkFrame = self.AddGroup(parent)
         self.chkRow = 0
@@ -122,7 +124,7 @@ class UISettings(UIWindow):
             setattr(self.model, attrName, filename)
             print '{} Path changed : {}'.format(attrName, filename)
 
-    def AddTextRow(self, parent, label, attrName):
+    def AddTextRow(self, parent, label, attrName, validate):
         UIFactory.AddLabel(parent, label, self.Row, 0)
-        self.textBoxCreator.Add(parent, self.Row, 1, attrName)
+        self.textBoxCreator.Add(parent, self.Row, 1, attrName, validate)
         self.Row += 1
