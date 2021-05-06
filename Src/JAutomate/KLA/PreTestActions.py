@@ -80,16 +80,23 @@ class PreTestActions:
 
     @classmethod
     def ModifyVisionSystem(cls, model):
-        line = 'shutil.copy2(os.path.join(mvsSlots, slot, slot + ".bat"), os.path.join(self.mvsPath, slot, slot + ".bat"))'
-        oldLine = ' ' + line
-        newLine = ' #' + line
+        linesToComment = [
+            'shutil.copy2(os.path.join(mvsSlots, slot, slot + ".bat"), os.path.join(self.mvsPath, slot, slot + ".bat"))',
+            'self.copyFilesByType(os.path.join(sourceRoot, "MVSDConversions", platform), mvsdDestinationPath, [FileType.EXE, FileType.DLL])'
+        ]
         fileName = os.path.abspath(model.Source + '/libs/testing/visionsystem.py')
         with open(fileName) as f:
-            oldText = f.read()
-        if oldLine in oldText:
-            newText = oldText.replace(oldLine, newLine)
+            fileContent = f.read()
+        fileModified = False
+        for line in linesToComment:
+            oldLine = ' ' + line
+            newLine = ' #' + line
+            if oldLine in fileContent:
+                fileContent = fileContent.replace(oldLine, newLine)
+                fileModified = True
+        if fileModified:
             with open(fileName, "w") as f:
-                f.write(newText)
+                f.write(fileContent)
             print fileName + ' has been modified.'
         else:
             print fileName + ' had already been modified.'
