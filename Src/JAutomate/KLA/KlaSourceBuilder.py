@@ -205,23 +205,39 @@ class KlaSourceCleaner:
     def __init__(self, model):
         self.model = model
 
-    def RemoveHandlerTemp(self):
-        path = self.model.Source + '/handler'
+    def RemoveAllHandlerTemp(self):
+        for activeSrc in self.model.ActiveSrcs:
+            source, config, platform = self.model.Sources[activeSrc]
+            self.RemoveHandlerTemp(source)
+
+    def RemoveHandlerTemp(self, source):
+        path = source + '/handler'
         print 'Removing temp files from : ' + path
-        tempFileTypes3 = [
-            '.pdb',
-            '.obj',
-            '.pch',
-            '.exp'
-        ]
-        tempFileTypes4 = [
-            '.tlog'
-        ]
-        filterFun = lambda f : f[-4:] in tempFileTypes3 or f[-5:] in tempFileTypes4
-        filesToDelete = FileOperations.GetAllFiles(path, filterFun)
+        filesToDelete = FileOperations.GetAllFiles(path, self.CanDelete)
         for file in filesToDelete:
             os.remove(file)
         print '{} files have been removed'.format(len(filesToDelete))
+
+    def CanDelete(self, fileName):
+        excludedPaths = [
+            'handler\\FabLink\\FabLinkLib\\System32\\Release',
+            'handler\\cpp\MiniZIP'
+        ]
+        if 'iniZIP' in fileName.lower():
+            print fileName
+        for path in excludedPaths:
+            if path in fileName:
+                return False
+        for tempFileType in [
+            '.pdb',
+            '.obj',
+            '.pch',
+            '.exp',
+            '.tlog'
+        ]:
+            if fileName.endswith(tempFileType):
+                return True
+        return False
 
     def RemoveMvsTemp(self):
         paths = VMWareRunner.GetAllMvsPaths()

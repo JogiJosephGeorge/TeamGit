@@ -74,8 +74,8 @@ class FileOperations:
         selectedFiles = []
         for root, dirs, files in os.walk(path):
             for file in files:
-                if filterFun(file):
-                    selectedFile = os.path.join(root, file).replace('\\', '/')
+                selectedFile = os.path.join(root, file).replace('/', '\\')
+                if filterFun(selectedFile):
                     selectedFiles.append(selectedFile)
         return selectedFiles
 
