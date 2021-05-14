@@ -60,7 +60,6 @@ class PreTestActions:
     def GenerateLicMgrConfig(cls, model):
         src = model.StartPath + '/DataFiles/LicMgrConfig.xml'
         LicenseConfigWriter(model.Source, src)
-        print 'LicMgrConfig.xml has been created from source and placed on ' + src
 
     @classmethod
     def CopyLicMgrConfig(cls, model, delay = False):

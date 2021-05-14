@@ -13,6 +13,9 @@ class LicenseConfigWriter:
         self.ReadLicense(fileName)
         keyNameMap = self.MixMap()
         self.WriteXmlFile(xmlFileName, keyNameMap)
+        modCnt = len(keyNameMap)
+        msg = 'LicMgrConfig.xml with {} modules has been created as {}'
+        print msg.format(modCnt, xmlFileName)
 
     def ReadLicense(self, fileName):
         self.IdNameMap = {}
@@ -46,7 +49,7 @@ class LicenseConfigWriter:
         return True
 
     def IsModules(self, line):
-        return line.startswith('    m_Modules[')
+        return line.lstrip().startswith('m_Modules[')
 
     def ReadModules(self, line):
         if not self.IsModules(line):
