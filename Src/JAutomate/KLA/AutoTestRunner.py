@@ -5,7 +5,7 @@ from Common.FileOperations import FileOperations
 from Common.Logger import Logger
 from Common.MessageBox import MessageBox
 from Common.StdOutRedirect import StdOutRedirect
-from KLA.PreTestActions import PreTestActions
+from KLA.PreTestActions import PreTestActions, SourceCodeUpdater
 from KLA.TaskMan import TaskMan
 from KLA.VMWareRunner import VMWareRunner
 from KlaModel.ConfigEncoder import ConfigEncoder
@@ -30,7 +30,7 @@ class AutoTestRunner:
     def RunAutoTest(self):
         testType = 'Start' if self.model.StartOnly else 'Run'
         Logger.Log('{} Auto Test {} in {}'.format(testType, self.model.TestName, self.model.Source))
-        PreTestActions.ModifyVisionSystem(self.model)
+        SourceCodeUpdater.ModifyVisionSystem(self.model)
 
         if self.model.GenerateLicMgrConfigOnTest:
             PreTestActions.GenerateLicMgrConfig(self.model)

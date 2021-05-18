@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# exit on error
+set -e
+
+PreCommitScript="tools\\clangformat\\precommit.py"
+
+if [ ! -f "$PreCommitScript" ]; then
+    printf "Precommit script '%s' not found. Skipping.\n" "$PreCommitScript"
+    exit 0
+fi
+
+python $PreCommitScript
+RESULT=$?
+[ $RESULT -ne 0 ] && exit 1
+exit 0

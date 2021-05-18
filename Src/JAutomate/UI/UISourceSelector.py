@@ -2,12 +2,12 @@ import threading
 import Tkinter as tk
 import tkFileDialog
 
-from Common.UIFactory import UIFactory, CheckBoxCreator
 from Common.Git import Git
 from Common.Logger import Logger
 from Common.MessageBox import MessageBox
+from Common.UIFactory import UIFactory, CheckBoxCreator
 from KLA.KlaSourceBuilder import KlaSourceBuilder, KlaSourceCleaner
-from KLA.PreTestActions import PreTestActions
+from KLA.PreTestActions import PreTestActions, SourceCodeUpdater
 from KlaModel.ConfigEncoder import ConfigEncoder
 from UI.UIWindow import UIWindow
 from Common.PrettyTable import PrettyTable, TableFormat
@@ -78,6 +78,7 @@ class UISourceGrid:
         self.model.SrcCnf.UpdateSource(SrcIndex, False)
         print 'Source changed to : ' + self.model.Source
         Logger.Log('Source changed to : ' + self.model.Source)
+        SourceCodeUpdater.CopyPreCommit(self.model)
 
     def AddBranch(self, r, c):
         label = UIFactory.AddLabel(self.ParentFrame, 'Branch Name Updating...', r, c)
@@ -180,6 +181,7 @@ class UISourceSelector(UIWindow):
     def OnClosing(self):
         self.model.Branch = self.SourceGrid.GetBranch(self.model.SrcIndex)
         self.VM.UpdateSourceBranch()
+        SourceCodeUpdater.CopyPreCommit(self.model)
         super(UISourceSelector, self).OnClosing()
 
     def AddSolutions(self):

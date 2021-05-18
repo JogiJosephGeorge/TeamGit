@@ -77,6 +77,8 @@ class PreTestActions:
         src = os.path.abspath(IcosPaths.GetMmiSaveLogsPath(model.Source, model.Platform, model.Config))
         FileOperations.Copy(src, destin)
 
+
+class SourceCodeUpdater:
     @classmethod
     def ModifyVisionSystem(cls, model):
         linesToComment = [
@@ -99,3 +101,10 @@ class PreTestActions:
             print fileName + ' has been modified.'
         else:
             print fileName + ' had already been modified.'
+
+    @classmethod
+    def CopyPreCommit(cls, model):
+        des = model.Source + '/.git/hooks'
+        if not os.path.exists(des + '/pre-commit'):
+            src = model.StartPath + '/DataFiles/pre-commit'
+            FileOperations.Copy(src, des)
