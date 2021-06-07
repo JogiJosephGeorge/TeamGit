@@ -80,9 +80,9 @@ class FileOperations:
         return selectedFiles
 
     @classmethod
-    def GetAllFilesFromList(cls, paths, filterFun):
+    def GetAllFilesFromList(cls, pathCollection, filterFun):
         selectedFiles = []
-        for path in paths:
+        for path in pathCollection:
             selectedFiles += cls.GetAllFiles(path, filterFun)
         return selectedFiles
 
@@ -95,3 +95,25 @@ class FileOperations:
                     selectedDir = os.path.join(root, dir).replace('\\', '/')
                     selectedDirs.append(selectedDir)
         return selectedDirs
+
+    @classmethod
+    def MoveFile(cls, srcPath, desPath):
+        if not os.path.exists(srcPath):
+            print 'Source Path does not exist : ' + srcPath
+            return False
+        if os.path.exists(desPath):
+            print 'Already file exists in destination : ' + desPath
+            return False
+        os.rename(srcPath, desPath)
+        return True
+
+    @classmethod
+    def MoveFiles(cls, srcPaths, desPaths):
+        movedFiles = []
+        if len(srcPaths) != len(desPaths):
+            print 'Error : Mismatch in srcPaths and desPaths'
+            return
+        for src,des in zip(srcPaths, desPaths):
+            if cls.MoveFile(src, des):
+                movedFiles.append((src, des))
+        return movedFiles

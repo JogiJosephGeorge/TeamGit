@@ -1,6 +1,7 @@
 from datetime import datetime
 import os
 import re
+import shutil
 
 from Common.Git import Git
 from Common.FileOperations import FileOperations
@@ -70,29 +71,28 @@ class KlaSourceBuilder:
                 '/mmi/mmi/.vs',
                 '/handler/cpp/.vs',
             ]
+        gitIgnoreHelper = GitIgnoreFilesHelper()
         for srcSet in self.srcTuple:
             src = srcSet[0]
             cnt = len(Git.ModifiedFiles(self.model.Source))
             if cnt > 0:
-                Git.Commit(self.model, 'Temp')
-            print 'Cleaning files in ' + src
-            self.DeleteAllGitIgnoreFiles(src)
-            with open(src + '/.gitignore', 'w') as f:
+                continue
+                #Git.Commit(self.model, 'Temp')
+            print 'Resetting files in ' + src
+            gitIgnoreHelper.DeleteAllFiles(self.model, src)
+            tempGitIgnoreFile = src + '/.gitignore'
+            with open(tempGitIgnoreFile, 'w') as f:
                 f.writelines(str.join('\n', excludeDirs))
             Git.Clean(src)
             print 'Reseting files in ' + src
             Git.ResetHard(src)
-            if cnt > 0:
-                Git.RevertLastCommit(src)
+            #if cnt > 0:
+            #    Git.RevertLastCommit(src)
             if self.model.UpdateSubmodulesOnReset:
                 Git.SubmoduleUpdate(self.model)
-            print 'Cleaning completed for ' + src
-
-    def DeleteAllGitIgnoreFiles(self, dirName):
-        os.remove('{}/.gitignore'.format(dirName))
-        for root, dirs, files in os.walk(dirName):
-            if '.gitignore' in files and '.git' not in files:
-                os.remove('{}/.gitignore'.format(root))
+            FileOperations.Delete(tempGitIgnoreFile)
+            gitIgnoreHelper.RevertDeletedFiles()
+            print 'Resetting completed for ' + src
 
     def CleanSource(self):
         self.CallDevEnv(True)
@@ -121,6 +121,37 @@ class KlaSourceBuilder:
             buildLoger.EndSource(source)
         if len(self.model.ActiveSrcs) > 1 and not ForCleaning:
             print buildLoger.ConsolidatedOutput
+
+
+class GitIgnoreFilesHelper:
+    def DeleteAllFiles(self, model, dirName):
+        self.srcPaths = []
+        #if os.path.exists('{}/.gitignore'.format(dirName)):
+        #    srcPaths.append('{}/.gitignore'.format(dirName))
+        for root, dirs, files in os.walk(dirName):
+            if '.gitignore' in files:
+                self.srcPaths.append('{}/.gitignore'.format(root))
+
+        tempPath = os.path.join(model.StartPath, model.TempDir) + '/GitIgnore/'
+        if os.path.exists(tempPath):
+            shutil.rmtree(tempPath)
+        os.mkdir(tempPath)
+
+        self.desPaths = []
+        for i in range(1, len(self.srcPaths) + 1):
+            self.desPaths.append(tempPath + str(i))
+        movedFiles = FileOperations.MoveFiles(self.srcPaths, self.desPaths)
+        if len(movedFiles) != len(self.srcPaths):
+            movedSrc = [item[0] for item in movedFiles]
+            movedDes = [item[1] for item in movedFiles]
+            revertedFiles = FileOperations.MoveFiles(movedDes, movedSrc)
+            if len(revertedFiles) == len(movedFiles):
+                MessageBox.ShowMessage('Issues in moving .gitignore files')
+            else:
+                MessageBox.ShowMessage('.gitignore files are are moved partially')
+
+    def RevertDeletedFiles(self):
+        FileOperations.MoveFiles(self.desPaths, self.srcPaths)
 
 
 class BuildLoger:
@@ -233,29 +264,32 @@ class KlaSourceCleaner:
             '.obj',
             '.pch',
             '.exp',
-            '.tlog'
+            '.tlog',
+            '.gitignore'
         ]:
             if fileName.endswith(tempFileType):
                 return True
         return False
 
     def RemoveMvsTemp(self):
-        paths = VMWareRunner.GetAllMvsPaths()
-        print 'Removing temp files from : ' + str(paths)
-        tempFileTypes3 = [
-            '.log'
-        ]
-        tempFileTypes4 = [
+        mvsPaths = VMWareRunner.GetAllMvsPaths()
+        print 'Removing temp files from : ' + str(mvsPaths)
+
+        filterDirFun = lambda f : f[:4] == 'logs'
+        dirsToDelete = []
+        for mvsPath in mvsPaths:
+            dirsToDelete += FileOperations.GetAllDirs(mvsPath, filterDirFun)
+        for dir in dirsToDelete:
+            shutil.rmtree(dir)
+
+        tempFileTypes = [
+            '.log',
             '.dump'
         ]
 
-        # filterFun = lambda f : f[:4] == 'logs'
-        # dirsToDelete = FileOperations.GetAllDirs(path, filterFun)
-        # for dir in dirsToDelete:
-        #     print dir
-
-        filterFun = lambda f : f[-4:] in tempFileTypes3 or f[-5:] in tempFileTypes4
-        filesToDelete = FileOperations.GetAllFilesFromList(paths, filterFun)
+        mvsPaths = VMWareRunner.GetAllMvsPaths()
+        filterFun = lambda fileName : any(fileName.endswith(tempType) for tempType in tempFileTypes)
+        filesToDelete = FileOperations.GetAllFilesFromList(mvsPaths, filterFun)
         for file in filesToDelete:
             os.remove(file)
         print '{} files have been removed'.format(len(filesToDelete))
