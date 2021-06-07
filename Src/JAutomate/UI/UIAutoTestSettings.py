@@ -2,8 +2,10 @@ import os
 import threading
 import tkFileDialog
 
+from Common.FileOperations import FileOperations
 from Common.UIFactory import UIFactory
 from KLA.IcosPaths import IcosPaths
+from KLA.PreTestActions import PreTestActions
 from UI.UIWindow import UIWindow
 
 
@@ -50,6 +52,7 @@ class UIAutoTestSettings(UIWindow):
         if len(filename) > 10:
             testName = filename[len(dir) + 1: -10]
             self.filterTestSelector.AddSelectedTest(testName)
+
 
 class FilterTestSelector:
     def AddUI(self, parent, model, r, c, updateCombo):
@@ -124,6 +127,9 @@ class RemoveTestMan:
             self.TestCmb.current(0)
         UIFactory.AddButton(frame, 'Remove Test', 0, 2, self.OnRemoveSelectedTest)
 
+        # The following is not part of RemoveTestMan
+        UIFactory.AddButton(frame, 'Download AutoPlay Model Files', 0, 3, self.DownloadAutoTest)
+
     def OnChangeTestCmb(self, event):
         if len(self.Tests) > 0:
             print 'Combo item changed to : ' + self.Tests[self.TestCmb.current()]
@@ -149,3 +155,7 @@ class RemoveTestMan:
     def UpdateCombo(self):
         self.Tests = self.model.AutoTests.GetNames()
         self.TestCmb['values'] = self.Tests
+
+    def DownloadAutoTest(self):
+        testName = self.Tests[self.TestCmb.current()]
+        PreTestActions.DownloadAutoPlayTestModelFiles(testName, self.model.MMiConfigPath)

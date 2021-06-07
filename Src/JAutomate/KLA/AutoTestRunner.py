@@ -32,18 +32,21 @@ class AutoTestRunner:
         Logger.Log('{} Auto Test {} in {}'.format(testType, self.model.TestName, self.model.Source))
         SourceCodeUpdater.ModifyVisionSystem(self.model)
 
+        initWait = 15  # 8 is not working for CDA/Mmi/WithLead3D
+
         if self.model.GenerateLicMgrConfigOnTest:
             PreTestActions.GenerateLicMgrConfig(self.model)
         if self.model.CopyMockLicenseOnTest:
-            #PreTestActions.CopyMockLicense(self.model, False)
-            PreTestActions.CopyLicMgrConfig(self.model, True)
+            PreTestActions.CopyMockLicense(self.model, False, initWait)
+        if self.model.CopyLicMgrConfigOnTest:
+            PreTestActions.CopyLicMgrConfig(self.model, initWait)
         if self.model.CopyExportIllumRefOnTest:
-            PreTestActions.CopyxPortIllumRef(self.model, True)
+            PreTestActions.CopyxPortIllumRef(self.model, initWait)
 
         #FileOperations.Copy(self.model.StartPath + '/Profiles', 'C:/icos/Profiles', 8, 3)
         os.chdir(self.model.StartPath)
 
-        # After swtiching sources with different configurations, we have to remove myconfig.py
+        # After switching sources with different configurations, we have to remove myconfig.py
         FileOperations.Delete('{}/libs/testing/myconfig.py'.format(self.model.Source))
 
         libsPath = AutoTestRunner.UpdateLibsTestingPath(self.model.Source)

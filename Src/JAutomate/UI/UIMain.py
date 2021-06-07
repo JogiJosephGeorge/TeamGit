@@ -4,9 +4,11 @@ import threading
 
 from Common.Git import Git
 from Common.Logger import Logger
+from Common.MessageBox import MessageBox
 # from Common.PerformanceTester import PerformanceTester
 from Common.UIFactory import UIFactory
 from KLA.AutoTestRunner import AutoTestRunner
+from KLA.PreTestActions import SourceCodeUpdater
 from KLA.PreTestActions2 import KlaRunner
 from KLA.UIViewModel import UIViewModel
 from KLA.VMWareRunner import VMWareRunner
@@ -21,8 +23,7 @@ from UI.UITestGroup import UITestGroup
 class UIMain:
     def Run(self):
         if not ctypes.windll.shell32.IsUserAnAdmin():
-            raw_input('Please run this application with Administrator privilates')
-            #os.system('PAUSE')
+            MessageBox.ShowMessage('Please run this application with Administrator privilates')
             return
         self.model = Model()
         self.VM = UIViewModel(self.model)
@@ -64,6 +65,7 @@ class UIMain:
         self.VM.lblBranch.set(self.model.Branch)
         print title
         self.CheckLicense()
+        SourceCodeUpdater.CopyPreCommit(self.model)
 
     def GetVersion(self):
         commitCnt = Git.ProcessOpen('rev-list master --count --no-merges')

@@ -10,11 +10,11 @@ from KLA.TaskMan import TaskMan
 
 class PreTestActions:
     @classmethod
-    def CopyMockLicense(cls, model, toSrc = True):
+    def CopyMockLicense(cls, model, toSrc = True, initWait = 0):
         args = (model.Source, model.Platform, model.Config)
         licenseFile = os.path.abspath(IcosPaths.GetMockLicensePath(*args))
         mmiPath = PreTestActions.GetMmiPath(model, toSrc)
-        FileOperations.Copy(licenseFile, mmiPath)
+        cls.DelayedCopy(licenseFile, mmiPath, 'MockLic', initWait)
 
     @classmethod
     def GetMmiPath(cls, model, toSrc = True):
@@ -44,13 +44,10 @@ class PreTestActions:
         PrettyTable(TableFormat().SetSingleLine()).PrintTable(data)
 
     @classmethod
-    def CopyxPortIllumRef(cls, model, delay = False):
+    def CopyxPortIllumRef(cls, model, initWait = 0):
         src = model.StartPath + '/DataFiles/xPort_IllumReference.xml'
         des = 'C:/icos/xPort/'
-        if delay:
-            TaskMan.AddTimer('xport', FileOperations.Copy(src, des, 8, 3))
-        else:
-            FileOperations.Copy(src, des)
+        cls.DelayedCopy(src, des, 'xport', initWait)
 
     @classmethod
     def GetTestPath(cls, model):
@@ -62,12 +59,16 @@ class PreTestActions:
         LicenseConfigWriter(model.Source, src)
 
     @classmethod
-    def CopyLicMgrConfig(cls, model, delay = False):
+    def CopyLicMgrConfig(cls, model, initWait = 0):
         src = model.StartPath + '/DataFiles/LicMgrConfig.xml'
         #des = cls.GetTestPath(model) + '~/'
         des = 'C:/Icos'
-        if delay:
-            TaskMan.AddTimer('LicMgr', FileOperations.Copy(src, des, 9, 3))
+        cls.DelayedCopy(src, des, 'LicMgr', initWait)
+
+    @classmethod
+    def DelayedCopy(cls, src, des, timerName='', initWait=0):
+        if initWait > 0:
+            TaskMan.AddTimer(timerName, FileOperations.Copy(src, des, initWait, 3))
         else:
             FileOperations.Copy(src, des)
 
@@ -76,6 +77,22 @@ class PreTestActions:
         destin = IcosPaths.GetTestPathTemp(model.Source, model.TestName) + '/Icos'
         src = os.path.abspath(IcosPaths.GetMmiSaveLogsPath(model.Source, model.Platform, model.Config))
         FileOperations.Copy(src, destin)
+
+    @classmethod
+    def DownloadAutoPlayTestModelFiles(cls, testName, configPath):
+        testName = testName.replace('\\', '/')
+        if not testName.lower().startswith('mmi/autoplay'):
+            print 'Selected test is NOT an auto play test : ' + testName
+            return
+        testName = testName[4:]
+        print 'Downloading started : ' + testName
+        remotePath = IcosPaths.GetAutoplyPath()
+        src = remotePath + testName
+        des = configPath + 'Configurations/' + testName
+        if not os.path.exists(des):
+            os.mkdir(des)
+        FileOperations.Copy(src, des)
+        print 'Completed Downloading : ' + testName
 
 
 class SourceCodeUpdater:

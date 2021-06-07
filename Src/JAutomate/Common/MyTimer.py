@@ -1,5 +1,6 @@
 import time
 import threading
+import datetime
 
 
 class MyTimer(threading.Thread):
@@ -19,10 +20,15 @@ class MyTimer(threading.Thread):
 
     def run(self):
         if self.initWait > 0:
+            #print str(datetime.datetime.now()) + ' JJG MyTimer.run() Before Init Wait' + str(self.args[0])
             time.sleep(self.initWait)
+            #print str(datetime.datetime.now()) + ' JJG MyTimer.run() After Init Wait' + str(self.args[0])
         while True:
+            #print str(datetime.datetime.now()) + ' JJG MyTimer.run() ' + str(self.args[0]) + ' Inside While loop'
             if self.stopped():
+                #print str(datetime.datetime.now()) + ' JJG MyTimer.run() ' + str(self.args[0]) + ' While loop stopped'
                 return
             if self.target(*self.args):
+                #print str(datetime.datetime.now()) + ' JJG MyTimer.run() ' + str(self.args[0]) + ' Target return true'
                 return
             time.sleep(self.interval)

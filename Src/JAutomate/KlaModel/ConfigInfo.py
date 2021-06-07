@@ -55,6 +55,7 @@ class ConfigInfo:
         model.ShowAllButtons = self.ReadField(_model, 'ShowAllButtons', False)
         model.RestartSlotsForMMiAlone = self.ReadField(_model, 'RestartSlotsForMMiAlone', False)
         model.GenerateLicMgrConfigOnTest = self.ReadField(_model, 'GenerateLicMgrConfigOnTest', False)
+        model.CopyLicMgrConfigOnTest = self.ReadField(_model, 'CopyLicMgrConfigOnTest', False)
         model.CopyMockLicenseOnTest = self.ReadField(_model, 'CopyMockLicenseOnTest', False)
         model.CopyExportIllumRefOnTest = self.ReadField(_model, 'CopyExportIllumRefOnTest', False)
         model.RemoveStartedTXT = self.ReadField(_model, 'RemoveStartedTXT', False)
@@ -105,6 +106,7 @@ class ConfigInfo:
         _model['ShowAllButtons'] = model.ShowAllButtons
         _model['RestartSlotsForMMiAlone'] = model.RestartSlotsForMMiAlone
         _model['GenerateLicMgrConfigOnTest'] = model.GenerateLicMgrConfigOnTest
+        _model['CopyLicMgrConfigOnTest'] = model.CopyLicMgrConfigOnTest
         _model['CopyMockLicenseOnTest'] = model.CopyMockLicenseOnTest
         _model['CopyExportIllumRefOnTest'] = model.CopyExportIllumRefOnTest
         _model['RemoveStartedTXT'] = model.RemoveStartedTXT

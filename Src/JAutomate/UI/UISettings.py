@@ -51,30 +51,35 @@ class UISettings(UIWindow):
         msgOff = 'The selected slots will NOT be restarted while running MMi alone.'
         AddCheckBox(txt, 'RestartSlotsForMMiAlone', msgOn, msgOff, False, False)
 
-        txt = 'Copy MMi to Icos On AutoTest'
-        msgOn = 'Copy the mmi built over the installation in C:/icos.'
-        msgOff = 'Do NOT copy the mmi built over the installation in C:/icos.\nThis is NOT RECOMMENDED.'
-        AddCheckBox(txt, 'CopyMmi', msgOn, msgOff, False, True)
-
-        txt = 'Generate LicMgrConfig.xml On AutoTest'
-        msgOn = 'The file LicMgrConfig.xml will be created while running auto test.\nThis is NOT RECOMMENDED.'
-        msgOff = 'The file LicMgrConfig.xml will NOT be created while running auto test.'
-        AddCheckBox(txt, 'GenerateLicMgrConfigOnTest', msgOn, msgOff, True, False)
-
-        txt = 'Copy Mock License On AutoTest'
-        msgOn = 'The file mock License.dll will be copied while running auto test.\nThis is NOT RECOMMENDED.'
-        msgOff = 'The file mock License.dll will NOT be copied while running auto test.'
-        AddCheckBox(txt, 'CopyMockLicenseOnTest', msgOn, msgOff, True, False)
-
-        txt = 'Copy xPort_IllumReference.xml on AutoTest'
-        msgOn = 'The file xPort_IllumReference.xml will be copied while running auto test.\nThis is NOT RECOMMENDED.'
-        msgOff = 'The file xPort_IllumReference.xml will NOT be copied while running auto test.'
-        AddCheckBox(txt, 'CopyExportIllumRefOnTest', msgOn, msgOff, True, False)
-
         txt = 'Remove C:\icos\Started.txt on starting MMI'
         msgOn = 'The file C:\icos\Started.txt will be removed while running MMi.\nThis is NOT RECOMMENDED.'
         msgOff = 'The file C:\icos\Started.txt will NOT be removed while running MMi.'
         AddCheckBox(txt, 'RemoveStartedTXT', msgOn, msgOff, True, False)
+
+        txt = 'On AutoTest Copy MMi to Icos'
+        msgOn = 'Copy the mmi built over the installation in C:/icos.'
+        msgOff = 'Do NOT copy the mmi built over the installation in C:/icos.\nThis is NOT RECOMMENDED.'
+        AddCheckBox(txt, 'CopyMmi', msgOn, msgOff, False, True)
+
+        txt = 'On AutoTest Generate LicMgrConfig.xml'
+        msgOn = 'The file LicMgrConfig.xml will be created while running auto test.\nThis is NOT RECOMMENDED.'
+        msgOff = 'The file LicMgrConfig.xml will NOT be created while running auto test.'
+        AddCheckBox(txt, 'GenerateLicMgrConfigOnTest', msgOn, msgOff, True, False)
+
+        txt = 'On AutoTest Copy LicMgrConfig.xml'
+        msgOn = 'The file LicMgrConfig.xml will be copied while running auto test.\nThis is NOT RECOMMENDED.'
+        msgOff = 'The file LicMgrConfig.xml will NOT be copied while running auto test.'
+        AddCheckBox(txt, 'CopyLicMgrConfigOnTest', msgOn, msgOff, True, False)
+
+        txt = 'On AutoTest Copy Mock License'
+        msgOn = 'The file mock License.dll will be copied while running auto test.\nThis is NOT RECOMMENDED.'
+        msgOff = 'The file mock License.dll will NOT be copied while running auto test.'
+        AddCheckBox(txt, 'CopyMockLicenseOnTest', msgOn, msgOff, True, False)
+
+        txt = 'On AutoTest Copy xPort_IllumReference.xml'
+        msgOn = 'The file xPort_IllumReference.xml will be copied while running auto test.\nThis is NOT RECOMMENDED.'
+        msgOff = 'The file xPort_IllumReference.xml will NOT be copied while running auto test.'
+        AddCheckBox(txt, 'CopyExportIllumRefOnTest', msgOn, msgOff, True, False)
 
         self.AddBackButton(parent, self.GrpRow, 0)
 

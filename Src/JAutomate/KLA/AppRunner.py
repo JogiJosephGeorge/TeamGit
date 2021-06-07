@@ -60,7 +60,7 @@ class AppRunner:
             PreTestActions.GenerateLicMgrConfig(self.model)
         if self.model.CopyMockLicenseOnTest:
             PreTestActions.CopyMockLicense(self.model, fromSrc)
-            PreTestActions.CopyLicMgrConfig(self.model, False)
+            PreTestActions.CopyLicMgrConfig(self.model, 0)
         if self.model.CopyExportIllumRefOnTest:
             PreTestActions.CopyxPortIllumRef(self.model)
         if self.model.RestartSlotsForMMiAlone:

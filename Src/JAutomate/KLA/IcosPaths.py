@@ -40,5 +40,9 @@ class IcosPaths:
         return cls.GetCommonTestPath(source) + '/' + testName
 
     @classmethod
+    def GetAutoplyPath(cls):
+        return '\\\\10.230.8.202/autommi/Configurations/'
+
+    @classmethod
     def GetTestPathTemp(cls, source, testName):
         return cls.GetTestPath(source, testName) + '~'
