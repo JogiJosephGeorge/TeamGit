@@ -44,7 +44,7 @@ class UIMainMenu:
         self.uiGrid.AddButton('Run MMi SPC Tests', self.mmiSpcTestRunner.RunAllTests)
 
     def RunHandler(self):
-        self.appRunner.RunHandler(self.model.RunHostCam)
+        self.appRunner.RunHandler()
 
     def RunMMi(self, fromSrc):
         self.appRunner.RunMMi(fromSrc, self.model.RemoveStartedTXT)

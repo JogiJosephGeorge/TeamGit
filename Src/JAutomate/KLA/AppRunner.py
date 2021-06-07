@@ -18,7 +18,7 @@ class AppRunner:
         self.testRunner = testRunner
         self.vsSolutions = vsSolutions
 
-    def RunHandler(self, runHostCam):
+    def RunHandler(self):
         Logger.Log('Run Handler in ' + self.model.Source)
         TaskMan.StopTasks()
 
@@ -35,8 +35,6 @@ class AppRunner:
 
         OsOperations.System('start ' + consoleExe + ' ' + testTempDir)
         OsOperations.System('start {} {} {}'.format(simulatorExe, testTempDir, handlerPath))
-        if runHostCam:
-            self.RunHostCam()
 
     def RunHostCam(self):
         fileName = FileOperations.ReadLine('C:/MVS8000/slot1/software_link.cfg', 'utf-8')[0]
@@ -53,6 +51,9 @@ class AppRunner:
 
         if removePrevInst:
             FileOperations.Delete('C:/icos/started.txt')
+
+        if self.model.RunHostCam:
+            self.RunHostCam()
 
         mmiPath = PreTestActions.GetMmiPath(self.model, fromSrc)
         Logger.Log('Run MMi from ' + mmiPath)
@@ -74,7 +75,7 @@ class AppRunner:
         OsOperations.System('start ' + mmiExe)
 
     def RunHandlerMMi(self):
-        self.RunHandler(False)
+        self.RunHandler()
         self.RunMMi(True, False)
 
     def RunToollinkHost(self):

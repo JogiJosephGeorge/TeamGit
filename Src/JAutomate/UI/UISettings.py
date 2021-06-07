@@ -41,9 +41,9 @@ class UISettings(UIWindow):
         msgOn = msgOff = 'You need to restart the application to update the UI.'
         AddCheckBox(txt, 'ShowAllButtons', msgOn, msgOff, True, True)
 
-        txt = 'Run Host Cam while running Handler alone'
-        msgOn = 'Run Host Cam while running Handler alone.'
-        msgOff = 'Do NOT run Host Cam while running Handler alone.'
+        txt = 'Run Host Cam while running MMi alone'
+        msgOn = 'Run Host Cam while running MMi alone.'
+        msgOff = 'Do NOT run Host Cam while running MMi alone.'
         AddCheckBox(txt, 'RunHostCam', msgOn, msgOff, False, False)
 
         txt = 'Restart Slots while running MMi alone'
