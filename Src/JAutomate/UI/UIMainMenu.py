@@ -5,6 +5,7 @@ from KLA.AppRunner import AppRunner
 from KLA.JiraOpener import JiraOpener
 from KLA.MmiSpcTestRunner import MmiSpcTestRunner
 from KLA.PreTestActions import PreTestActions
+from KLA.SpecialTextOperations import SpecialTextOperations
 from KLA.UIGrid import UIGrid
 from UI.UISettings import UISettings
 from UI.UISolutionList import UISolutionList
@@ -89,6 +90,7 @@ class UIMainMenu:
     def AddColumn5(self):
         self.uiGrid.CreateColumnFrame()
         effortLogger = EffortLogger()
+        specialTextOps = SpecialTextOperations()
         self.uiGrid.AddButton('Settings', self.ShowSettings)
         if self.model.ShowAllButtons:
             self.uiGrid.AddButton('Clear Output', OsOperations.Cls)
@@ -96,6 +98,7 @@ class UIMainMenu:
             self.uiGrid.AddButton('Print mmi.h IDs', self.klaRunner.PrintMissingIds)
             self.uiGrid.AddButton('Effort Log', effortLogger.PrintEffortLogInDetail, (self.model.EffortLogFile,))
             self.uiGrid.AddButton('Daily Log', effortLogger.PrintDailyLog, (self.model.EffortLogFile,))
+            self.uiGrid.AddButton('Convert Stack', specialTextOps.ConvertStack)
 
     def ShowSettings(self):
         uiSettings = UISettings(self.window, self.model)

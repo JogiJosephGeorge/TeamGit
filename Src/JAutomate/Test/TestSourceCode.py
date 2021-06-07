@@ -7,14 +7,14 @@ from Common.Test import Test
 
 class TestSourceCode:
     def __init__(self):
-        self.TestClassLineCount()
+        self.TestClassLineCount(maxLineCount = 130)
 
-    def TestClassLineCount(self):
+    def TestClassLineCount(self, maxLineCount):
         for name, lineCnt in self.GetAllClasses():
             #Test.Assert(lineCnt < 100, True, '{:20} {}'.format(name, lineCnt))
             #print '{:20} {}'.format(name, lineCnt)
-            if lineCnt > 150:
-                Test.Assert(lineCnt, '< 150', 'Exceeds line count : {}'.format(name))
+            if lineCnt > maxLineCount:
+                Test.Assert(lineCnt, '< ' + str(maxLineCount), 'Exceeds line count : ' + name)
 
     def GetAllClasses(self):
         for modName in self.GetModules():
@@ -38,5 +38,5 @@ class TestSourceCode:
         for name, obj in inspect.getmembers(sys.modules[modName], inspect.isclass):
             if obj.__module__ == modName:
                 lineCnt = len(inspect.getsourcelines(obj)[0])
-                yield (name, lineCnt)
+                yield (modName + '.' + name, lineCnt)
         del modName
