@@ -10,6 +10,7 @@ class UIWindow(object):
     def Show(self):
         self.window = UIFactory.CreateWindow(self.Parent, self.Title, self.model.StartPath)
         self.frame = UIFactory.AddFrame(self.window, 0, 0, 20, 20)
+        self.model.Geometry.ReadGeomInfo(self.window, self.Title)
         self.CreateUI(self.frame)
         self.window.protocol('WM_DELETE_WINDOW', self.OnClosing)
         if self.Parent is None:
@@ -20,6 +21,7 @@ class UIWindow(object):
 
     def OnClosing(self):
         if self.Parent is not None:
+            self.model.Geometry.WriteGeomInfo(self.window, self.Title)
             self.Parent.deiconify()
             self.Parent = None
         self.model.WriteConfigFile()

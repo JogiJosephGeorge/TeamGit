@@ -1,8 +1,10 @@
+from collections import OrderedDict
+import json
 import os
 
 from KlaModel.AutoTestModel import AutoTestModel
 from KlaModel.ConfigEncoder import ConfigEncoder
-from KlaModel.ConfigInfo import ConfigInfo
+from KlaModel.ConfigInfo import ConfigInfo, Geometry
 
 
 class SourceConfig:
@@ -36,23 +38,63 @@ class SourceConfig:
         return True
 
 
+class IniFile:
+    def __init__(self, fileName):
+        self.FileName = fileName
+
+    def Open(self):
+        self.IniData = {}
+        if os.path.exists(self.FileName):
+            try:
+                with open(self.FileName) as f:
+                    self.IniData = json.load(f)
+            except:
+                print 'There are issues in reading ' + self.FileName
+
+    def ReadField(self, key, defValue):
+        if key in self.IniData:
+            return self.IniData[key]
+        return defValue
+
+    def ReadInt(self, key, defValue):
+        value = self.ReadField(key, defValue)
+        return int(value)
+
+    def StartWriting(self):
+        self.SaveData = OrderedDict()
+
+    def Write(self, name, value):
+        self.SaveData[name] = value
+
+    def Save(self):
+        with open(self.FileName, 'w') as f:
+            json.dump(self.SaveData, f, indent=3)
+
+
 class Model:
     def __init__(self):
         self.StartPath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         filePath = self.StartPath + '\\KlaRunner.ini'
-        self.ConfigInfo = ConfigInfo(filePath)
+        self.IniFile = IniFile(filePath)
+        self.ConfigInfo = ConfigInfo()
         self.AutoTests = AutoTestModel()
         self.SrcCnf = SourceConfig(self)
         self.Config = ConfigEncoder.Configs[0]
         self.Platform = ConfigEncoder.Platforms[0]
         self.TestName = ''
         self.slots = []
+        self.Geometry = Geometry()
 
     def ReadConfigFile(self):
-        self.ConfigInfo.Read(self)
+        self.IniFile.Open()
+        self.ConfigInfo.Read(self, self.IniFile)
+        self.Geometry.Read(self, self.IniFile)
 
     def WriteConfigFile(self):
-        self.ConfigInfo.Write(self)
+        self.IniFile.StartWriting()
+        self.ConfigInfo.Write(self.IniFile, self)
+        self.Geometry.Write(self.IniFile, self)
+        self.IniFile.Save()
 
     def UpdateTest(self, index, writeToFile):
         if not self.AutoTests.IsValidIndex(index):

@@ -44,8 +44,15 @@ class UIMain:
         UITestGroup(self, klaRunner, vsSolutions, threadHandler, testRunner)
         UIMainMenu(self, klaRunner, vsSolutions, threadHandler, testRunner)
 
+        self.model.Geometry.ReadGeomInfo(self.window, 'Main')
+        self.window.protocol('WM_DELETE_WINDOW', self.OnClosing)
         self.window.after(200, self.LazyInit)
         self.window.mainloop()
+
+    def OnClosing(self):
+        self.model.Geometry.WriteGeomInfo(self.window, 'Main')
+        self.model.WriteConfigFile()
+        self.window.destroy()
 
     def LazyInit(self):
         class LazyData:
