@@ -78,7 +78,6 @@ class UISourceGrid:
         self.model.SrcCnf.UpdateSource(SrcIndex, False)
         print 'Source changed to : ' + self.model.Source
         Logger.Log('Source changed to : ' + self.model.Source)
-        SourceCodeUpdater.CopyPreCommit(self.model)
 
     def AddBranch(self, r, c):
         label = UIFactory.AddLabel(self.ParentFrame, 'Branch Name Updating...', r, c)

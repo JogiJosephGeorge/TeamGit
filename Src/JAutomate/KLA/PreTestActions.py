@@ -2,6 +2,7 @@ import os
 
 from Common.FileOperations import FileOperations
 from Common.PrettyTable import PrettyTable, TableFormat
+from Common.OsOperations import OsOperations
 from KlaModel.ConfigEncoder import ConfigEncoder
 from KLA.IcosPaths import IcosPaths
 from KLA.LicenseConfigWriter import LicenseConfigWriter
@@ -121,7 +122,20 @@ class SourceCodeUpdater:
 
     @classmethod
     def CopyPreCommit(cls, model):
-        des = model.Source + '/.git/hooks'
-        if not os.path.exists(des + '/pre-commit'):
+        desDir = model.Source + '/.git/hooks'
+        desPath = 'pre-commit'
+        cd1 = os.getcwd()
+        OsOperations.ChDir(desDir)
+        newPreCommit = model.Source + '/tools/Clangformat/pre-commit'
+        if os.path.exists(newPreCommit):
+            if os.path.exists(desPath):
+                #if os.path.islink(desPath):  # This doesn't work at all
+                if os.stat(desPath).st_size == 0:
+                    return
+                os.remove(desPath)
+            params = u'mklink pre-commit ..\\..\\tools\\Clangformat\\pre-commit'
+            os.system(params)
+        else:
             src = model.StartPath + '/DataFiles/pre-commit'
-            FileOperations.Copy(src, des)
+            FileOperations.Copy(src, desDir)
+        OsOperations.ChDir(cd1)

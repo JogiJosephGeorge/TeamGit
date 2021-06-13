@@ -28,6 +28,12 @@ class SourceConfig:
         if index < 0 or index >= srcCnt:
             return False
         del self.model.Sources[index]
+        if index in self.model.ActiveSrcs:
+            activeSrcInx = self.model.ActiveSrcs.index(index)
+            del self.model.ActiveSrcs[activeSrcInx]
+        for i in range(len(self.model.ActiveSrcs)):
+            if self.model.ActiveSrcs[i] > index:
+                self.model.ActiveSrcs[i] -= 1
         if index + 1 >= srcCnt:
             index -= 1
         self.model.SrcIndex = index

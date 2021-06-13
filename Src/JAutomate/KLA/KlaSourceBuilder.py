@@ -264,8 +264,7 @@ class KlaSourceCleaner:
             '.obj',
             '.pch',
             '.exp',
-            '.tlog',
-            '.gitignore'
+            '.tlog'
         ]:
             if fileName.endswith(tempFileType):
                 return True
