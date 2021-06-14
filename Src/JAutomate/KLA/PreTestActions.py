@@ -123,6 +123,8 @@ class SourceCodeUpdater:
     @classmethod
     def CopyPreCommit(cls, model):
         desDir = model.Source + '/.git/hooks'
+        if not os.path.exists(desDir):
+            return
         desPath = 'pre-commit'
         cd1 = os.getcwd()
         OsOperations.ChDir(desDir)
@@ -139,3 +141,20 @@ class SourceCodeUpdater:
             src = model.StartPath + '/DataFiles/pre-commit'
             FileOperations.Copy(src, desDir)
         OsOperations.ChDir(cd1)
+
+    @classmethod
+    def PauseMmiAtInit(cls, model):
+        fileName = 'D:/CI/Src1/libs/testing/handlerprocesses.py'
+        # Find last import line
+        # Insert this line after that import tkMessageBox
+
+        # Find method def startDelayTesthost(
+        # Find the line 'p.testhost.start()' after trimming
+        # Insert the line before that
+        # tkMessageBox.showinfo('KLA Runner', 'Press OK to start MMI.exe')
+
+        # If tk is not working, we can try the old way
+        #print "\n\nGoing to start MMI.exe"  # JJG
+        #os.system("pause")
+
+        pass
