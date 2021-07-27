@@ -28,7 +28,7 @@ class VMWareRunner:
     def SelectSlots(cls, model):
         fileName = 'C:/Icos/Mmi_Cnf.xml'
         if not os.path.isfile(fileName):
-            MessageBox.ShowMessage('File does not exist: ' + fileName)
+            print 'File does not exist: ' + fileName
             return False
         mydoc = minidom.parse(fileName)
         devices = mydoc.getElementsByTagName('Device')
