@@ -1,6 +1,7 @@
 import os
 import tkFileDialog
 
+from Common.MessageBox import MessageBox
 from Common.UIFactory import UIFactory, CheckBoxCreator, TextBoxCreator
 from UI.UIWindow import UIWindow
 
@@ -38,8 +39,9 @@ class UISettings(UIWindow):
             self.chkRow += 1
 
         txt = 'Show All Commands in KlaRunner'
-        msgOn = msgOff = 'You need to restart the application to update the UI.'
-        AddCheckBox(txt, 'ShowAllButtons', msgOn, msgOff, True, True)
+        isChecked = self.model.UILevel < 3
+        self.ShowAllChkBox = UIFactory.AddCheckBox(checkFrame, txt, isChecked, self.chkRow, 0, self.OnClickShowAllCheckBox)
+        self.chkRow += 1
 
         txt = 'Run Host Cam while running MMi alone'
         msgOn = 'Run Host Cam while running MMi alone.'
@@ -133,3 +135,11 @@ class UISettings(UIWindow):
         UIFactory.AddLabel(parent, label, self.Row, 0)
         self.textBoxCreator.Add(parent, self.Row, 1, attrName, validate)
         self.Row += 1
+
+    def OnClickShowAllCheckBox(self):
+        if self.model.UILevel == 1:
+            return
+        isChecked = self.ShowAllChkBox.get()
+        self.model.UILevel = 2 if isChecked else 3
+        msg = 'You need to restart the application to update the UI.'
+        MessageBox.ShowMessage(msg)

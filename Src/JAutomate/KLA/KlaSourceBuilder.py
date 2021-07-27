@@ -285,6 +285,7 @@ class KlaSourceCleaner:
 
         tempFileTypes = [
             '.log',
+            '.tga',
             '.dump'
         ]
 
