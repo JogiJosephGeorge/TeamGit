@@ -5,12 +5,24 @@ from Test.UnitTestsRunner import UnitTestsRunner
 from UI.UIMain import UIMain
 from UI.UIGitLogViewer import UIGitLogViewer
 from KlaModel.Model import Model
+from KLA.GoldenReportComparer import GoldenReportComparer
 
 
-def ShowGitLog():
+def GetTempModel():
     model = Model()
     model.ReadConfigFile()
-    UIGitLogViewer(None, model).Show()
+    return model
+
+def ShowGitLog():
+    UIGitLogViewer(None, GetTempModel()).Show()
+
+def CompareGolderReports():
+    testPath = r'C:\Users\1014769\Downloads\35149\CDA\Mmi\OutputBatchReelReport~1'
+    comparer = GoldenReportComparer(GetTempModel())
+    leftFolder = testPath + '/GoldenReports'
+    rightFolder = testPath + '/_results'
+    newRightFolder = testPath + '/NewGoldenReports'
+    comparer.CopyAndCompareTestResults(leftFolder, rightFolder, newRightFolder)
 
 def main():
     if len(sys.argv) == 2:
@@ -23,4 +35,5 @@ def main():
 
 
 #ShowGitLog()
+#CompareGolderReports()
 main()

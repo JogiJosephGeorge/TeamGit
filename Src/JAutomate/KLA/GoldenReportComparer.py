@@ -25,12 +25,16 @@ class GoldenReportComparer:
         print 'Open directory : ' + dirPath
 
     def CompareMmiReports(self):
+        testPath = self.GetTestPath()
+        leftFolder = testPath + '/GoldenReports'
+        rightFolder = testPath + '~/_results'
+        newRightFolder = testPath + '~/NewGoldenReports'
+        self.CopyAndCompareTestResults(leftFolder, rightFolder, newRightFolder)
+
+    def CopyAndCompareTestResults(self, leftFolder, rightFolder, newRightFolder):
         if not os.path.isfile(self.model.BCompare):
             print 'Beyond compare does not exist in the given path : ' + self.model.BCompare
             return
-        leftFolder = self.GetTestPath() + '/GoldenReports'
-        rightFolder = self.GetTestPath() + '~/_results'
-        newRightFolder = self.GetTestPath() + '~/NewGoldenReports'
         self.CopyResultFiles(leftFolder, rightFolder, newRightFolder)
         subprocess.Popen([self.model.BCompare, leftFolder, newRightFolder])
 
