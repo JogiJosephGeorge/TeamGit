@@ -156,6 +156,7 @@ class GitIgnoreFilesHelper:
 
 class BuildLoger:
     def __init__(self, model, ForCleaning):
+        self.model = model
         if ForCleaning:
             self.fileName = model.StartPath + '/bin/BuildLog.txt'
         else:
@@ -212,7 +213,8 @@ class BuildLoger:
 
     def PrintMsg(self, message):
         if '>----' in message:
-            print message
+            if self.model.ShowBuildInProgress:
+                print message
         elif '=====' in message:
             print message
             nums = self.GetBuildStatus(message)

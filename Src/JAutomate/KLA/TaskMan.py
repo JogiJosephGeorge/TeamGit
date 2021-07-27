@@ -49,6 +49,7 @@ class TaskMan:
     @classmethod
     def StopTimer(cls, name):
         if cls.namedTimers[name] is not None:
+            print 'Stop Timer : ' + name
             cls.namedTimers[name].stop()
             cls.namedTimers[name] = None
 

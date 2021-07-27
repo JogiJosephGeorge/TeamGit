@@ -44,6 +44,7 @@ class ConfigInfo:
         model.CleanDotVsOnReset = iniFile.ReadField('CleanDotVsOnReset', False)
         model.UpdateSubmodulesOnReset = iniFile.ReadField('UpdateSubmodulesOnReset', False)
         model.RunHostCam = iniFile.ReadField('RunHostCam', False)
+        model.ShowBuildInProgress = iniFile.ReadField('ShowBuildInProgress', True)
 
         model.MMiConfigPath = model.MMiConfigPath.replace('/', '\\')
 
@@ -86,6 +87,7 @@ class ConfigInfo:
         iniFile.Write('CleanDotVsOnReset', model.CleanDotVsOnReset)
         iniFile.Write('UpdateSubmodulesOnReset', model.UpdateSubmodulesOnReset)
         iniFile.Write('RunHostCam', model.RunHostCam)
+        iniFile.Write('ShowBuildInProgress', model.ShowBuildInProgress)
 
 
 class Geometry:

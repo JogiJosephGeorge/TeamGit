@@ -17,15 +17,15 @@ class UIAutoTestSettings(UIWindow):
     def CreateUI(self, parent):
         testFrame = UIFactory.AddFrame(parent, 0, 0)
 
-        UIFactory.AddLabel(testFrame, 'Method 1: Add test by browsing script.py file', 0, 0)
-        self.AddBrowseButton(testFrame, 1)
+        UIFactory.AddLabel(testFrame, 'Method 1: Add test by selecting from list', 0, 0)
+        self.filterTestSelector = FilterTestSelector()
+        self.RemoveTestMan = RemoveTestMan()
+        self.filterTestSelector.AddUI(testFrame, self.model, 1, 0, self.RemoveTestMan.UpdateCombo)
 
         UIFactory.AddLabel(testFrame, '', 2, 0) # Empty Row
 
-        UIFactory.AddLabel(testFrame, 'Method 2: Add test by selecting from list', 3, 0)
-        self.filterTestSelector = FilterTestSelector()
-        self.RemoveTestMan = RemoveTestMan()
-        self.filterTestSelector.AddUI(testFrame, self.model, 4, 0, self.RemoveTestMan.UpdateCombo)
+        UIFactory.AddLabel(testFrame, 'Method 2: Add test by browsing script.py file', 3, 0)
+        self.AddBrowseButton(testFrame, 4)
 
         UIFactory.AddLabel(testFrame, '', 5, 0) # Empty Row
 

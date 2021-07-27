@@ -195,6 +195,8 @@ class UISourceSelector(UIWindow):
             slnName = self.vsSolutions.GetSlnName(sln)
             chk = UIFactory.AddCheckBox(row1, slnName, True, 0, inx, self.OnSelectSolution, (inx,))
             self.slnChks.append(chk)
+        rowBuildSettings = self.AddRow()
+        self.checkBoxCreator.AddCheckBox(rowBuildSettings, 0, 0, 'Show Build In Progress', self.model, 'ShowBuildInProgress', '', '', False, False)
         row2 = self.AddRow()
         self.threadHandler.AddButton(row2, ' Clean Solutions ', 0, 0, self.srcBuilder.CleanSource, None, self.srcBuilder.NotifyClean, None, 19)
         self.threadHandler.AddButton(row2, ' Build Solutions ', 0, 1, self.srcBuilder.BuildSource, None, self.srcBuilder.NotifyBuild, None, 19)

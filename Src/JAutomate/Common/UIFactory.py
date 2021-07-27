@@ -125,9 +125,9 @@ class TextBoxCreator:
         self.TextVars = dict()
         self.Validators = dict()
 
-    def Add(self, parent, r, c, attrName, validate):
+    def Add(self, parent, r, c, attrName, validate, width = 19):
         txt = getattr(self.model, attrName, '-')
-        self.TextVars[attrName] = UIFactory.AddTextBox(parent, txt, r, c, 19)
+        self.TextVars[attrName] = UIFactory.AddTextBox(parent, txt, r, c, width)
         self.Validators[attrName] = validate
 
     def UpdateModel(self):

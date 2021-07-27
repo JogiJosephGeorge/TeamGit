@@ -8,9 +8,11 @@ class UIWindow(object):
         self.Title = title
 
     def Show(self):
-        self.window = UIFactory.CreateWindow(self.Parent, self.Title, self.model.StartPath)
+        startPath = self.model.StartPath if self.model else ''
+        self.window = UIFactory.CreateWindow(self.Parent, self.Title, startPath)
         self.frame = UIFactory.AddFrame(self.window, 0, 0, 20, 20)
-        self.model.Geometry.ReadGeomInfo(self.window, self.Title)
+        if self.model:
+            self.model.Geometry.ReadGeomInfo(self.window, self.Title)
         self.CreateUI(self.frame)
         self.window.protocol('WM_DELETE_WINDOW', self.OnClosing)
         if self.Parent is None:
@@ -21,10 +23,12 @@ class UIWindow(object):
 
     def OnClosing(self):
         if self.Parent is not None:
-            self.model.Geometry.WriteGeomInfo(self.window, self.Title)
+            if self.model:
+                self.model.Geometry.WriteGeomInfo(self.window, self.Title)
             self.Parent.deiconify()
             self.Parent = None
-        self.model.WriteConfigFile()
+        if self.model:
+            self.model.WriteConfigFile()
         self.window.destroy()
 
     def AddBackButton(self, parent, r, c):
