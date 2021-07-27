@@ -29,20 +29,48 @@ class PreTestActions:
     @classmethod
     def PrintAvailableExes(cls, model):
         data = [['Source', 'Available EXEs', 'Platform', 'Config']]
-        for src,a,b in model.Sources:
+        for src,c,p in model.Sources:
             data.append(['-'])
             data.append([src])
-            exePaths = []
-            for pf in ConfigEncoder.Platforms:
-                for cfg in ConfigEncoder.Configs:
-                    exePaths.append((IcosPaths.GetMmiExePath(src, pf, cfg), pf, cfg))
-                    exePaths.append((IcosPaths.GetConsolePath(src, pf, cfg), pf, cfg))
-                    exePaths.append((IcosPaths.GetSimulatorPath(src, pf, cfg), pf, cfg))
-                    exePaths.append((IcosPaths.GetMockLicensePath(src, pf, cfg), pf, cfg))
+            exePaths = cls.GetPossibleExePathsOnSource(src)
             for exePath, pf, cfg in exePaths:
                 if os.path.exists(exePath):
                     data.append(['', exePath, pf, cfg])
         PrettyTable(TableFormat().SetSingleLine()).PrintTable(data)
+
+    @classmethod
+    def GetPossibleExePathsOnSource(cls, source):
+        exePaths = []
+        for pf in ConfigEncoder.Platforms:
+            for cfg in ConfigEncoder.Configs:
+                exePaths += cls.GetPossibleExePathsOnConfig(source, pf, cfg)
+        return exePaths
+
+    @classmethod
+    def ConfigExistsOnSource(cls, source, pf, cfg):
+        exePaths = cls.GetPossibleExePathsOnConfig(source, pf, cfg)
+        for exePath, pf, cfg in exePaths:
+            if not os.path.exists(exePath):
+                return False
+        return True
+
+    @classmethod
+    def GetPossibleExePathsOnConfig(cls, source, pf, cfg):
+        exePaths = []
+        exePaths.append((IcosPaths.GetMmiExePath(source, pf, cfg), pf, cfg))
+        exePaths.append((IcosPaths.GetConsolePath(source, pf, cfg), pf, cfg))
+        exePaths.append((IcosPaths.GetSimulatorPath(source, pf, cfg), pf, cfg))
+        exePaths.append((IcosPaths.GetMockLicensePath(source, pf, cfg), pf, cfg))
+        return exePaths
+
+    @classmethod
+    def GetExistingConfigs(cls, source):
+        configPlatforms = []
+        for pf in ConfigEncoder.Platforms:
+            for cfg in ConfigEncoder.Configs:
+                if cls.ConfigExistsOnSource(source, pf, cfg):
+                    configPlatforms.append((pf, cfg))
+        return configPlatforms
 
     @classmethod
     def CopyxPortIllumRef(cls, model, initWait = 0):

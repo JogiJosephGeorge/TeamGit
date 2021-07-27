@@ -79,7 +79,7 @@ class AppRunner:
         self.RunMMi(True, False)
 
     def RunToollinkHost(self):
-        sys.path.append('C:\Handler\\testing')
+        sys.path.append(r'C:\Handler\testing')
         import handlerprocesses
         from generated.handlerSystem import ActionIds
 

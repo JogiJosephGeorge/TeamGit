@@ -239,6 +239,8 @@ class KlaSourceCleaner:
         self.model = model
 
     def RemoveAllHandlerTemp(self):
+        if len(self.model.ActiveSrcs) == 0:
+            MessageBox.ShowMessage('There is no active source.')
         for activeSrc in self.model.ActiveSrcs:
             source, config, platform = self.model.Sources[activeSrc]
             self.RemoveHandlerTemp(source)

@@ -161,16 +161,19 @@ class UISourceSelector(UIWindow):
 
     def LazyUiInit(self):
         index = 0
-        data = [['Source', 'Branch']]
-        for srcTuple in self.model.Sources:
+        data = [['Source', 'Branch', 'Available Configs']]
+        for src, c, p in self.model.Sources:
             data.append(['-'])
-            branch = '' # Git.GetBranch(srcTuple[0])
-            for brn1 in Git.GetLocalBranches(srcTuple[0]):
+            branch = '' # Git.GetBranch(src)
+            configs = ''
+            for pf,cfg in PreTestActions.GetExistingConfigs(src):
+                configs = '{}|{} '.format(pf, cfg)
+            for brn1 in Git.GetLocalBranches(src):
                 if brn1.startswith('* '):
                     branch = brn1[2:]
-                    data.append([srcTuple[0], branch])
+                    data.append([src, branch, configs])
                 else:
-                    data.append(['', brn1])
+                    data.append(['', brn1, ''])
             self.SourceGrid.SetBranch(index, branch)
             if index == self.model.SrcIndex:
                 self.model.Branch = branch

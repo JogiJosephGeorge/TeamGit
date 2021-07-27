@@ -80,7 +80,7 @@ class UIMainMenu:
     def AddColumn4(self):
         if self.model.UILevel < 3:
             self.uiGrid.CreateColumnFrame()
-            self.uiGrid.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
+            #self.uiGrid.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
             self.uiGrid.AddButton('Copy Mock License', PreTestActions.CopyMockLicense, (self.model,))
             self.uiGrid.AddButton('Copy xPort xml', PreTestActions.CopyxPortIllumRef, (self.model,))
             self.uiGrid.AddButton('Generate LicMgrConfig', PreTestActions.GenerateLicMgrConfig, (self.model,))
