@@ -85,3 +85,9 @@ class OsOperations:
     def ChDir(cls, path):
         os.chdir(path[:2])
         os.chdir(path)
+
+    @classmethod
+    def GetAllSubDir(cls, path):
+        for x in os.walk(path):
+            return x[1]
+        return []

@@ -109,5 +109,5 @@ class UIMainMenu:
             self.uiGrid.AddButton('Convert Stack', specialTextOps.ConvertStack)
 
     def ShowSettings(self):
-        uiSettings = UISettings(self.window, self.model)
+        uiSettings = UISettings(self.window, self.model, self.VM)
         uiSettings.Show()

@@ -7,8 +7,9 @@ from UI.UIWindow import UIWindow
 
 
 class UISettings(UIWindow):
-    def __init__(self, parent, model):
+    def __init__(self, parent, model, VM):
         super(UISettings, self).__init__(parent, model, 'Settings')
+        self.VM = VM
         self.GrpRow = 0
         self.Row = 0
 
@@ -16,7 +17,7 @@ class UISettings(UIWindow):
         self.checkBoxCreator = CheckBoxCreator()
 
         pathFrame = self.AddGroup(parent)
-        self.AddSelectPathRow(pathFrame, 'MMi Setups Path', 'MMiSetupsPath')
+        self.AddSelectPathRow(pathFrame, 'MMi Setups Path', 'MMiSetupsPath', self.VM.UpdateVersionCombo)
         self.AddSelectPathRow(pathFrame, 'MMi Config Path', 'MMiConfigPath')
         self.AddSelectFileRow(pathFrame, 'Effort Log File', 'EffortLogFile')
         self.AddSelectFileRow(pathFrame, 'DevEnv.com', 'DevEnvCom')
@@ -95,13 +96,13 @@ class UISettings(UIWindow):
         self.textBoxCreator.UpdateModel()
         super(UISettings, self).OnClosing()
 
-    def AddSelectPathRow(self, parent, label, attrName):
-        self.AddSelectItemRow(parent, label, attrName, False)
+    def AddSelectPathRow(self, parent, label, attrName, onPathChanged = None):
+        self.AddSelectItemRow(parent, label, attrName, False, onPathChanged)
 
     def AddSelectFileRow(self, parent, label, attrName):
-        self.AddSelectItemRow(parent, label, attrName, True)
+        self.AddSelectItemRow(parent, label, attrName, True, None)
 
-    def AddSelectItemRow(self, parent, label, attrName, isFile):
+    def AddSelectItemRow(self, parent, label, attrName, isFile, onItemChanged):
         UIFactory.AddLabel(parent, label, self.Row, 0)
         text = getattr(self.model, attrName)
         if isFile:
@@ -113,23 +114,27 @@ class UISettings(UIWindow):
                 print "Given directory doesn't exist : " + text
             cmd = self.SelectPath
         textVar = UIFactory.AddLabel(parent, text, self.Row, 1)
-        args = (textVar, attrName)
+        args = (textVar, attrName, onItemChanged)
         UIFactory.AddButton(parent, ' ... ', self.Row, 2, cmd, args)
         self.Row += 1
 
-    def SelectPath(self, textVar, attrName):
+    def SelectPath(self, textVar, attrName, onItemChanged):
         folderSelected = tkFileDialog.askdirectory()
         if len(folderSelected) > 0:
             textVar.set(folderSelected)
             setattr(self.model, attrName, folderSelected)
             print '{} Path changed : {}'.format(attrName, folderSelected)
+            if onItemChanged:
+                onItemChanged()
 
-    def SelectFile(self, textVar, attrName):
+    def SelectFile(self, textVar, attrName, onItemChanged):
         filename = tkFileDialog.askopenfilename(initialdir = "/", title = "Select file")
         if len(filename) > 0:
             textVar.set(filename)
             setattr(self.model, attrName, filename)
             print '{} Path changed : {}'.format(attrName, filename)
+            if onItemChanged:
+                onItemChanged()
 
     def AddTextRow(self, parent, label, attrName, validate):
         UIFactory.AddLabel(parent, label, self.Row, 0)

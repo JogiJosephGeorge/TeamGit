@@ -28,6 +28,7 @@ class ConfigInfo:
         model.BCompare = iniFile.ReadField('BCompare', 'C:/Program Files (x86)/Beyond Compare 4/BCompare.exe')
         model.MMiConfigPath = iniFile.ReadField('MMiConfigPath', 'D:\\')
         model.MMiSetupsPath = iniFile.ReadField('MMiSetupsPath', 'D:/MmiSetups')
+        model.MMiSetupVersion = iniFile.ReadField('MMiSetupVersion', '')
         model.StartOnly = iniFile.ReadField('StartOnly', False)
         model.DebugVision = iniFile.ReadField('DebugVision', False)
         model.CopyMmi = iniFile.ReadField('CopyMmi', True)
@@ -58,7 +59,6 @@ class ConfigInfo:
     def Write(self, iniFile, model):
         iniFile.Write('Sources', [ConfigEncoder.EncodeSource(item) for item in model.Sources])
         iniFile.Write('SrcIndex', model.SrcIndex)
-        iniFile.Write('SrcIndex', model.SrcIndex)
         iniFile.Write('ActiveSrcs', model.ActiveSrcs)
         iniFile.Write('Tests', model.AutoTests.Write())
         iniFile.Write('TestIndex', model.TestIndex)
@@ -71,6 +71,7 @@ class ConfigInfo:
         iniFile.Write('BCompare', model.BCompare)
         iniFile.Write('MMiConfigPath', model.MMiConfigPath)
         iniFile.Write('MMiSetupsPath', model.MMiSetupsPath)
+        iniFile.Write('MMiSetupVersion', model.MMiSetupVersion)
         iniFile.Write('StartOnly', model.StartOnly)
         iniFile.Write('DebugVision', model.DebugVision)
         iniFile.Write('CopyMmi', model.CopyMmi)
