@@ -12,14 +12,16 @@ from KLA.TaskMan import TaskMan
 class PreTestActions:
     @classmethod
     def CopyMockLicense(cls, model, toSrc = True, initWait = 0):
-        args = (model.Source, model.Platform, model.Config)
+        curSrc = model.CurSrc()
+        args = (curSrc.Source, curSrc.Platform, curSrc.Config)
         licenseFile = os.path.abspath(IcosPaths.GetMockLicensePath(*args))
         mmiPath = PreTestActions.GetMmiPath(model, toSrc)
         cls.DelayedCopy(licenseFile, mmiPath, 'MockLic', initWait)
 
     @classmethod
     def GetMmiPath(cls, model, toSrc = True):
-        args = (model.Source, model.Platform, model.Config)
+        curSrc = model.CurSrc()
+        args = (curSrc.Source, curSrc.Platform, curSrc.Config)
         if toSrc:
             mmiPath = os.path.abspath(IcosPaths.GetMmiPath(*args))
         else:
@@ -29,10 +31,10 @@ class PreTestActions:
     @classmethod
     def PrintAvailableExes(cls, model):
         data = [['Source', 'Available EXEs', 'Platform', 'Config']]
-        for src,c,p in model.Sources:
+        for srcData in model.GetAllSrcs():
             data.append(['-'])
-            data.append([src])
-            exePaths = cls.GetPossibleExePathsOnSource(src)
+            data.append([srcData.Source])
+            exePaths = cls.GetPossibleExePathsOnSource(srcData.Source)
             for exePath, pf, cfg in exePaths:
                 if os.path.exists(exePath):
                     data.append(['', exePath, pf, cfg])
@@ -80,12 +82,14 @@ class PreTestActions:
 
     @classmethod
     def GetTestPath(cls, model):
-        return IcosPaths.GetTestPath(model.Source, model.TestName)
+        curSrc = model.CurSrc()
+        return IcosPaths.GetTestPath(curSrc.Source, model.TestName)
 
     @classmethod
     def GenerateLicMgrConfig(cls, model):
+        curSrc = model.CurSrc()
         src = model.StartPath + '/DataFiles/LicMgrConfig.xml'
-        LicenseConfigWriter(model.Source, src)
+        LicenseConfigWriter(curSrc.Source, src)
 
     @classmethod
     def CopyLicMgrConfig(cls, model, initWait = 0):
@@ -103,8 +107,9 @@ class PreTestActions:
 
     @classmethod
     def CopyMmiSaveLogExe(cls, model):
-        destin = IcosPaths.GetTestPathTemp(model.Source, model.TestName) + '/Icos'
-        src = os.path.abspath(IcosPaths.GetMmiSaveLogsPath(model.Source, model.Platform, model.Config))
+        curSrc = model.CurSrc()
+        destin = IcosPaths.GetTestPathTemp(curSrc.Source, model.TestName) + '/Icos'
+        src = os.path.abspath(IcosPaths.GetMmiSaveLogsPath(curSrc.Source, curSrc.Platform, curSrc.Config))
         FileOperations.Copy(src, destin)
 
     @classmethod
@@ -127,11 +132,12 @@ class PreTestActions:
 class SourceCodeUpdater:
     @classmethod
     def ModifyVisionSystem(cls, model):
+        curSrc = model.CurSrc()
         linesToComment = [
             'shutil.copy2(os.path.join(mvsSlots, slot, slot + ".bat"), os.path.join(self.mvsPath, slot, slot + ".bat"))',
             'self.copyFilesByType(os.path.join(sourceRoot, "MVSDConversions", platform), mvsdDestinationPath, [FileType.EXE, FileType.DLL])'
         ]
-        fileName = os.path.abspath(model.Source + '/libs/testing/visionsystem.py')
+        fileName = os.path.abspath(curSrc.Source + '/libs/testing/visionsystem.py')
         with open(fileName) as f:
             fileContent = f.read()
         fileModified = False
@@ -150,13 +156,14 @@ class SourceCodeUpdater:
 
     @classmethod
     def CopyPreCommit(cls, model):
-        desDir = model.Source + '/.git/hooks'
+        curSrc = model.CurSrc()
+        desDir = curSrc.Source + '/.git/hooks'
         if not os.path.exists(desDir):
             return
         desPath = 'pre-commit'
         cd1 = os.getcwd()
         OsOperations.ChDir(desDir)
-        newPreCommit = model.Source + '/tools/Clangformat/pre-commit'
+        newPreCommit = curSrc.Source + '/tools/Clangformat/pre-commit'
         if os.path.exists(newPreCommit):
             if os.path.exists(desPath):
                 #if os.path.islink(desPath):  # This doesn't work at all

@@ -7,40 +7,136 @@ from KlaModel.ConfigEncoder import ConfigEncoder
 from KlaModel.ConfigInfo import ConfigInfo, Geometry
 
 
+class Config:
+    Debug = 'Debug'
+    Release = 'Release'
+
+    @classmethod
+    def FromString(cls, str):
+        if str == 'Debug':
+            return Config.Debug
+        return Config.Release
+
+    @classmethod
+    def FromIndex(cls, index):
+        if index < 0 or index > 1:
+            return ''
+        return [
+            Config.Debug,
+            Config.Release,
+            ][index]
+
+
+class Platform:
+    Win32 = 'Win32'
+    x64 = 'x64'
+
+    @classmethod
+    def FromString(cls, str):
+        if str == 'Win32':
+            return Platform.Win32
+        return Platform.x64
+
+    @classmethod
+    def FromIndex(cls, index):
+        if index < 0 or index > 1:
+            return ''
+        return [
+            Platform.Win32,
+            Platform.x64,
+            ][index]
+
+
+class SrcData:
+    def __init__(self):
+        self.Source = ''
+        self.Config = Config.Debug
+        self.Platform = Platform.Win32
+        self.IsActive = False
+
+
 class SourceConfig:
     def __init__(self, model):
         self.model = model
+        self.SrcArray = []
+
+    def Read(self, iniFile):
+        self.model.SrcIndex = -1
+        if iniFile.HasKey('SourceInfo'):
+            # Read New Data from New Version
+            srcArray = iniFile.ReadField('SourceInfo', [])
+            del self.SrcArray[:]
+            for srcItem in srcArray:
+                srcData = SrcData()
+                srcData.Source = srcItem['Source']
+                srcData.Config = srcItem['Config']
+                srcData.Platform = srcItem['Platform']
+                srcData.IsActive = srcItem['IsActive']
+                self.SrcArray.append(srcData)
+
+        else:
+            # Read New Data from Old Version
+            ActiveSrcs = iniFile.ReadField('ActiveSrcs', [])
+            del self.SrcArray[:]
+            index = 0
+            Sources = iniFile.ReadField('Sources', [])
+            SourceTpls = [ConfigEncoder.DecodeSource(item) for item in Sources]
+            for src, c, p in SourceTpls:
+                srcData = SrcData()
+                srcData.Source = src
+                srcData.Config = Config.FromString(c)
+                srcData.Platform = Platform.FromString(p)
+                srcData.IsActive = index in ActiveSrcs
+                self.SrcArray.append(srcData)
+                index += 1
+        SrcIndex = iniFile.ReadField('SrcIndex', -1)
+        self.UpdateSource(SrcIndex, False)
+
+    def Write(self, iniFile):
+        iniFile.Write('SrcIndex', self.model.SrcIndex)
+
+        srcData = []
+        for src in self.SrcArray:
+            srcItem = {}
+            srcItem['Source'] = src.Source
+            srcItem['Config'] = src.Config
+            srcItem['Platform'] = src.Platform
+            srcItem['IsActive'] = src.IsActive
+            srcData.append(srcItem)
+        iniFile.Write('SourceInfo', srcData)
 
     def UpdateSource(self, index, writeToFile):
-        if index < 0 or index >= len(self.model.Sources):
+        if index < 0 or index >= len(self.SrcArray):
             return False
         if self.model.SrcIndex == index:
             return False
         self.model.SrcIndex = index
-        self.model.Source, self.model.Config, self.model.Platform = self.model.Sources[self.model.SrcIndex]
-        #self.model.Branch = Git.GetBranch(self.model.Source)
         if writeToFile:
             self.model.WriteConfigFile()
         return True
 
+    def AddSource(self, newPath):
+        for srcData in self.SrcArray:
+            if newPath == srcData.Source:
+                return False
+        srcData = SrcData()
+        srcData.Source = newPath
+        srcData.Config = Config.FromIndex(0)
+        srcData.Platform = Platform.FromIndex(0)
+        srcData.IsActive = False
+        self.SrcArray.append(srcData)
+        if self.model.SrcIndex < 0:
+            self.model.SrcIndex = 0
+        return True
+
     def RemoveSource(self, index):
-        srcCnt = len(self.model.Sources)
+        srcCnt = len(self.SrcArray)
         if index < 0 or index >= srcCnt:
             return False
-        del self.model.Sources[index]
-        if index in self.model.ActiveSrcs:
-            activeSrcInx = self.model.ActiveSrcs.index(index)
-            del self.model.ActiveSrcs[activeSrcInx]
-        for i in range(len(self.model.ActiveSrcs)):
-            if self.model.ActiveSrcs[i] > index:
-                self.model.ActiveSrcs[i] -= 1
+        del self.SrcArray[index]
         if index + 1 >= srcCnt:
             index -= 1
         self.model.SrcIndex = index
-        if index >= 0:
-            self.model.Source, self.model.Config, self.model.Platform = self.model.Sources[self.model.SrcIndex]
-        else:
-            self.model.Source = ''
         return True
 
 
@@ -56,6 +152,9 @@ class IniFile:
                     self.IniData = json.load(f)
             except:
                 print 'There are issues in reading ' + self.FileName
+
+    def HasKey(self, key):
+        return key in self.IniData
 
     def ReadField(self, key, defValue):
         if key in self.IniData:
@@ -102,6 +201,24 @@ class Model:
         self.Geometry.Write(self.IniFile, self)
         self.IniFile.Save()
 
+    def CurSrc(self):
+        if len(self.SrcCnf.SrcArray) > self.SrcIndex:
+            return self.SrcCnf.SrcArray[self.SrcIndex]
+        curSrcData = SrcData()
+        return curSrcData
+
+    def GetAllActiveSrcs(self):
+        for src in self.SrcCnf.SrcArray:
+            if src.IsActive:
+                yield src
+
+    def GetAllSrcs(self):
+        for src in self.SrcCnf.SrcArray:
+            yield src
+
+    def GetSrcAt(self, index):
+        return self.SrcCnf.SrcArray[index]
+
     def UpdateTest(self, index, writeToFile):
         if not self.AutoTests.IsValidIndex(index):
             return False
@@ -114,29 +231,23 @@ class Model:
         return True
 
     def UpdateConfig(self, row, index):
-        if index < 0 or index >= len(ConfigEncoder.Configs):
+        newConfig = Config.FromIndex(index)
+        if not newConfig:
             return False
-        srcTuple = self.Sources[row]
-        newConfig = ConfigEncoder.Configs[index]
-        if self.SrcIndex == row and srcTuple[1] == newConfig:
+        srcData = self.GetSrcAt(row)
+        if self.SrcIndex == row and srcData.Config == newConfig:
             return False
-        if self.SrcIndex == row:
-            self.Config = newConfig
-        srcTuple = srcTuple[0], newConfig, srcTuple[2]
-        self.Sources[row] = srcTuple
+        srcData.Config = newConfig
         return True
 
     def UpdatePlatform(self, row, index):
-        if index < 0 or index >= len(ConfigEncoder.Platforms):
+        newPlatform = Platform.FromIndex(index)
+        if not newPlatform:
             return False
-        srcTuple = self.Sources[row]
-        newPlatform = ConfigEncoder.Platforms[index]
-        if self.SrcIndex == row and srcTuple[2] == newPlatform:
+        srcData = self.GetSrcAt(row)
+        if self.SrcIndex == row and srcData.Platform == newPlatform:
             return False
-        if self.SrcIndex == row:
-            self.Platform = newPlatform
-        srcTuple = srcTuple[0], srcTuple[1], newPlatform
-        self.Sources[row] = srcTuple
+        srcData.Platform = newPlatform
         return True
 
     def UpdateSlot(self, index, isSelected):
@@ -154,7 +265,7 @@ class Model:
         self.AutoTests.SetNameSlots(self.TestIndex, self.TestName, self.slots)
 
     def GetLibsTestPath(self):
-        return self.Source + '/libs/testing'
+        return self.CurSrc().Source + '/libs/testing'
 
     def TestInfoToString(self):
         msg  = 'Current Test Index : ' + str(self.TestIndex) + '\n'

@@ -82,7 +82,8 @@ class UIMain:
         self.LazyData.Version = '1.3.{}.{}'.format(revision, hash)
 
     def GetBranch(self):
-        self.LazyData.Branch = Git.GetBranch(self.model.Source)
+        curSrc = self.model.CurSrc()
+        self.LazyData.Branch = Git.GetBranch(curSrc.Source)
 
     def CheckLicense(self):
         VMWareRunner.CheckLicense(self.model)

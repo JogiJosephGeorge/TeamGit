@@ -19,14 +19,15 @@ class AppRunner:
         self.vsSolutions = vsSolutions
 
     def RunHandler(self):
-        Logger.Log('Run Handler in ' + self.model.Source)
+        curSrc = self.model.CurSrc()
+        Logger.Log('Run Handler in ' + curSrc.Source)
         TaskMan.StopTasks()
 
-        handlerPath = IcosPaths.GetHandlerPath(self.model.Source, self.model.Platform, self.model.Config)
-        consoleExe = IcosPaths.GetConsolePath(self.model.Source, self.model.Platform, self.model.Config)
-        testTempDir = IcosPaths.GetTestPathTemp(self.model.Source, self.model.TestName)
+        handlerPath = IcosPaths.GetHandlerPath(curSrc.Source, curSrc.Platform, curSrc.Config)
+        consoleExe = IcosPaths.GetConsolePath(curSrc.Source, curSrc.Platform, curSrc.Config)
+        testTempDir = IcosPaths.GetTestPathTemp(curSrc.Source, self.model.TestName)
 
-        simulatorExe = IcosPaths.GetSimulatorPath(self.model.Source, self.model.Platform, self.model.Config)
+        simulatorExe = IcosPaths.GetSimulatorPath(curSrc.Source, curSrc.Platform, curSrc.Config)
 
         for file in [consoleExe, testTempDir, simulatorExe]:
             if not os.path.exists(file):
@@ -83,7 +84,8 @@ class AppRunner:
         import handlerprocesses
         from generated.handlerSystem import ActionIds
 
-        fabLinkPath = self.model.Source + '\handler\FabLink'
+        curSrc = self.model.CurSrc()
+        fabLinkPath = curSrc.Source + '\handler\FabLink'
         processes = handlerprocesses.HandlerProcesses('', '', '', fabLinkPath)
         processes.secshost.start()
         OsOperations.Timeout(10)
@@ -104,6 +106,7 @@ class AppRunner:
 
     @classmethod
     def OpenLocalDif(cls, model):
-        par = [ 'TortoiseGitProc.exe', '/command:diff', '/path:' + model.Source + '' ]
+        curSrc = model.CurSrc()
+        par = [ 'TortoiseGitProc.exe', '/command:diff', '/path:' + curSrc.Source + '' ]
         print 'subprocess.Popen : ' + str(par)
         subprocess.Popen(par)

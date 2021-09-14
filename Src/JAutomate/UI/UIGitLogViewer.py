@@ -47,7 +47,8 @@ class UIGitLogViewer(UIWindow):
         super(UIGitLogViewer, self).__init__(parent, model, 'Git Log Viewer')
 
     def CreateUI(self, parent):
-        OsOperations.ChDir(self.model.Source)
+        curSrc = self.model.CurSrc()
+        OsOperations.ChDir(curSrc.Source)
         self.gitLogModel = GitLogModel()
         self.textBoxCreator = TextBoxCreator(self.gitLogModel)
         self.checkBoxCreator = CheckBoxCreator()

@@ -17,8 +17,9 @@ class VisualStudioSolutions:
 
     def GetAllSlnFiles(self):
         #slnFiles = []
-        #srcLen = len(self.model.Source) + 1
-        #for root, dirs, files in os.walk(self.model.Source):
+        #curSrc = self.model.CurSrc()
+        #srcLen = len(curSrc.Source) + 1
+        #for root, dirs, files in os.walk(curSrc.Source):
         #    path = root[srcLen:]
         #    fis = [[path, fi] for fi in files if fi.endswith('.sln')]
         #    slnFiles += fis
@@ -29,14 +30,15 @@ class VisualStudioSolutions:
         self.OpenSolutionFile(self.GetSlnPath(index))
 
     def OpenSolutionFile(self, slnFileName):
-        fileName = self.model.Source + slnFileName
+        curSrc = self.model.CurSrc()
+        fileName = curSrc.Source + slnFileName
         param = [
             self.model.DevEnvExe,
             fileName
         ]
         subprocess.Popen(param)
         print 'Open solution : ' + fileName
-        if self.model.Config is not 'Debug' or self.model.Platform is not 'Win32':
+        if curSrc.Config is not 'Debug' or curSrc.Platform is not 'Win32':
             msg = 'Please check configuration and platform in Visual Studio'
             #MessageBox.ShowMessage(msg, 'Visual Studio')
             print msg

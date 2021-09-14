@@ -26,11 +26,10 @@ class KlaSourceBuilder:
 
     def NotifyReset(self):
         modifiedSrcs = []
-        for activeSrc in self.model.ActiveSrcs:
-            source, config, platform = self.model.Sources[activeSrc]
-            cnt = len(Git.ModifiedFiles(source))
+        for srcData in self.model.GetAllActiveSrcs():
+            cnt = len(Git.ModifiedFiles(srcData.Source))
             if cnt > 0:
-                modifiedSrcs.append(source)
+                modifiedSrcs.append(srcData.Source)
         if len(modifiedSrcs) > 0:
             msg = "The following source(s) contains local modifications. So can't reset"
             for src in modifiedSrcs:
@@ -40,21 +39,21 @@ class KlaSourceBuilder:
         return self.NotifyUser('Reset')
 
     def NotifyUser(self, message):
-        if len(self.model.ActiveSrcs) == 0:
+        activeSrcs = self.model.GetAllActiveSrcs()
+        if len(activeSrcs) == 0:
             MessageBox.ShowMessage('There are no active sources. Please select the required one.')
             return False
         title = message + ' Source'
         isAre = ' is'
-        if len(self.model.ActiveSrcs) > 1:
+        if len(activeSrcs) > 1:
             title += 's'
             isAre = 's are'
         fullMessage = 'The following source{} ready for {}ing.\n'.format(isAre, message)
         self.srcTuple = []
-        for activeSrc in self.model.ActiveSrcs:
-            source, config, platform = self.model.Sources[activeSrc]
-            branch = Git.GetBranch(source)
-            fullMessage += '\n{} ({} | {})\n{}\n'.format(source, platform, config, branch)
-            self.srcTuple.append([source, branch, config, platform])
+        for srcData in activeSrcs:
+            branch = Git.GetBranch(srcData.Source)
+            fullMessage += '\n{} ({} | {})\n{}\n'.format(srcData.Source, srcData.Platform, srcData.Config, branch)
+            self.srcTuple.append([srcData.Source, branch, srcData.Config, srcData.Platform])
         fullMessage += '\nDo you want to continue {}ing?'.format(message)
         result = MessageBox.YesNoQuestion(title, fullMessage)
         print 'Yes' if result else 'No'
@@ -72,27 +71,26 @@ class KlaSourceBuilder:
                 '/handler/cpp/.vs',
             ]
         gitIgnoreHelper = GitIgnoreFilesHelper()
-        for srcSet in self.srcTuple:
-            src = srcSet[0]
-            cnt = len(Git.ModifiedFiles(self.model.Source))
+        for srcData in self.srcTuple:
+            cnt = len(Git.ModifiedFiles(srcData.Source))
             if cnt > 0:
                 continue
                 #Git.Commit(self.model, 'Temp')
-            print 'Resetting files in ' + src
-            gitIgnoreHelper.DeleteAllFiles(self.model, src)
-            tempGitIgnoreFile = src + '/.gitignore'
+            print 'Resetting files in ' + srcData.Source
+            gitIgnoreHelper.DeleteAllFiles(self.model, srcData.Source)
+            tempGitIgnoreFile = srcData.Source + '/.gitignore'
             with open(tempGitIgnoreFile, 'w') as f:
                 f.writelines(str.join('\n', excludeDirs))
-            Git.Clean(src)
-            print 'Reseting files in ' + src
-            Git.ResetHard(src)
+            Git.Clean(srcData.Source)
+            print 'Reseting files in ' + srcData.Source
+            Git.ResetHard(srcData.Source)
             #if cnt > 0:
             #    Git.RevertLastCommit(src)
             if self.model.UpdateSubmodulesOnReset:
                 Git.SubmoduleUpdate(self.model)
             FileOperations.Delete(tempGitIgnoreFile)
             gitIgnoreHelper.RevertDeletedFiles()
-            print 'Resetting completed for ' + src
+            print 'Resetting completed for ' + srcData.Source
 
     def CleanSource(self):
         self.CallDevEnv(True)
@@ -119,7 +117,7 @@ class KlaSourceBuilder:
                 OsOperations.Popen(params, buildLoger.PrintMsg)
                 buildLoger.EndSolution()
             buildLoger.EndSource(source)
-        if len(self.model.ActiveSrcs) > 1 and not ForCleaning:
+        if len(self.srcTuple) > 1 and not ForCleaning:
             print buildLoger.ConsolidatedOutput
 
 
@@ -239,11 +237,11 @@ class KlaSourceCleaner:
         self.model = model
 
     def RemoveAllHandlerTemp(self):
-        if len(self.model.ActiveSrcs) == 0:
+        activeSrcs = self.model.GetAllActiveSrcs()
+        if len(activeSrcs) == 0:
             MessageBox.ShowMessage('There is no active source.')
-        for activeSrc in self.model.ActiveSrcs:
-            source, config, platform = self.model.Sources[activeSrc]
-            self.RemoveHandlerTemp(source)
+        for activeSrc in activeSrcs:
+            self.RemoveHandlerTemp(activeSrc.Source)
 
     def RemoveHandlerTemp(self, source):
         path = source + '/handler'

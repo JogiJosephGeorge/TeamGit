@@ -28,8 +28,8 @@ class UISourceGrid:
     def CreateUI(self):
         self.AddHeader()
         r = 1
-        for srcTuple in self.model.Sources:
-            self.AddSrcRow(r, srcTuple)
+        for srcData in self.model.GetAllSrcs():
+            self.AddSrcRow(r, srcData)
             r += 1
 
     def AddHeader(self):
@@ -39,27 +39,27 @@ class UISourceGrid:
         UIFactory.AddLabel(self.ParentFrame, 'Platform', 0, 3)
         UIFactory.AddLabel(self.ParentFrame, 'Configuration', 0, 4)
 
-    def AddSrcRow(self, r, srcTuple):
+    def AddSrcRow(self, r, srcData):
         self.AddActive(r, 0)
-        self.AddSource(r, 1, srcTuple[0])
+        self.AddSource(r, 1, srcData.Source)
         self.AddBranch(r, 2)
-        self.AddPlatform(r, 3, srcTuple[2])
-        self.AddConfig(r, 4, srcTuple[1])
+        self.AddPlatform(r, 3, srcData.Platform)
+        self.AddConfig(r, 4, srcData.Config)
 
     def AddActive(self, r, c):
         Index = r - 1
-        isActive = Index in self.model.ActiveSrcs
+        isActive = self.model.GetSrcAt(Index).IsActive
         chk = UIFactory.AddCheckBox(self.ParentFrame, '', isActive, r, c, self.OnActiveSrcChanged, (Index,), 'ew')
         self.chkActiveSrcs.append(chk)
 
     def OnActiveSrcChanged(self, Index):
+        srcData = self.model.GetSrcAt(Index)
         if self.IsSrcActive(Index):
-            self.model.ActiveSrcs.append(Index)
-            self.model.ActiveSrcs = list(set(self.model.ActiveSrcs))
-            print 'Enabled the source : ' + str(self.model.Sources[Index][0])
+            srcData.IsActive = True
+            print 'Enabled the source : ' + srcData.Source
         else:
-            self.model.ActiveSrcs.remove(Index)
-            print 'Disabled the source : ' + str(self.model.Sources[Index][0])
+            srcData.IsActive = False
+            print 'Disabled the source : ' + srcData.Source
 
     def IsSrcActive(self, index):
         return self.chkActiveSrcs[index].get()
@@ -76,8 +76,9 @@ class UISourceGrid:
     def OnSelectSrc(self):
         SrcIndex = self.SelectedSrc.get()
         self.model.SrcCnf.UpdateSource(SrcIndex, False)
-        print 'Source changed to : ' + self.model.Source
-        Logger.Log('Source changed to : ' + self.model.Source)
+        curSrc = self.model.CurSrc()
+        print 'Source changed to : ' + curSrc.Source
+        Logger.Log('Source changed to : ' + curSrc.Source)
 
     def AddBranch(self, r, c):
         label = UIFactory.AddLabel(self.ParentFrame, 'Branch Name Updating...', r, c)
@@ -100,8 +101,8 @@ class UISourceGrid:
         selectedInx = self.GetConfigInx(row)
         if self.model.UpdateConfig(row, selectedInx):
             self.model.WriteConfigFile()
-            srcTuple = self.model.Sources[row]
-            print 'Config Changed to {} for source {}'.format(srcTuple[1], srcTuple[0])
+            srcData = self.model.GetSrcAt(row)
+            print 'Config Changed to {} for source {}'.format(srcData.Config, srcData.Source)
 
     def GetConfigInx(self, row):
         return self.cboConfig[row].current()
@@ -115,8 +116,8 @@ class UISourceGrid:
         selectedInx = self.GetPlatformInx(row)
         if self.model.UpdatePlatform(row, selectedInx):
             self.model.WriteConfigFile()
-            srcTuple = self.model.Sources[row]
-            print 'Platform Changed to {} for source {}'.format(srcTuple[2], srcTuple[0])
+            srcData = self.model.GetSrcAt(row)
+            print 'Platform Changed to {} for source {}'.format(srcData.Platform, srcData.Source)
 
     def GetPlatformInx(self, row):
         return self.cboPlatform[row].current()
@@ -162,16 +163,16 @@ class UISourceSelector(UIWindow):
     def LazyUiInit(self):
         index = 0
         data = [['Source', 'Branch', 'Available Configs']]
-        for src, c, p in self.model.Sources:
+        for srcData in self.model.GetAllSrcs():
             data.append(['-'])
             branch = '' # Git.GetBranch(src)
             configs = ''
-            for pf,cfg in PreTestActions.GetExistingConfigs(src):
+            for pf,cfg in PreTestActions.GetExistingConfigs(srcData.Source):
                 configs = '{}|{} '.format(pf, cfg)
-            for brn1 in Git.GetLocalBranches(src):
+            for brn1 in Git.GetLocalBranches(srcData.Source):
                 if brn1.startswith('* '):
                     branch = brn1[2:]
-                    data.append([src, branch, configs])
+                    data.append([srcData.Source, branch, configs])
                 else:
                     data.append(['', brn1, ''])
             self.SourceGrid.SetBranch(index, branch)
@@ -240,17 +241,19 @@ class UISourceSelector(UIWindow):
 
     def OnAddSource(self):
         folderSelected = tkFileDialog.askdirectory()
-        if ConfigEncoder.OnAddSource(self.model, folderSelected):
-            row = len(self.model.Sources)
-            srcTuple = self.model.Sources[row - 1]
+        if self.model.SrcCnf.AddSource(folderSelected):
+            print 'New source added : ' + folderSelected
+            srcs = self.model.GetAllSrcs()
+            row = len(srcs)
+            srcTuple = self.model.GetSrcAt(row - 1)
             self.SourceGrid.AddSrcRow(row, srcTuple)
-            branch = Git.GetBranch(srcTuple[0])
+            branch = Git.GetBranch(srcTuple.Source)
             self.SourceGrid.SetBranch(row - 1, branch)
 
     def OnRemoveSource(self):
         if self.model.SrcIndex < 0:
             return
-        src = self.model.Sources[self.model.SrcIndex][0]
+        src = self.model.GetSrcAt(self.model.SrcIndex).Source
         if MessageBox.YesNoQuestion('Remove Source', 'Do you want to remove source ' + src):
             if self.model.SrcCnf.RemoveSource(self.model.SrcIndex):
                 msg = 'The source ' + src + ' has been removed.'

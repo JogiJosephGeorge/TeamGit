@@ -11,7 +11,8 @@ class GoldenReportComparer:
         self.model = model
 
     def GetTestPath(self):
-        return IcosPaths.GetTestPath(self.model.Source, self.model.TestName)
+        curSrc = self.model.CurSrc()
+        return IcosPaths.GetTestPath(curSrc.Source, self.model.TestName)
 
     def OpenTestFolder(self):
         dirPath = self.GetTestPath()

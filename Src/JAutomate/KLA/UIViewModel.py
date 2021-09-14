@@ -10,7 +10,8 @@ class UIViewModel:
         self.model = model
 
     def GetSource(self):
-        return '{}     ({} | {})'.format(self.model.Source, self.model.Config, self.model.Platform)
+        curSrc = self.model.CurSrc()
+        return '{}     ({} | {})'.format(curSrc.Source, curSrc.Config, curSrc.Platform)
 
     def UpdateSourceBranch(self):
         source = self.GetSource()

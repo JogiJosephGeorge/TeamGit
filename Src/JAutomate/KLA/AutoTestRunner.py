@@ -18,9 +18,10 @@ class AutoTestRunner:
         self.lastSrc = None
 
     def InitAutoTest(self):
+        curSrc = self.model.CurSrc()
         if self.lastSrc is None:
-            self.lastSrc = self.model.Source
-        elif self.lastSrc != self.model.Source:
+            self.lastSrc = curSrc.Source
+        elif self.lastSrc != curSrc.Source:
             msg = 'Test has already been executed with {}. So please restart KLA Runner.'.format(self.lastSrc)
             MessageBox.ShowMessage(msg)
             return False
@@ -28,8 +29,9 @@ class AutoTestRunner:
         return VMWareRunner.RunSlots(self.model)
 
     def RunAutoTest(self):
+        curSrc = self.model.CurSrc()
         testType = 'Start' if self.model.StartOnly else 'Run'
-        Logger.Log('{} Auto Test {} in {}'.format(testType, self.model.TestName, self.model.Source))
+        Logger.Log('{} Auto Test {} in {}'.format(testType, self.model.TestName, curSrc.Source))
         SourceCodeUpdater.ModifyVisionSystem(self.model)
 
         initWait = 15  # 8 is not working for CDA/Mmi/WithLead3D
@@ -47,9 +49,9 @@ class AutoTestRunner:
         os.chdir(self.model.StartPath)
 
         # After switching sources with different configurations, we have to remove myconfig.py
-        FileOperations.Delete('{}/libs/testing/myconfig.py'.format(self.model.Source))
+        FileOperations.Delete('{}/libs/testing/myconfig.py'.format(curSrc.Source))
 
-        libsPath = AutoTestRunner.UpdateLibsTestingPath(self.model.Source)
+        libsPath = AutoTestRunner.UpdateLibsTestingPath(curSrc.Source)
         self.tests = AutoTestRunner.SearchInTests(libsPath, self.model.TestName)
         if len(self.tests) == 0:
             return
@@ -60,7 +62,7 @@ class AutoTestRunner:
         my.c.copymmi = self.model.CopyMmi
         my.c.mmiBuildConfiguration = ConfigEncoder.GetBuildConfig(self.model)
         my.c.console_config = my.c.simulator_config = my.c.mmiBuildConfiguration[0]
-        my.c.platform = self.model.Platform
+        my.c.platform = curSrc.Platform
         my.c.mmiConfigurationsPath = self.model.MMiConfigPath
         my.c.mmiSetupsPath = self.model.MMiSetupsPath
         version = self.model.MMiSetupVersion if self.model.MMiSetupVersion else ''

@@ -14,13 +14,10 @@ class TestKlaRunnerIni:
         self.DirectoryExists()
 
     def Source(self):
-        for srcSet in self.model.Sources:
-            src = srcSet[0]
-            Test.Assert(os.path.isdir(src), True, 'Directory {} exists.'.format(src))
-        self.TestIndex(self.model.Sources, self.model.SrcIndex, 'Index')
-        srcCnt = len(self.model.Sources)
-        for activeSrc in self.model.ActiveSrcs:
-            Test.Assert(activeSrc >= 0 and activeSrc < srcCnt, True, 'Invalid Active Src {} is given'.format(activeSrc))
+        srcs = self.model.GetAllSrcs()
+        for src in srcs:
+            Test.Assert(os.path.isdir(src.Source), True, 'Directory {} exists.'.format(src.Source))
+        self.TestIndex(srcs, self.model.SrcIndex, 'Index')
 
     def AutoTest(self):
         self.VerifyNamesAndSlots(self.model.AutoTests.Tests)

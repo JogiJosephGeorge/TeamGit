@@ -8,8 +8,9 @@ class MmiSpcTestRunner:
         self.model = model
 
     def RunAllTests(self):
-        os.chdir(self.model.Source)
-        buildPath = 'mmi/mmi/bin/{}/{}'.format(self.model.Platform, self.model.Config)
+        curSrc = self.model.CurSrc()
+        os.chdir(curSrc.Source)
+        buildPath = 'mmi/mmi/bin/{}/{}'.format(curSrc.Platform, curSrc.Config)
         par = 'python libs/testing/testrunner.py'
         par += ' -t mmi/mmi/mmi_stat/integration/tests'
         par += ' -c ' + buildPath

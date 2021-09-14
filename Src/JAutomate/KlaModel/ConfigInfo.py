@@ -4,21 +4,15 @@ from KlaModel.ConfigEncoder import ConfigEncoder
 
 class ConfigInfo:
     def Read(self, model, iniFile):
-        model.Source = ''
         model.Branch = ''
         model.slots = []
-        model.SrcIndex = -1
         model.TestIndex = -1
-        Sources = iniFile.ReadField('Sources', [])
-        model.Sources = [ConfigEncoder.DecodeSource(item) for item in Sources]
-        SrcIndex = iniFile.ReadField('SrcIndex', -1)
-        model.SrcCnf.UpdateSource(SrcIndex, False)
+        model.SrcCnf.Read(iniFile)
         Tests = iniFile.ReadField('Tests', [])
         model.AutoTests.Read(Tests)
         TestIndex = iniFile.ReadField('TestIndex', -1)
         if not model.UpdateTest(TestIndex, False):
             model.TestIndex = 0
-        model.ActiveSrcs = iniFile.ReadField('ActiveSrcs', [])
         model.DevEnvCom = iniFile.ReadField('DevEnvCom', 'C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com')
         model.DevEnvExe = iniFile.ReadField('DevEnvExe', 'C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/Common7/IDE/devenv.exe')
         model.GitPath = iniFile.ReadField('GitPath', 'C:/Program Files/Git')
@@ -57,9 +51,7 @@ class ConfigInfo:
         return path.replace('Program Files', 'PROGRA~1')
 
     def Write(self, iniFile, model):
-        iniFile.Write('Sources', [ConfigEncoder.EncodeSource(item) for item in model.Sources])
-        iniFile.Write('SrcIndex', model.SrcIndex)
-        iniFile.Write('ActiveSrcs', model.ActiveSrcs)
+        model.SrcCnf.Write(iniFile)
         iniFile.Write('Tests', model.AutoTests.Write())
         iniFile.Write('TestIndex', model.TestIndex)
         iniFile.Write('DevEnvCom', model.DevEnvCom)

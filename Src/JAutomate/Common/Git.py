@@ -45,7 +45,8 @@ class Git:
 
     @classmethod
     def SubmoduleUpdate(cls, model):
-        source = model.Source
+        curSrc = model.CurSrc()
+        source = curSrc.Source
         cls.Git(source, 'submodule sync --recursive')
         cls.Git(source, 'submodule update --init --recursive')
         #cls.Git(source, 'submodule foreach git reset --hard') # It seems this is not working
@@ -54,24 +55,28 @@ class Git:
 
     @classmethod
     def OpenGitGui(cls, model):
-        param = [ cls.GitPath + '-gui', '--working-dir', model.Source ]
+        curSrc = model.CurSrc()
+        param = [ cls.GitPath + '-gui', '--working-dir', curSrc.Source ]
         print 'Staring Git GUI'
         subprocess.Popen(param)
 
     @classmethod
     def OpenGitBash(cls, model):
-        par = 'start {}/sh.exe --cd={}'.format(cls.GitBin, model.Source)
+        curSrc = model.CurSrc()
+        par = 'start {}/sh.exe --cd={}'.format(cls.GitBin, curSrc.Source)
         OsOperations.System(par, 'Staring Git Bash')
 
     @classmethod
     def FetchPull(cls, model):
-        Git.Git(model.Source, 'pull')
+        curSrc = model.CurSrc()
+        Git.Git(curSrc.Source, 'pull')
         print 'Git fetch and pull completed.'
 
     @classmethod
     def Commit(cls, model, msg):
-        cls.Git(model.Source, 'add -A')
-        cls.Git(model.Source, 'commit -m "' + msg + '"')
+        curSrc = model.CurSrc()
+        cls.Git(curSrc.Source, 'add -A')
+        cls.Git(curSrc.Source, 'commit -m "' + msg + '"')
 
     @classmethod
     def RevertLastCommit(cls, source):
