@@ -60,9 +60,10 @@ class FilterTestSelector:
         self.model = model
         self.UpdateCombo = updateCombo
         frame = UIFactory.AddFrame(parent, r, c)
-        UIFactory.AddEntry(frame, self.OnSearchTextChanged, 0, 0, 25)
+        self.SearchTextEntry = UIFactory.AddEntry(frame, self.OnSearchTextChanged, 0, 0, 25)
         self.AddTestCombo(frame, 1)
-        UIFactory.AddButton(frame, 'Add Selected Test', 0, 2, self.OnAddSelectedTest)
+        self.AddSelectBut = UIFactory.AddButton(frame, 'Add Selected Test', 0, 2, self.OnAddSelectedTest)
+        self.EnableControls(False)
 
     def AddTestCombo(self, parent, c):
         self.TestCmb = UIFactory.AddCombo(parent, [], -1, 0, c, self.OnChangeTestCmb, None, 150)
@@ -117,6 +118,13 @@ class FilterTestSelector:
         self.TestCmb['values'] = self.FilteredTests
         if len(self.FilteredTests) > 0:
             self.TestCmb.current(0)
+        self.EnableControls(True)
+
+    def EnableControls(self, isEnabled):
+        state = 'normal' if isEnabled else 'disabled'
+        self.AddSelectBut['state'] = state
+        self.SearchTextEntry['state'] = state
+
 
 class RemoveTestMan:
     def AddUI(self, parent, model, r, c):

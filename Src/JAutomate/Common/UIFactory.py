@@ -51,6 +51,7 @@ class UIFactory:
         entry.grid(row=r, column=c, sticky='w')
         reg = parent.register(cmd)
         entry.config(validate='key', validatecommand=(reg, '%P'))
+        return entry
 
     @classmethod
     def AddTextBox(cls, parent, text, r, c, width = 0):
