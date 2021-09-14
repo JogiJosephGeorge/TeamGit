@@ -1,16 +1,16 @@
-import threading
 import Tkinter as tk
+import threading
 import tkFileDialog
 
 from Common.Git import Git
 from Common.Logger import Logger
 from Common.MessageBox import MessageBox
+from Common.PrettyTable import PrettyTable, TableFormat
 from Common.UIFactory import UIFactory, CheckBoxCreator
 from KLA.KlaSourceBuilder import KlaSourceBuilder, KlaSourceCleaner
 from KLA.PreTestActions import PreTestActions, SourceCodeUpdater
 from KlaModel.ConfigEncoder import ConfigEncoder
 from UI.UIWindow import UIWindow
-from Common.PrettyTable import PrettyTable, TableFormat
 
 
 class UISourceGrid:

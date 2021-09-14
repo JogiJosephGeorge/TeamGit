@@ -7,6 +7,7 @@ from KLA.MmiSpcTestRunner import MmiSpcTestRunner
 from KLA.PreTestActions import PreTestActions
 from KLA.SpecialTextOperations import SpecialTextOperations
 from KLA.UIGrid import UIGrid
+from UI import UIGitLogViewer
 from UI.UISettings import UISettings
 from UI.UISolutionList import UISolutionList
 
@@ -76,6 +77,12 @@ class UIMainMenu:
             self.uiGrid.AddButton('Git Bash Console', Git.OpenGitBash, (self.model,))
         self.uiGrid.AddButton('Git Fetch Pull', Git.FetchPull, (self.model,))
         self.uiGrid.AddButton('Git Submodule Update', Git.SubmoduleUpdate, (self.model,))
+        if self.model.UILevel < 2:
+            self.uiGrid.AddButton('Git Log Viewer', self.ShowGitLogViewer)
+
+    def ShowGitLogViewer(self):
+        gitLogViewer = UIGitLogViewer(self.window, self.model)
+        gitLogViewer.Show()
 
     def AddColumn4(self):
         if self.model.UILevel < 3:

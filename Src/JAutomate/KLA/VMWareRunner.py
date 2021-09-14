@@ -119,8 +119,9 @@ class VMWareRunner:
             else:
                 remainingDays = (dt - today).days
                 msg = 'MVS License will expire in {} days'.format(remainingDays)
-                print msg
-                if remainingDays < 5:
+                if remainingDays < 7:
                     errMsg = msg
+                else:
+                    print msg
         if errMsg:
             MessageBox.ShowMessage(errMsg)
