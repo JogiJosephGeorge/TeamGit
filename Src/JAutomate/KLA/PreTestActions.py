@@ -3,7 +3,7 @@ import os
 from Common.FileOperations import FileOperations
 from Common.PrettyTable import PrettyTable, TableFormat
 from Common.OsOperations import OsOperations
-from KlaModel.ConfigEncoder import ConfigEncoder
+from KlaModel.ConfigEncoder import Config, Platform
 from KLA.IcosPaths import IcosPaths
 from KLA.LicenseConfigWriter import LicenseConfigWriter
 from KLA.TaskMan import TaskMan
@@ -43,8 +43,8 @@ class PreTestActions:
     @classmethod
     def GetPossibleExePathsOnSource(cls, source):
         exePaths = []
-        for pf in ConfigEncoder.Platforms:
-            for cfg in ConfigEncoder.Configs:
+        for pf in Platform.GetList():
+            for cfg in Config.GetList():
                 exePaths += cls.GetPossibleExePathsOnConfig(source, pf, cfg)
         return exePaths
 
@@ -68,8 +68,8 @@ class PreTestActions:
     @classmethod
     def GetExistingConfigs(cls, source):
         configPlatforms = []
-        for pf in ConfigEncoder.Platforms:
-            for cfg in ConfigEncoder.Configs:
+        for pf in Platform.GetList():
+            for cfg in Config.GetList():
                 if cls.ConfigExistsOnSource(source, pf, cfg):
                     configPlatforms.append((pf, cfg))
         return configPlatforms

@@ -113,10 +113,11 @@ class CheckBoxCreator:
         isChecked = self.CheckBoxes[attrName].get()
         setattr(model, attrName, isChecked)
         msg = msgOn if isChecked else msgOff
-        if (isChecked and showMsgOn) or ((not isChecked) and showMsgOff):
-            MessageBox.ShowMessage(msg)
-        else:
-            print msg
+        if msg:
+            if (isChecked and showMsgOn) or ((not isChecked) and showMsgOff):
+                MessageBox.ShowMessage(msg)
+            else:
+                print msg
 
 
 class TextBoxCreator:

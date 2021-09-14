@@ -9,7 +9,7 @@ from Common.PrettyTable import PrettyTable, TableFormat
 from Common.UIFactory import UIFactory, CheckBoxCreator
 from KLA.KlaSourceBuilder import KlaSourceBuilder, KlaSourceCleaner
 from KLA.PreTestActions import PreTestActions, SourceCodeUpdater
-from KlaModel.ConfigEncoder import ConfigEncoder
+from KlaModel.ConfigEncoder import Config, Platform
 from UI.UIWindow import UIWindow
 
 
@@ -93,8 +93,9 @@ class UISourceGrid:
         return self.lblBranches[index].get()
 
     def AddConfig(self, r, c, config):
-        configInx = ConfigEncoder.Configs.index(config)
-        combo = UIFactory.AddCombo(self.ParentFrame, ConfigEncoder.Configs, configInx, r, c, self.OnConfigChanged, r-1, 10)
+        configs = Config.GetList()
+        configInx = configs.index(config)
+        combo = UIFactory.AddCombo(self.ParentFrame, configs, configInx, r, c, self.OnConfigChanged, r-1, 10)
         self.cboConfig.append(combo)
 
     def OnConfigChanged(self, row):
@@ -108,8 +109,9 @@ class UISourceGrid:
         return self.cboConfig[row].current()
 
     def AddPlatform(self, r, c, platform):
-        platformInx = ConfigEncoder.Platforms.index(platform)
-        combo = UIFactory.AddCombo(self.ParentFrame, ConfigEncoder.Platforms, platformInx, r, c, self.OnPlatformChanged, r-1, 10)
+        platforms = Platform.GetList()
+        platformInx = platforms.index(platform)
+        combo = UIFactory.AddCombo(self.ParentFrame, platforms, platformInx, r, c, self.OnPlatformChanged, r-1, 10)
         self.cboPlatform.append(combo)
 
     def OnPlatformChanged(self, row):
@@ -243,7 +245,7 @@ class UISourceSelector(UIWindow):
         folderSelected = tkFileDialog.askdirectory()
         if self.model.SrcCnf.AddSource(folderSelected):
             print 'New source added : ' + folderSelected
-            srcs = self.model.GetAllSrcs()
+            srcs = list(self.model.GetAllSrcs())
             row = len(srcs)
             srcTuple = self.model.GetSrcAt(row - 1)
             self.SourceGrid.AddSrcRow(row, srcTuple)

@@ -27,6 +27,9 @@ class GoldenReportComparer:
 
     def CompareMmiReports(self):
         testPath = self.GetTestPath()
+        if not os.path.exists(testPath):
+            print 'Test path does not exists : ' + testPath
+            return
         leftFolder = testPath + '/GoldenReports'
         rightFolder = testPath + '~/_results'
         newRightFolder = testPath + '~/NewGoldenReports'

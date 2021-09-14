@@ -3,48 +3,8 @@ import json
 import os
 
 from KlaModel.AutoTestModel import AutoTestModel
-from KlaModel.ConfigEncoder import ConfigEncoder
+from KlaModel.ConfigEncoder import Config, Platform
 from KlaModel.ConfigInfo import ConfigInfo, Geometry
-
-
-class Config:
-    Debug = 'Debug'
-    Release = 'Release'
-
-    @classmethod
-    def FromString(cls, str):
-        if str == 'Debug':
-            return Config.Debug
-        return Config.Release
-
-    @classmethod
-    def FromIndex(cls, index):
-        if index < 0 or index > 1:
-            return ''
-        return [
-            Config.Debug,
-            Config.Release,
-            ][index]
-
-
-class Platform:
-    Win32 = 'Win32'
-    x64 = 'x64'
-
-    @classmethod
-    def FromString(cls, str):
-        if str == 'Win32':
-            return Platform.Win32
-        return Platform.x64
-
-    @classmethod
-    def FromIndex(cls, index):
-        if index < 0 or index > 1:
-            return ''
-        return [
-            Platform.Win32,
-            Platform.x64,
-            ][index]
 
 
 class SrcData:
@@ -55,7 +15,7 @@ class SrcData:
         self.IsActive = False
 
 
-class SourceConfig:
+class SourceInfo:
     def __init__(self, model):
         self.model = model
         self.SrcArray = []
@@ -80,12 +40,11 @@ class SourceConfig:
             del self.SrcArray[:]
             index = 0
             Sources = iniFile.ReadField('Sources', [])
-            SourceTpls = [ConfigEncoder.DecodeSource(item) for item in Sources]
-            for src, c, p in SourceTpls:
+            for srcStr in Sources:
                 srcData = SrcData()
-                srcData.Source = src
-                srcData.Config = Config.FromString(c)
-                srcData.Platform = Platform.FromString(p)
+                srcData.Source = srcStr[4:]
+                srcData.Config = Config.Release if srcStr[0] == 'R' else Config.Debug
+                srcData.Platform = Platform.x64 if srcStr[1:3] == '64' else Platform.Win32
                 srcData.IsActive = index in ActiveSrcs
                 self.SrcArray.append(srcData)
                 index += 1
@@ -181,28 +140,25 @@ class Model:
         self.StartPath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         filePath = self.StartPath + '\\KlaRunner.ini'
         self.IniFile = IniFile(filePath)
-        self.ConfigInfo = ConfigInfo()
         self.AutoTests = AutoTestModel()
-        self.SrcCnf = SourceConfig(self)
-        self.Config = ConfigEncoder.Configs[0]
-        self.Platform = ConfigEncoder.Platforms[0]
+        self.SrcCnf = SourceInfo(self)
         self.TestName = ''
         self.slots = []
         self.Geometry = Geometry()
 
     def ReadConfigFile(self):
         self.IniFile.Open()
-        self.ConfigInfo.Read(self, self.IniFile)
+        ConfigInfo().Read(self, self.IniFile)
         self.Geometry.Read(self, self.IniFile)
 
     def WriteConfigFile(self):
         self.IniFile.StartWriting()
-        self.ConfigInfo.Write(self.IniFile, self)
+        ConfigInfo().Write(self.IniFile, self)
         self.Geometry.Write(self.IniFile, self)
         self.IniFile.Save()
 
     def CurSrc(self):
-        if len(self.SrcCnf.SrcArray) > self.SrcIndex:
+        if self.SrcIndex >= 0 and len(self.SrcCnf.SrcArray) > self.SrcIndex:
             return self.SrcCnf.SrcArray[self.SrcIndex]
         curSrcData = SrcData()
         return curSrcData

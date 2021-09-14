@@ -8,6 +8,7 @@ from KLA.VMWareRunner import VMWareRunner
 class UIViewModel:
     def __init__(self, model):
         self.model = model
+        self.UpdateVersionCombo = None
 
     def GetSource(self):
         curSrc = self.model.CurSrc()

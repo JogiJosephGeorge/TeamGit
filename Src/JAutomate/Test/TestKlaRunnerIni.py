@@ -14,7 +14,7 @@ class TestKlaRunnerIni:
         self.DirectoryExists()
 
     def Source(self):
-        srcs = self.model.GetAllSrcs()
+        srcs = list(self.model.GetAllSrcs())
         for src in srcs:
             Test.Assert(os.path.isdir(src.Source), True, 'Directory {} exists.'.format(src.Source))
         self.TestIndex(srcs, self.model.SrcIndex, 'Index')

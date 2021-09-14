@@ -19,7 +19,13 @@ class AutoTestRunner:
 
     def InitAutoTest(self):
         curSrc = self.model.CurSrc()
-        if self.lastSrc is None:
+        if not curSrc.Source:
+            print 'No source is selected.'
+            return False
+        elif not os.path.exists(curSrc.Source):
+            print 'The directory does not exist : ' + curSrc.Source
+            return False
+        elif self.lastSrc is None:
             self.lastSrc = curSrc.Source
         elif self.lastSrc != curSrc.Source:
             msg = 'Test has already been executed with {}. So please restart KLA Runner.'.format(self.lastSrc)

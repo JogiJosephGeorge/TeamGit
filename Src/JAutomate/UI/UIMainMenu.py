@@ -7,7 +7,7 @@ from KLA.MmiSpcTestRunner import MmiSpcTestRunner
 from KLA.PreTestActions import PreTestActions
 from KLA.SpecialTextOperations import SpecialTextOperations
 from KLA.UIGrid import UIGrid
-from UI import UIGitLogViewer
+from UI.UIGitLogViewer import UIGitLogViewer
 from UI.UISettings import UISettings
 from UI.UISolutionList import UISolutionList
 

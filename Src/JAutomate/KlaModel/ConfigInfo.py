@@ -1,5 +1,4 @@
 from Common.Git import Git
-from KlaModel.ConfigEncoder import ConfigEncoder
 
 
 class ConfigInfo:
