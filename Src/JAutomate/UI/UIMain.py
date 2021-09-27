@@ -1,6 +1,7 @@
 import ctypes
 import re
 import threading
+from win32api import OutputDebugString
 
 from Common.Git import Git
 from Common.Logger import Logger
@@ -22,17 +23,20 @@ from UI.UITestGroup import UITestGroup
 
 class UIMain:
     def Run(self):
-        if not ctypes.windll.shell32.IsUserAnAdmin():
-            MessageBox.ShowMessage('Please run this application with Administrator privilates')
-            return
         self.model = Model()
-        self.VM = UIViewModel(self.model)
         self.model.ReadConfigFile()
-        vsSolutions = VisualStudioSolutions(self.model)
-        threadHandler = ThreadHandler()
         fileName = self.model.StartPath + '/' + self.model.LogFileName
         Logger.Init(fileName)
+        Logger.AddLogger(self.DebugViewLog)
+
+        if not ctypes.windll.shell32.IsUserAnAdmin():
+            msg = 'Please run this application with Administrator privilates'
+            Logger.Log(msg)
+            MessageBox.ShowMessage(msg)
+            return
+
         klaRunner = KlaRunner(self.model)
+        self.VM = UIViewModel(self.model)
         testRunner = AutoTestRunner(self.model, self.VM)
 
         title = 'KLA Application Runner'
@@ -40,6 +44,8 @@ class UIMain:
         self.VM.window = self.window
         self.mainFrame = UIFactory.AddFrame(self.window, 0, 0, 20, 0)
         self.Row = 0
+        vsSolutions = VisualStudioSolutions(self.model)
+        threadHandler = ThreadHandler()
         UISourceGroup(self, klaRunner, vsSolutions, threadHandler)
         UITestGroup(self, klaRunner, vsSolutions, threadHandler, testRunner)
         UIMainMenu(self, klaRunner, vsSolutions, threadHandler, testRunner)
@@ -48,6 +54,9 @@ class UIMain:
         self.window.protocol('WM_DELETE_WINDOW', self.OnClosing)
         self.window.after(200, self.LazyInit)
         self.window.mainloop()
+
+    def DebugViewLog(self, message):
+        OutputDebugString(self.model.LogName + message)
 
     def OnClosing(self):
         self.model.Geometry.WriteGeomInfo(self.window, 'Main')

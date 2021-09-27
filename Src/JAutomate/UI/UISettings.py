@@ -32,6 +32,7 @@ class UISettings(UIWindow):
         def ValidateMaxSlot(slot):
             return int(slot)
         self.AddTextRow(textFrame, 'Number of Slots', 'MaxSlots', ValidateMaxSlot)
+        self.AddTextRow(textFrame, 'DebugView Filter', 'LogName', None)
 
         checkFrame = self.AddGroup(parent)
         self.chkRow = 0
