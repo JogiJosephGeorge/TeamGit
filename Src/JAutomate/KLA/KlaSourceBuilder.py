@@ -39,7 +39,7 @@ class KlaSourceBuilder:
         return self.NotifyUser('Reset')
 
     def NotifyUser(self, message):
-        activeSrcs = self.model.GetAllActiveSrcs()
+        activeSrcs = list(self.model.GetAllActiveSrcs())
         if len(activeSrcs) == 0:
             MessageBox.ShowMessage('There are no active sources. Please select the required one.')
             return False
@@ -71,26 +71,26 @@ class KlaSourceBuilder:
                 '/handler/cpp/.vs',
             ]
         gitIgnoreHelper = GitIgnoreFilesHelper()
-        for srcData in self.srcTuple:
-            cnt = len(Git.ModifiedFiles(srcData.Source))
+        for source, branch, config, srcPlatform in self.srcTuple:
+            cnt = len(Git.ModifiedFiles(source))
             if cnt > 0:
                 continue
                 #Git.Commit(self.model, 'Temp')
-            print 'Resetting files in ' + srcData.Source
-            gitIgnoreHelper.DeleteAllFiles(self.model, srcData.Source)
-            tempGitIgnoreFile = srcData.Source + '/.gitignore'
+            print 'Resetting files in ' + source
+            gitIgnoreHelper.DeleteAllFiles(self.model, source)
+            tempGitIgnoreFile = source + '/.gitignore'
             with open(tempGitIgnoreFile, 'w') as f:
                 f.writelines(str.join('\n', excludeDirs))
-            Git.Clean(srcData.Source)
-            print 'Reseting files in ' + srcData.Source
-            Git.ResetHard(srcData.Source)
+            Git.Clean(source)
+            print 'Reseting files in ' + source
+            Git.ResetHard(source)
             #if cnt > 0:
             #    Git.RevertLastCommit(src)
             if self.model.UpdateSubmodulesOnReset:
                 Git.SubmoduleUpdate(self.model)
             FileOperations.Delete(tempGitIgnoreFile)
             gitIgnoreHelper.RevertDeletedFiles()
-            print 'Resetting completed for ' + srcData.Source
+            print 'Resetting completed for ' + source
 
     def CleanSource(self):
         self.CallDevEnv(True)
@@ -237,7 +237,7 @@ class KlaSourceCleaner:
         self.model = model
 
     def RemoveAllHandlerTemp(self):
-        activeSrcs = self.model.GetAllActiveSrcs()
+        activeSrcs = list(self.model.GetAllActiveSrcs())
         if len(activeSrcs) == 0:
             MessageBox.ShowMessage('There is no active source.')
         for activeSrc in activeSrcs:

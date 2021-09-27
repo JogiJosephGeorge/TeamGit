@@ -2,9 +2,9 @@
 import sys
 
 from KLA.GoldenReportComparer import GoldenReportComparer
+from KLA.MmiLogReader import MmiLogReader
 from KlaModel.Model import Model
 from Test.UnitTestsRunner import UnitTestsRunner
-from UI.UIGitLogViewer import UIGitLogViewer
 from UI.UIMain import UIMain
 
 
@@ -20,6 +20,9 @@ def CompareGolderReports():
     rightFolder = testPath + '/_results'
     newRightFolder = testPath + '/NewGoldenReports'
     comparer.CopyAndCompareTestResults(leftFolder, rightFolder, newRightFolder)
+
+def LogReader():
+    MmiLogReader()
 
 def main():
     if len(sys.argv) == 2:

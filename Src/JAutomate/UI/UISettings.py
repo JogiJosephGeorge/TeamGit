@@ -56,32 +56,32 @@ class UISettings(UIWindow):
         AddCheckBox(txt, 'RestartSlotsForMMiAlone', msgOn, msgOff, False, False)
 
         txt = 'Remove C:\icos\Started.txt on starting MMI'
-        msgOn = 'The file C:\icos\Started.txt will be removed while running MMi.\nThis is NOT RECOMMENDED.'
+        msgOn = 'The file C:\icos\Started.txt will be removed while running MMi. This is NOT RECOMMENDED.'
         msgOff = 'The file C:\icos\Started.txt will NOT be removed while running MMi.'
         AddCheckBox(txt, 'RemoveStartedTXT', msgOn, msgOff, True, False)
 
         txt = 'On AutoTest Copy MMi to Icos'
         msgOn = 'Copy the mmi built over the installation in C:/icos.'
-        msgOff = 'Do NOT copy the mmi built over the installation in C:/icos.\nThis is NOT RECOMMENDED.'
+        msgOff = 'Do NOT copy the mmi built over the installation in C:/icos. This is NOT RECOMMENDED.'
         AddCheckBox(txt, 'CopyMmi', msgOn, msgOff, False, True)
 
         txt = 'On AutoTest Generate LicMgrConfig.xml'
-        msgOn = 'The file LicMgrConfig.xml will be created while running auto test.\nThis is NOT RECOMMENDED.'
+        msgOn = 'The file LicMgrConfig.xml will be created while running auto test. This is NOT RECOMMENDED.'
         msgOff = 'The file LicMgrConfig.xml will NOT be created while running auto test.'
         AddCheckBox(txt, 'GenerateLicMgrConfigOnTest', msgOn, msgOff, True, False)
 
         txt = 'On AutoTest Copy LicMgrConfig.xml'
-        msgOn = 'The file LicMgrConfig.xml will be copied while running auto test.\nThis is NOT RECOMMENDED.'
+        msgOn = 'The file LicMgrConfig.xml will be copied while running auto test. This is NOT RECOMMENDED.'
         msgOff = 'The file LicMgrConfig.xml will NOT be copied while running auto test.'
         AddCheckBox(txt, 'CopyLicMgrConfigOnTest', msgOn, msgOff, True, False)
 
         txt = 'On AutoTest Copy Mock License'
-        msgOn = 'The file mock License.dll will be copied while running auto test.\nThis is NOT RECOMMENDED.'
+        msgOn = 'The file mock License.dll will be copied while running auto test. This is NOT RECOMMENDED.'
         msgOff = 'The file mock License.dll will NOT be copied while running auto test.'
         AddCheckBox(txt, 'CopyMockLicenseOnTest', msgOn, msgOff, True, False)
 
         txt = 'On AutoTest Copy xPort_IllumReference.xml'
-        msgOn = 'The file xPort_IllumReference.xml will be copied while running auto test.\nThis is NOT RECOMMENDED.'
+        msgOn = 'The file xPort_IllumReference.xml will be copied while running auto test. This is NOT RECOMMENDED.'
         msgOff = 'The file xPort_IllumReference.xml will NOT be copied while running auto test.'
         AddCheckBox(txt, 'CopyExportIllumRefOnTest', msgOn, msgOff, True, False)
 
