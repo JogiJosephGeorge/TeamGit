@@ -9,10 +9,10 @@ SET IsStartUp=1
 SET IsDebugEnabled=0
 SET DoCopyMMI=1
 
- CALL:JPrintMenu
+REM CALL:JPrintMenu
 
 REM python -c "from JAutomate import JAutomate; JAutomate().RunSlots('1_2', 'True')"
-REM CALL:BuildSource %JConfig% %JPlatform%
+ CALL:BuildSource %JConfig% %JPlatform%
 REM CALL:JEveningBuild
 
 REM SET JCdaTestName=GageRnR
@@ -28,7 +28,7 @@ REM ------------------------------  Set Source  --------------------------------
 :JSetSource
 	SET J_SRC_NUM=%1
 	SET JSource=.
-	SET JConfig=Debug
+	SET JConfig=Release
 	SET JPlatform=Win32
 	
 	IF %J_SRC_NUM% == 1 SET JSource=D:\CI\Src1

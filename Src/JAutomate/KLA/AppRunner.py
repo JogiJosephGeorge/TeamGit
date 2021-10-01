@@ -108,5 +108,5 @@ class AppRunner:
     def OpenLocalDif(cls, model):
         curSrc = model.CurSrc()
         par = [ 'TortoiseGitProc.exe', '/command:diff', '/path:' + curSrc.Source + '' ]
-        print 'subprocess.Popen : ' + str(par)
+        print 'Tortoise Git Diff : ' + str(curSrc.Source)
         subprocess.Popen(par)

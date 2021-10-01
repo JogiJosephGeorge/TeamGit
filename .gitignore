@@ -23,6 +23,7 @@ Src/JAutomate/TempLog.log
 Src/JAutomate/TestReport.txt
 Src/JAutomate/handler/log/
 Src/JAutomate/hostCam.pid
+Src/OldBatch/JLog.txt
 Trace
 bin
 ipch

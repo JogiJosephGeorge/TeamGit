@@ -140,7 +140,7 @@ class UISourceSelector(UIWindow):
         self.vsSolutions = vsSolutions
         self.VM = VM
         self.threadHandler = threadHandler
-        self.srcBuilder = KlaSourceBuilder(self.model, self.klaRunner, self.vsSolutions)
+        self.srcBuilder = KlaSourceBuilder(self.model, self.vsSolutions)
         self.srcCleaner = KlaSourceCleaner(self.model)
 
     def CreateUI(self, parent):
@@ -191,7 +191,7 @@ class UISourceSelector(UIWindow):
 
     def AddSolutions(self):
         allSlns = self.vsSolutions.GetAllSlnFiles()
-        self.vsSolutions.SelectedInxs = [True] * len(allSlns)
+        self.vsSolutions.Init()
         self.AddEmptyRow()
         selMsg = 'Select Solutions to build / clean on active sources'
         UIFactory.AddLabel(self.AddRow(), selMsg, 0, 0)

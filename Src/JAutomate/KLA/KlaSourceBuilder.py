@@ -1,3 +1,6 @@
+# coding=utf-8
+import sys
+
 from datetime import datetime
 import os
 import re
@@ -13,9 +16,8 @@ from KLA.VMWareRunner import VMWareRunner
 
 
 class KlaSourceBuilder:
-    def __init__(self, model, klaRunner, vsSolutions):
+    def __init__(self, model, vsSolutions):
         self.model = model
-        self.klaRunner = klaRunner
         self.vsSolutions = vsSolutions
 
     def NotifyClean(self):
@@ -295,3 +297,21 @@ class KlaSourceCleaner:
         for file in filesToDelete:
             os.remove(file)
         print '{} files have been removed'.format(len(filesToDelete))
+
+
+def main():
+    # This will not work with KLA Runner. Stop All apps will close this also.
+    if __name__ == '__main__' and len(sys.argv) == 2:
+        param1 = sys.argv[1].lower()
+        if param1 == 'build':
+            from KlaModel import Model
+            from KLA import VisualStudioSolutions
+            model = Model.Model()
+            model.ReadConfigFile()
+            vsSolutions = VisualStudioSolutions.VisualStudioSolutions(model)
+            vsSolutions.Init()
+            builder = KlaSourceBuilder(model, vsSolutions)
+            if builder.NotifyBuild():
+                builder.BuildSource()
+
+main()

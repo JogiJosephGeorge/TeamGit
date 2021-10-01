@@ -15,6 +15,9 @@ class VisualStudioSolutions:
             '/libs/DLStub/DLStub/DLStub.sln',
         ]
 
+    def Init(self):
+        self.SelectedInxs = [True] * len(self.GetAllSlnFiles())
+
     def GetAllSlnFiles(self):
         #slnFiles = []
         #curSrc = self.model.CurSrc()
