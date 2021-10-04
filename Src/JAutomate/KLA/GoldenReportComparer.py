@@ -39,28 +39,40 @@ class GoldenReportComparer:
         if not os.path.isfile(self.model.BCompare):
             print 'Beyond compare does not exist in the given path : ' + self.model.BCompare
             return
-        self.CopyResultFiles(leftFolder, rightFolder, newRightFolder)
-        subprocess.Popen([self.model.BCompare, leftFolder, newRightFolder])
+        if self.CopyResultFiles(leftFolder, rightFolder, newRightFolder):
+            subprocess.Popen([self.model.BCompare, leftFolder, newRightFolder])
 
     def CopyResultFiles(self, leftFolder, rightFolder, newRightFolder):
         leftFiles = self.GetAllFileNames(leftFolder)
         rightFiles = self.GetAllFileNames(rightFolder)
-        print leftFiles
-        print rightFiles
+        #print leftFiles
+        #print rightFiles
         matchedFiles = []
-        missingFiles = ''
+        missingFiles = []
         for left in leftFiles:
             matchName = self.GetMatchedFile(left, rightFiles)
             if matchName:
                 matchedFiles.append(matchName)
-                print 'Left  : ' + left
-                print 'Right : ' + matchName
+                #print 'Left  : ' + left
+                #print 'Right : ' + matchName
                 self.CopyFile(rightFolder + matchName, newRightFolder + left)
             else:
-                missingFiles += left + '\n'
+                missingFiles.append(left)
 
+        missingCount = len(missingFiles)
+        filesCreated = len(leftFiles) - missingCount
+        if filesCreated == 0:
+            MessageBox.ShowMessage('No file found!')
+            return False
         if len(missingFiles) > 0:
-            MessageBox.ShowMessage('Equivalent file Not found for the following:\n' + missingFiles)
+            msg = 'Out of ' + str(len(leftFiles)) + ' file(s), '
+            if missingCount > 1:
+                msg += str(missingCount) + ' are'
+            else:
+                msg += '1 is'
+            msg += ' missing.'
+            MessageBox.ShowMessage(msg)
+        return True
 
     def CopyFile(self, Src, Dst):
         Src = Src.replace('/', '\\')
@@ -71,8 +83,8 @@ class GoldenReportComparer:
             fullPath += dir + '\\'
             if not os.path.isdir(fullPath):
                 os.mkdir(fullPath)
-        print 'Src : ' + Src
-        print 'Dst : ' + Dst
+        #print 'Src : ' + Src
+        #print 'Dst : ' + Dst
         shutil.copy(Src, Dst)
 
     def GetAllFileNames(self, path):
@@ -94,10 +106,13 @@ class GoldenReportComparer:
         return None
 
     def AreSame(self, left, right):
+        left = left.lower()
+        right = right.lower()
+        left = left.replace("\'", "?")
         if len(left) != len(right):
             return False
         for l, r in zip(left, right):
-            if l != "'" and l != r:
+            if l != "?" and l != r:
                 return False
         return True
 
@@ -119,11 +134,15 @@ class GoldenReportComparerTest:
     def TestAreSame(self):
         a = r"batchAllRejects_pvi_'''.txt"
         b = r'batchAllRejects_pvi_cda.txt'
-        Test.Assert(self.comparer.AreSame(a, b), True, 'PathAreSame 1')
+        Test.Assert(self.comparer.AreSame(a, b), True, 'Path 1')
 
         a = r'\ascii\PVI\batchAllRejects_pvi_cda.txt'
         b = r'\ascii\PVI\batchAllRejects_pvi_cda.txt'
-        Test.Assert(self.comparer.AreSame(a, b), True, 'PathAreSame 1')
+        Test.Assert(self.comparer.AreSame(a, b), True, 'Path 2')
+
+        a = "\ascii\csv\BatchName\machine_\'\'\'\'\'\'\'\'\'\'\'\'\'\'_BatchName.LIS"
+        b = "\ascii\CSV\BatchName\machine_20170101000037_BatchName.LIS"
+        Test.Assert(self.comparer.AreSame(a, b), True, 'Path 3')
 
 class TempCopy:
     def __init__(self):

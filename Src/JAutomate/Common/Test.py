@@ -27,12 +27,12 @@ class Test:
     @classmethod
     def _Print(cls, actual, expected, message):
         if actual == expected:
-            print 'Test OK      : ' + message
+            print 'Test ok      : ' + message
             cls._ok += 1
         else:
-            print 'Test Not OK : ' + message
+            print 'TEST NOT OK  : ' + message
             print 'Expected     : ' + str(expected)
-            print 'Actual        : ' + str(actual)
+            print 'Actual       : ' + str(actual)
             cls._notOk += 1
 
     @classmethod
