@@ -7,6 +7,7 @@ from Common.Logger import Logger
 from Common.MessageBox import MessageBox
 from Common.PrettyTable import PrettyTable, TableFormat
 from Common.UIFactory import UIFactory, CheckBoxCreator
+from KLA.AppRunner import AppRunner
 from KLA.KlaSourceBuilder import KlaSourceBuilder, KlaSourceCleaner
 from KLA.PreTestActions import PreTestActions, SourceCodeUpdater
 from KlaModel.ConfigEncoder import Config, Platform
@@ -148,6 +149,7 @@ class UISourceSelector(UIWindow):
         self.mainFrame = parent
         self.SourceGrid = UISourceGrid(self.model, self.AddRow())
         self.SourceGrid.CreateUI()
+        self.AddGitActions()
         self.AddSolutions()
         self.AddFunctions()
 
@@ -189,10 +191,17 @@ class UISourceSelector(UIWindow):
         SourceCodeUpdater.CopyPreCommit(self.model)
         super(UISourceSelector, self).OnClosing()
 
+    def AddGitActions(self):
+        self.AddEmptyRow()
+        row1 = self.AddRow()
+        UIFactory.AddButton(row1, 'Tortoise Git Diff', 0, 0, AppRunner.OpenLocalDif, (self.model,), 19)
+        if self.model.UILevel < 3:
+            UIFactory.AddButton(row1, 'Git GUI', 0, 1, Git.OpenGitGui, (self.model,), 19)
+            UIFactory.AddButton(row1, 'Git Bash Console', 0, 2, Git.OpenGitBash, (self.model,), 19)
+
     def AddSolutions(self):
         allSlns = self.vsSolutions.GetAllSlnFiles()
         self.vsSolutions.Init()
-        self.AddEmptyRow()
         selMsg = 'Select Solutions to build / clean on active sources'
         UIFactory.AddLabel(self.AddRow(), selMsg, 0, 0)
         self.slnChks = []
