@@ -1,5 +1,6 @@
 from Common.EffortLog import EffortLogger
 from Common.Git import Git
+from Common.Logger import Logger
 from Common.OsOperations import OsOperations
 from KLA.AppRunner import AppRunner
 from KLA.JiraOpener import JiraOpener
@@ -37,13 +38,21 @@ class UIMainMenu:
 
     def AddColumn1(self):
         self.uiGrid.CreateColumnFrame()
-        self.uiGrid.AddButton('STOP All KLA Apps', self.VM.StopTasks)
+        self.uiGrid.AddButton('STOP All KLA Apps', self.StopTasks)
         if self.model.UILevel < 3:
-            self.uiGrid.AddButton('STOP MMi alone', self.appRunner.StopMMi)
+            self.uiGrid.AddButton('STOP MMi alone', self.StopMMi)
             self.uiGrid.AddButton('Run Handler', self.RunHandler)
             self.uiGrid.AddButton('Run MMi from Source', self.RunMMi, (True,))
             self.uiGrid.AddButton('Run MMi from C:/Icos', self.RunMMi, (False,))
         self.uiGrid.AddButton('Run MMi SPC Tests', self.mmiSpcTestRunner.RunAllTests)
+
+    def StopTasks(self):
+        Logger.Log('STOP All KLA Apps')
+        self.VM.StopTasks()
+
+    def StopMMi(self):
+        Logger.Log('STOP MMi alone')
+        self.appRunner.StopMMi()
 
     def RunHandler(self):
         self.appRunner.RunHandler()
