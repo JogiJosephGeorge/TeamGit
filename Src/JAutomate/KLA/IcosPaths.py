@@ -32,6 +32,10 @@ class IcosPaths:
         return '{}/mmi/mmi/mmi_stat/integration/code/MockLicenseDll/{}/{}/License.dll'.format(source, platform, config)
 
     @classmethod
+    def GetMVSDConversionsPath(cls, source, platform):
+        return '{}/mmi/mmi/MVSDConversions/{}'.format(source, platform)
+
+    @classmethod
     def GetCommonTestPath(cls, source):
         return source + '/handler/tests'
 

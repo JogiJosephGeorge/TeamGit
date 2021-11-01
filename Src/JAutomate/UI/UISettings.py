@@ -85,6 +85,11 @@ class UISettings(UIWindow):
         msgOff = 'The file xPort_IllumReference.xml will NOT be copied while running auto test.'
         AddCheckBox(txt, 'CopyExportIllumRefOnTest', msgOn, msgOff, True, False)
 
+        txt = 'On AutoTest Copy MVSD Conversion'
+        msgOn = 'The files in MVSD Conversion will be copied while running auto test. This is NOT RECOMMENDED.'
+        msgOff = 'The files in MVSD Conversion will NOT be copied while running auto test.'
+        AddCheckBox(txt, 'CopyMVSDConversionOnTest', msgOn, msgOff, True, False)
+
         self.AddBackButton(parent, self.GrpRow, 0)
 
     def AddGroup(self, parent):

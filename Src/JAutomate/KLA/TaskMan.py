@@ -18,6 +18,9 @@ class TaskMan:
             'Ves.exe',
         ]:
             TaskMan.StopTask(exeName)
+        # TODO: The following line needs to close everything properly.
+        # TODO: But it stops parallel building.
+        # TODO: So we need to ignore all other parallel processes here
         TaskMan.StopTask('python.exe', os.getpid())
 
     @classmethod

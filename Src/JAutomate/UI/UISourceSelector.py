@@ -197,7 +197,7 @@ class UISourceSelector(UIWindow):
         UIFactory.AddButton(row1, 'Tortoise Git Diff', 0, 0, AppRunner.OpenLocalDif, (self.model,), 19)
         if self.model.UILevel < 3:
             UIFactory.AddButton(row1, 'Git GUI', 0, 1, Git.OpenGitGui, (self.model,), 19)
-            UIFactory.AddButton(row1, 'Git Bash Console', 0, 2, Git.OpenGitBash, (self.model,), 19)
+        UIFactory.AddButton(row1, 'Git Submodule Update', 0, 2, Git.SubmoduleUpdate, (self.model,), 19)
 
     def AddSolutions(self):
         allSlns = self.vsSolutions.GetAllSlnFiles()

@@ -99,6 +99,13 @@ class PreTestActions:
         cls.DelayedCopy(src, des, 'LicMgr', initWait)
 
     @classmethod
+    def CopyMVSDConversion(cls, model, initWait = 0):
+        curSrc = model.CurSrc()
+        src = IcosPaths.GetMVSDConversionsPath(curSrc.Source, curSrc.Platform)
+        des = 'C:/icos/Tools/MVSDConversions'
+        cls.DelayedCopy(src, des, 'MVSDConversions', initWait)
+
+    @classmethod
     def DelayedCopy(cls, src, des, timerName='', initWait=0):
         if initWait > 0:
             TaskMan.AddTimer(timerName, FileOperations.Copy(src, des, initWait, 3))

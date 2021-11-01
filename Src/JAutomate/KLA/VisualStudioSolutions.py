@@ -13,6 +13,7 @@ class VisualStudioSolutions:
             '/mmi/mmi/MockLicense.sln',
             '/mmi/mmi/Converters.sln',
             '/libs/DLStub/DLStub/DLStub.sln',
+            '/libs/DLStub/ICOSDaemonStub/ICOSDaemonStub.sln',
         ]
 
     def Init(self):

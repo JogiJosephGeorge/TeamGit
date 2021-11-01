@@ -1,6 +1,35 @@
 import msvcrt
 import os
 import subprocess
+from win32com.client import GetObject
+
+class Process:
+    def __init__(self):
+        self.ProcessID = -1
+        self.ParentProcessId = -1
+        self.Name = -1
+
+class WinProcessOps:
+    @classmethod
+    def GetProcessInfo(cls):
+        WMI = GetObject('winmgmts:')
+        processes = WMI.InstancesOf('Win32_Process')
+        processList = {}
+        for p in processes:
+            pObj = Process()
+            pObj.ProcessID = p.Properties_("ProcessID").Value
+            pObj.ParentProcessId = p.Properties_("ParentProcessId").Value
+            pObj.Name = p.Properties_("Name").Value
+            processList.append(pObj)
+        return processList
+
+    @classmethod
+    def GetSubtasks(cls, pid, processList):
+        subtasks = []
+        for p in processList:
+            if p.ParentProcessId == pid:
+                subtasks.append(p)
+        return subtasks
 
 
 class OsOperations:

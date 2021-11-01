@@ -53,19 +53,33 @@ class UIGitLogViewer(UIWindow):
         self.textBoxCreator = TextBoxCreator(self.gitLogModel)
         self.checkBoxCreator = CheckBoxCreator()
 
+        self.CreateColumnFrame(parent, 0)
+        self.AddTextRow('Branch Name', 'BranchName', 40)
+        self.AddTextRow('--pretty=format:', 'PrettyFormat', 40)
+        self.AddTextRow('--date=format:', 'DateFormat', 40)
+        self.AddTextRow('-n', 'Number', 5)
+        self.AddCheckBox('--reverse', 'Reverse')
+        self.AddCheckBox('--decorate', 'Decorate')
+        self.AddCheckBox('--graph', 'Graph')
+        self.AddCheckBox('--oneline', 'Oneline')
+        self.AddTextRow('Out File', 'OutFile', 40)
+
+        self.CreateColumnFrame(parent, 1)
+        self.AddButton('Print Log', self.PrintLog)
+        self.AddButton('Write Log', self.WriteLog)
+
+        self.CreateColumnFrame(parent, 2)
+        self.AddButton('Clear Output', OsOperations.Cls)
+        self.AddBackButton(self.RowFrame, self.Row, self.Col)
+
+    def CreateColumnFrame(self, parent, r):
         self.Row = 0
-        self.AddTextRow(parent, 'Branch Name', 'BranchName', 40)
-        self.AddTextRow(parent, '--pretty=format:', 'PrettyFormat', 40)
-        self.AddTextRow(parent, '--date=format:', 'DateFormat', 40)
-        self.AddTextRow(parent, '-n', 'Number', 5)
-        self.AddCheckBox(parent, '--reverse', 'Reverse')
-        self.AddCheckBox(parent, '--decorate', 'Decorate')
-        self.AddCheckBox(parent, '--graph', 'Graph')
-        self.AddCheckBox(parent, '--oneline', 'Oneline')
-        #self.AddTextRow(parent, 'Out File', 'OutFile', 40)
-        UIFactory.AddButton(parent, 'Print Log', self.Row, 0, self.PrintLog, None, 19)
-        #UIFactory.AddButton(parent, 'Write Log', self.Row, 1, self.WriteLog)
-        self.AddBackButton(parent, self.Row, 1)
+        self.Col = 0
+        self.RowFrame = UIFactory.AddFrame(parent, r, 0)
+
+    def AddButton(self, txt, cmd):
+        UIFactory.AddButton(self.RowFrame, txt, self.Row, self.Col, cmd, None, 19)
+        self.Col += 1
 
     def PrintLog(self):
         self.gitLogModel.WriteToFile = False
@@ -80,11 +94,11 @@ class UIGitLogViewer(UIWindow):
         cmd = self.gitLogModel.GetCmd()
         OsOperations.Call('git {}'.format(cmd))
 
-    def AddTextRow(self, parent, label, attrName, width):
-        UIFactory.AddLabel(parent, label, self.Row, 0)
-        self.textBoxCreator.Add(parent, self.Row, 1, attrName, None, width)
+    def AddTextRow(self, label, attrName, width):
+        UIFactory.AddLabel(self.RowFrame, label, self.Row, 0)
+        self.textBoxCreator.Add(self.RowFrame, self.Row, 1, attrName, None, width)
         self.Row += 1
 
-    def AddCheckBox(self, parent, label, attrName):
-        self.checkBoxCreator.AddCheckBox(parent, self.Row, 0, label, self.gitLogModel, attrName, '', '', False, False)
+    def AddCheckBox(self, label, attrName):
+        self.checkBoxCreator.AddCheckBox(self.RowFrame, self.Row, 0, label, self.gitLogModel, attrName, '', '', False, False)
         self.Row += 1

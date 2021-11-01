@@ -5,6 +5,7 @@ from Common.FileOperations import FileOperations
 from Common.Logger import Logger
 from Common.MessageBox import MessageBox
 from Common.StdOutRedirect import StdOutRedirect
+from KLA.IcosPaths import IcosPaths
 from KLA.PreTestActions import PreTestActions, SourceCodeUpdater
 from KLA.TaskMan import TaskMan
 from KLA.VMWareRunner import VMWareRunner
@@ -50,6 +51,8 @@ class AutoTestRunner:
             PreTestActions.CopyLicMgrConfig(self.model, initWait)
         if self.model.CopyExportIllumRefOnTest:
             PreTestActions.CopyxPortIllumRef(self.model, initWait)
+        if self.model.CopyMVSDConversionOnTest:
+            PreTestActions.CopyMVSDConversion(self.model, initWait)
 
         #FileOperations.Copy(self.model.StartPath + '/Profiles', 'C:/icos/Profiles', 8, 3)
         os.chdir(self.model.StartPath)
