@@ -100,15 +100,21 @@ class PreTestActions:
 
     @classmethod
     def CopyMVSDConversion(cls, model, initWait = 0):
+        timer = FileOperations.LazyCreateDir('C:/icos/Tools/', 'MVSDConversions', initWait, 3)
+        timer.name = 'MVSDDir'
+        TaskMan.AddTimer(timer.name, timer)
+
         curSrc = model.CurSrc()
         src = IcosPaths.GetMVSDConversionsPath(curSrc.Source, curSrc.Platform)
-        des = 'C:/icos/Tools/MVSDConversions'
-        cls.DelayedCopy(src, des, 'MVSDConversions', initWait)
+        des = 'C:/icos/Tools/MVSDConversions/'
+        cls.DelayedCopy(src, des, 'MVSDContents', initWait)
 
     @classmethod
     def DelayedCopy(cls, src, des, timerName='', initWait=0):
         if initWait > 0:
-            TaskMan.AddTimer(timerName, FileOperations.Copy(src, des, initWait, 3))
+            timer = FileOperations.Copy(src, des, initWait, 3)
+            timer.name = timerName
+            TaskMan.AddTimer(timerName, timer)
         else:
             FileOperations.Copy(src, des)
 

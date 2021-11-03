@@ -45,7 +45,7 @@ class FileOperations:
             cls._Copy(src, des, inter)
         else:
             print 'Try to Copy({},{}) after {} seconds.'.format(src, des, initWait)
-            copyTimer = MyTimer(cls._Copy, initWait, inter, src, des)
+            copyTimer = MyTimer(cls._Copy, initWait, inter, src, des, 0)
             copyTimer.start()
             return copyTimer
 
@@ -67,6 +67,22 @@ class FileOperations:
         else:
             print 'Wrong input - Neither file nor directory : ' + src
             return False
+        return True
+
+    @classmethod
+    def LazyCreateDir(cls, dirPath, dirName, initWait, inter):
+        print 'Try to Create Dir {} in {} after {} seconds.'.format(dirName, dirPath, initWait)
+        copyTimer = MyTimer(cls._CreateDir, initWait, inter, dirPath, dirName)
+        copyTimer.start()
+        return copyTimer
+
+    @classmethod
+    def _CreateDir(cls, dirPath, dirName):
+        dirPath = dirPath.replace('/', '\\')
+        if not os.path.exists(dirPath):
+            print '({}) not existing. Try to create ({}) later.'.format(dirPath, dirName)
+            return False
+        os.mkdir(dirPath + dirName)
         return True
 
     @classmethod

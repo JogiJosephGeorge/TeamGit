@@ -11,6 +11,8 @@ class MyTimer(threading.Thread):
         self.initWait = initWait
         self.interval = inter
         self.args = args
+        self.name = ''
+        #print 'JJG MyTimer : Args : ' + str(args)
 
     def stop(self):
         self._stop.set()
