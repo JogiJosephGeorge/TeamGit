@@ -70,7 +70,11 @@ class AutoTestRunner:
         my.c.debugvision = self.model.DebugVision
         my.c.copymmi = self.model.CopyMmi
         my.c.mmiBuildConfiguration = ConfigEncoder.GetBuildConfig(self.model)
-        my.c.console_config = my.c.simulator_config = my.c.mmiBuildConfiguration[0]
+        my.c.simulator_config = my.c.mmiBuildConfiguration[0]
+        if self.model.ConsoleFromCHandler:
+            my.c.console_config = 'm'
+        else:
+            my.c.console_config = my.c.mmiBuildConfiguration[0]
         my.c.platform = curSrc.Platform
         my.c.mmiConfigurationsPath = self.model.MMiConfigPath
         my.c.mmiSetupsPath = self.model.MMiSetupsPath

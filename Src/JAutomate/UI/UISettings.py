@@ -89,6 +89,11 @@ class UISettings(UIWindow):
         msgOff = 'The files in MVSD Conversion will NOT be copied while running auto test.'
         AddCheckBox(txt, 'CopyMVSDConversionOnTest', msgOn, msgOff, True, False)
 
+        txt = 'On AutoTest Console Run from C:/handler/system'
+        msgOn = 'On AutoTest, Console will be running from C:/handler/system'
+        msgOff = 'On AutoTest, Console will be running from build source'
+        AddCheckBox(txt, 'ConsoleFromCHandler', msgOn, msgOff, False, False)
+
         self.AddBackButton(parent, self.GrpRow, 0)
 
     def AddGroup(self, parent):
