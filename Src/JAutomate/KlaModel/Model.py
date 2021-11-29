@@ -13,6 +13,32 @@ class SrcData:
         self.Config = Config.Debug
         self.Platform = Platform.Win32
         self.IsActive = False
+        self.Description = ''
+
+    @classmethod
+    def CreateFromJson(cls, jsonData):
+        srcData = SrcData()
+        srcData.Source = cls.ReadField(jsonData, 'Source', '')
+        srcData.Config = cls.ReadField(jsonData, 'Config', Config.Debug)
+        srcData.Platform = cls.ReadField(jsonData, 'Platform', Platform.Win32)
+        srcData.IsActive = cls.ReadField(jsonData, 'IsActive', False)
+        srcData.Description = cls.ReadField(jsonData, 'Description', '')
+        return srcData
+
+    @classmethod
+    def ReadField(self, jsonData, key, defValue):
+        if key in jsonData:
+            return jsonData[key]
+        return defValue
+
+    def GetJsonData(self):
+        jsonData = {}
+        jsonData['Source'] = self.Source
+        jsonData['Config'] = self.Config
+        jsonData['Platform'] = self.Platform
+        jsonData['IsActive'] = self.IsActive
+        jsonData['Description'] = self.Description
+        return jsonData
 
 
 class SourceInfo:
@@ -24,16 +50,11 @@ class SourceInfo:
         self.model.SrcIndex = -1
         if iniFile.HasKey('SourceInfo'):
             # Read New Data from New Version
-            srcArray = iniFile.ReadField('SourceInfo', [])
+            sourceInfo = iniFile.ReadField('SourceInfo', [])
             del self.SrcArray[:]
-            for srcItem in srcArray:
-                srcData = SrcData()
-                srcData.Source = srcItem['Source']
-                srcData.Config = srcItem['Config']
-                srcData.Platform = srcItem['Platform']
-                srcData.IsActive = srcItem['IsActive']
+            for srcJson in sourceInfo:
+                srcData = SrcData.CreateFromJson(srcJson)
                 self.SrcArray.append(srcData)
-
         else:
             # Read New Data from Old Version
             ActiveSrcs = iniFile.ReadField('ActiveSrcs', [])
@@ -54,15 +75,11 @@ class SourceInfo:
     def Write(self, iniFile):
         iniFile.Write('SrcIndex', self.model.SrcIndex)
 
-        srcData = []
+        sourceInfo = []
         for src in self.SrcArray:
-            srcItem = {}
-            srcItem['Source'] = src.Source
-            srcItem['Config'] = src.Config
-            srcItem['Platform'] = src.Platform
-            srcItem['IsActive'] = src.IsActive
-            srcData.append(srcItem)
-        iniFile.Write('SourceInfo', srcData)
+            srcItem = src.GetJsonData()
+            sourceInfo.append(srcItem)
+        iniFile.Write('SourceInfo', sourceInfo)
 
     def UpdateSource(self, index, writeToFile):
         if index < 0 or index >= len(self.SrcArray):
@@ -80,9 +97,6 @@ class SourceInfo:
                 return False
         srcData = SrcData()
         srcData.Source = newPath
-        srcData.Config = Config.FromIndex(0)
-        srcData.Platform = Platform.FromIndex(0)
-        srcData.IsActive = False
         self.SrcArray.append(srcData)
         if self.model.SrcIndex < 0:
             self.model.SrcIndex = 0

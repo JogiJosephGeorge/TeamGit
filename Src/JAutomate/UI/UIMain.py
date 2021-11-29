@@ -46,8 +46,8 @@ class UIMain:
         self.Row = 0
         vsSolutions = VisualStudioSolutions(self.model)
         threadHandler = ThreadHandler()
-        UISourceGroup(self, klaRunner, vsSolutions, threadHandler)
-        UITestGroup(self, klaRunner, vsSolutions, threadHandler, testRunner)
+        self.uiSourceGroup = UISourceGroup(self, klaRunner, vsSolutions, threadHandler)
+        self.uiTestGroup = UITestGroup(self, klaRunner, vsSolutions, threadHandler, testRunner)
         UIMainMenu(self, klaRunner, vsSolutions, threadHandler, testRunner)
 
         self.model.Geometry.ReadGeomInfo(self.window, 'Main')
@@ -62,6 +62,9 @@ class UIMain:
         self.model.Geometry.WriteGeomInfo(self.window, 'Main')
         self.model.WriteConfigFile()
         self.window.destroy()
+
+    def OnSettingsClosed(self):
+        self.uiTestGroup.UpdateVersionCombo()
 
     def LazyInit(self):
         class LazyData:
@@ -78,7 +81,7 @@ class UIMain:
         title = 'KLA Application Runner ' + self.LazyData.Version
         self.window.title(title)
         self.model.Branch = self.LazyData.Branch
-        self.VM.lblBranch.set(self.model.Branch)
+        self.uiSourceGroup.UpdateBranch()
         print title
         self.CheckLicense()
         SourceCodeUpdater.CopyPreCommit(self.model)

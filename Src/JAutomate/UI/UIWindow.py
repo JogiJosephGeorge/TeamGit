@@ -2,10 +2,11 @@ from Common.UIFactory import UIFactory
 
 
 class UIWindow(object):
-    def __init__(self, parent, model, title):
+    def __init__(self, parent, model, title, onClosed = None):
         self.Parent = parent
         self.model = model
         self.Title = title
+        self.OnClosed = onClosed
 
     def Show(self):
         startPath = self.model.StartPath if self.model else ''
@@ -30,6 +31,8 @@ class UIWindow(object):
         if self.model:
             self.model.WriteConfigFile()
         self.window.destroy()
+        if self.OnClosed:
+            self.OnClosed()
 
     def AddBackButton(self, parent, r, c):
         UIFactory.AddButton(parent, 'Back', r, c, self.OnClosing, None, 19)

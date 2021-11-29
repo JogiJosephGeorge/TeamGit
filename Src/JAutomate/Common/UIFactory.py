@@ -46,12 +46,16 @@ class UIFactory:
         return labelVar
 
     @classmethod
-    def AddEntry(cls, parent, cmd, r, c, width = 0):
-        entry = tk.Entry(parent, width=width)
+    def AddEntry(cls, parent, text, cmd, r, c, width = 0):
+        txtVar = tk.StringVar()
+        entry = tk.Entry(parent, width=width, textvariable = txtVar)
+        txtVar.set(text)
+        #entry = tk.Entry(parent, width=width)
         entry.grid(row=r, column=c, sticky='w')
         reg = parent.register(cmd)
         entry.config(validate='key', validatecommand=(reg, '%P'))
-        return entry
+        return (entry,txtVar)
+        #return (entry,None)
 
     @classmethod
     def AddTextBox(cls, parent, text, r, c, width = 0):

@@ -17,6 +17,7 @@ class UIMainMenu:
     def __init__(self, UI, klaRunner, vsSolutions, threadHandler, testRunner):
         self.window = UI.window
         self.VM = UI.VM
+        self.OnSettingsClosed = UI.OnSettingsClosed
         self.model = klaRunner.model
         self.klaRunner = klaRunner
         self.vsSolutions = vsSolutions
@@ -118,5 +119,5 @@ class UIMainMenu:
             self.uiGrid.AddButton('Convert Stack', specialTextOps.ConvertStack)
 
     def ShowSettings(self):
-        uiSettings = UISettings(self.window, self.model, self.VM)
+        uiSettings = UISettings(self.window, self.model, self.OnSettingsClosed)
         uiSettings.Show()

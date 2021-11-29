@@ -10,15 +10,6 @@ class UIViewModel:
         self.model = model
         self.UpdateVersionCombo = None
 
-    def GetSource(self):
-        curSrc = self.model.CurSrc()
-        return '{}     ({} | {})'.format(curSrc.Source, curSrc.Config, curSrc.Platform)
-
-    def UpdateSourceBranch(self):
-        source = self.GetSource()
-        self.lblSource.set(source)
-        self.lblBranch.set(self.model.Branch)
-
     def StopTasks(self):
         TaskMan.StopTasks()
         VMWareRunner.RunSlots(self.model, False, False)

@@ -60,7 +60,7 @@ class FilterTestSelector:
         self.model = model
         self.UpdateCombo = updateCombo
         frame = UIFactory.AddFrame(parent, r, c)
-        self.SearchTextEntry = UIFactory.AddEntry(frame, self.OnSearchTextChanged, 0, 0, 25)
+        self.SearchTextEntry = UIFactory.AddEntry(frame, '', self.OnSearchTextChanged, 0, 0, 25)[0]
         self.AddTestCombo(frame, 1)
         self.AddSelectBut = UIFactory.AddButton(frame, 'Add Selected Test', 0, 2, self.OnAddSelectedTest)
         self.EnableControls(False)

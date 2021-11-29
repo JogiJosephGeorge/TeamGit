@@ -23,6 +23,7 @@ class UISourceGrid:
         self.lblBranches = []
         self.cboConfig = []
         self.cboPlatform = []
+        self.txtDescription = []
         self.SelectedSrc = tk.IntVar()
         self.SelectedSrc.set(self.model.SrcIndex)
 
@@ -39,6 +40,7 @@ class UISourceGrid:
         UIFactory.AddLabel(self.ParentFrame, 'Branch', 0, 2)
         UIFactory.AddLabel(self.ParentFrame, 'Platform', 0, 3)
         UIFactory.AddLabel(self.ParentFrame, 'Configuration', 0, 4)
+        UIFactory.AddLabel(self.ParentFrame, 'Description', 0, 5)
 
     def AddSrcRow(self, r, srcData):
         self.AddActive(r, 0)
@@ -46,6 +48,7 @@ class UISourceGrid:
         self.AddBranch(r, 2)
         self.AddPlatform(r, 3, srcData.Platform)
         self.AddConfig(r, 4, srcData.Config)
+        self.AddDescription(r, 5, srcData.Description)
 
     def AddActive(self, r, c):
         Index = r - 1
@@ -109,6 +112,14 @@ class UISourceGrid:
     def GetConfigInx(self, row):
         return self.cboConfig[row].current()
 
+    def AddDescription(self, r, c, descr):
+        textVar = UIFactory.AddTextBox(self.ParentFrame, descr, r, c, 30)
+        self.txtDescription.append(textVar)
+
+    def OnDescriptionChanged(self, input):
+        print input
+        self.model.CurSrc().Description = input
+
     def AddPlatform(self, r, c, platform):
         platforms = Platform.GetList()
         platformInx = platforms.index(platform)
@@ -132,14 +143,19 @@ class UISourceGrid:
         del self.cboConfig[row]
         del self.cboPlatform[row]
 
+    def OnClosing(self):
+        row = 0
+        for txtDesc in self.txtDescription:
+            self.model.GetSrcAt(row).Description = txtDesc.get()
+            row += 1
+
 
 class UISourceSelector(UIWindow):
-    def __init__(self, parent, model, klaRunner, vsSolutions, VM, threadHandler):
-        super(UISourceSelector, self).__init__(parent, model, 'Source Manager')
+    def __init__(self, parent, model, klaRunner, vsSolutions, threadHandler, onClosed):
+        super(UISourceSelector, self).__init__(parent, model, 'Source Manager', onClosed)
         self.checkBoxCreator = CheckBoxCreator()
         self.klaRunner = klaRunner
         self.vsSolutions = vsSolutions
-        self.VM = VM
         self.threadHandler = threadHandler
         self.srcBuilder = KlaSourceBuilder(self.model, self.vsSolutions)
         self.srcCleaner = KlaSourceCleaner(self.model)
@@ -186,8 +202,8 @@ class UISourceSelector(UIWindow):
         print PrettyTable(TableFormat().SetSingleLine()).ToString(data)
 
     def OnClosing(self):
+        self.SourceGrid.OnClosing()
         self.model.Branch = self.SourceGrid.GetBranch(self.model.SrcIndex)
-        self.VM.UpdateSourceBranch()
         SourceCodeUpdater.CopyPreCommit(self.model)
         super(UISourceSelector, self).OnClosing()
 

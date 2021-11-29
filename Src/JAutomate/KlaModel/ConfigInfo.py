@@ -7,8 +7,7 @@ class ConfigInfo:
         model.slots = []
         model.TestIndex = -1
         model.SrcCnf.Read(iniFile)
-        Tests = iniFile.ReadField('Tests', [])
-        model.AutoTests.Read(Tests)
+        model.AutoTests.Read(iniFile)
         TestIndex = iniFile.ReadField('TestIndex', -1)
         if not model.UpdateTest(TestIndex, False):
             model.TestIndex = 0
@@ -53,7 +52,7 @@ class ConfigInfo:
 
     def Write(self, iniFile, model):
         model.SrcCnf.Write(iniFile)
-        iniFile.Write('Tests', model.AutoTests.Write())
+        model.AutoTests.Write(iniFile)
         iniFile.Write('TestIndex', model.TestIndex)
         iniFile.Write('DevEnvCom', model.DevEnvCom)
         iniFile.Write('DevEnvExe', model.DevEnvExe)

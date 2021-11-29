@@ -7,9 +7,8 @@ from UI.UIWindow import UIWindow
 
 
 class UISettings(UIWindow):
-    def __init__(self, parent, model, VM):
-        super(UISettings, self).__init__(parent, model, 'Settings')
-        self.VM = VM
+    def __init__(self, parent, model, OnSettingsClosed):
+        super(UISettings, self).__init__(parent, model, 'Settings', OnSettingsClosed)
         self.GrpRow = 0
         self.Row = 0
 
@@ -17,7 +16,7 @@ class UISettings(UIWindow):
         self.checkBoxCreator = CheckBoxCreator()
 
         pathFrame = self.AddGroup(parent)
-        self.AddSelectPathRow(pathFrame, 'MMi Setups Path', 'MMiSetupsPath', self.VM.UpdateVersionCombo)
+        self.AddSelectPathRow(pathFrame, 'MMi Setups Path', 'MMiSetupsPath')
         self.AddSelectPathRow(pathFrame, 'MMi Config Path', 'MMiConfigPath')
         self.AddSelectFileRow(pathFrame, 'Effort Log File', 'EffortLogFile')
         self.AddSelectFileRow(pathFrame, 'DevEnv.com', 'DevEnvCom')

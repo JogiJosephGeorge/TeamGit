@@ -5,15 +5,17 @@ class AutoTestModel:
     def __init__(self):
         self.Tests = []
 
-    def Read(self, testArray):
+    def Read(self, iniFile):
+        testArray = iniFile.ReadField('Tests', [])
         self.Tests = []
         for item in testArray:
             nameSlot = self.Encode(item)
             if nameSlot is not None:
                 self.Tests.append(nameSlot)
 
-    def Write(self):
-        return [self.Decode(item[0], item[1]) for item in self.Tests]
+    def Write(self, iniFile):
+        testArray = [self.Decode(item[0], item[1]) for item in self.Tests]
+        iniFile.Write('Tests', testArray)
 
     def IsValidIndex(self, index):
         return index >= 0 and index < len(self.Tests)
