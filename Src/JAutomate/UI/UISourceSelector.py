@@ -183,11 +183,12 @@ class UISourceSelector(UIWindow):
     def LazyUiInit(self):
         index = 0
         data = [['Source', 'Branch', 'Available Configs']]
+        runFromCHandler = self.model.ConsoleFromCHandler
         for srcData in self.model.GetAllSrcs():
             data.append(['-'])
             branch = '' # Git.GetBranch(src)
             configs = ''
-            for pf,cfg in PreTestActions.GetExistingConfigs(srcData.Source):
+            for pf,cfg in PreTestActions.GetExistingConfigs(srcData.Source, runFromCHandler):
                 configs = '{}|{} '.format(pf, cfg)
             for brn1 in Git.GetLocalBranches(srcData.Source):
                 if brn1.startswith('* '):

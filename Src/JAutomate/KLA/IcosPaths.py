@@ -11,12 +11,14 @@ class IcosPaths:
         return cls.GetMmiPath(source, platform, config) + '/mmi.exe'
 
     @classmethod
-    def GetHandlerPath(cls, source, platform, config):
+    def GetHandlerPath(cls, source, platform, config, runFromCHandler):
+        if runFromCHandler:
+            return 'C:/handler/system'
         return '{}/handler/cpp/bin/{}/{}/system'.format(source, platform, config)
 
     @classmethod
-    def GetConsolePath(cls, source, platform, config):
-        return cls.GetHandlerPath(source, platform, config) + '/console.exe'
+    def GetConsolePath(cls, source, platform, config, runFromCHandler):
+        return cls.GetHandlerPath(source, platform, config, runFromCHandler) + '/console.exe'
 
     @classmethod
     def GetSimulatorPath(cls, source, platform, config):

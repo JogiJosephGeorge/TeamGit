@@ -34,43 +34,44 @@ class PreTestActions:
         for srcData in model.GetAllSrcs():
             data.append(['-'])
             data.append([srcData.Source])
-            exePaths = cls.GetPossibleExePathsOnSource(srcData.Source)
+            exePaths = cls.GetPossibleExePathsOnSource(srcData.Source, model.ConsoleFromCHandler)
             for exePath, pf, cfg in exePaths:
                 if os.path.exists(exePath):
                     data.append(['', exePath, pf, cfg])
         PrettyTable(TableFormat().SetSingleLine()).PrintTable(data)
 
     @classmethod
-    def GetPossibleExePathsOnSource(cls, source):
+    def GetPossibleExePathsOnSource(cls, source, runFromCHandler):
         exePaths = []
         for pf in Platform.GetList():
             for cfg in Config.GetList():
-                exePaths += cls.GetPossibleExePathsOnConfig(source, pf, cfg)
+                exePaths += cls.GetPossibleExePathsOnConfig(source, pf, cfg, runFromCHandler)
         return exePaths
 
     @classmethod
-    def ConfigExistsOnSource(cls, source, pf, cfg):
-        exePaths = cls.GetPossibleExePathsOnConfig(source, pf, cfg)
+    def ConfigExistsOnSource(cls, source, pf, cfg, runFromCHandler):
+        exePaths = cls.GetPossibleExePathsOnConfig(source, pf, cfg, runFromCHandler)
         for exePath, pf, cfg in exePaths:
             if not os.path.exists(exePath):
                 return False
         return True
 
     @classmethod
-    def GetPossibleExePathsOnConfig(cls, source, pf, cfg):
+    def GetPossibleExePathsOnConfig(cls, source, pf, cfg, runFromCHandler):
         exePaths = []
         exePaths.append((IcosPaths.GetMmiExePath(source, pf, cfg), pf, cfg))
-        exePaths.append((IcosPaths.GetConsolePath(source, pf, cfg), pf, cfg))
+        if not runFromCHandler:
+            exePaths.append((IcosPaths.GetConsolePath(source, pf, cfg, False), pf, cfg))
         exePaths.append((IcosPaths.GetSimulatorPath(source, pf, cfg), pf, cfg))
         exePaths.append((IcosPaths.GetMockLicensePath(source, pf, cfg), pf, cfg))
         return exePaths
 
     @classmethod
-    def GetExistingConfigs(cls, source):
+    def GetExistingConfigs(cls, source, runFromCHandler):
         configPlatforms = []
         for pf in Platform.GetList():
             for cfg in Config.GetList():
-                if cls.ConfigExistsOnSource(source, pf, cfg):
+                if cls.ConfigExistsOnSource(source, pf, cfg, runFromCHandler):
                     configPlatforms.append((pf, cfg))
         return configPlatforms
 

@@ -23,8 +23,9 @@ class AppRunner:
         Logger.Log('Run Handler in ' + curSrc.Source)
         TaskMan.StopTasks()
 
-        handlerPath = IcosPaths.GetHandlerPath(curSrc.Source, curSrc.Platform, curSrc.Config)
-        consoleExe = IcosPaths.GetConsolePath(curSrc.Source, curSrc.Platform, curSrc.Config)
+        runFromCHandler = self.model.ConsoleFromCHandler
+        handlerPath = IcosPaths.GetHandlerPath(curSrc.Source, curSrc.Platform, curSrc.Config, runFromCHandler)
+        consoleExe = IcosPaths.GetConsolePath(curSrc.Source, curSrc.Platform, curSrc.Config, runFromCHandler)
         testTempDir = IcosPaths.GetTestPathTemp(curSrc.Source, self.model.TestName)
 
         simulatorExe = IcosPaths.GetSimulatorPath(curSrc.Source, curSrc.Platform, curSrc.Config)
