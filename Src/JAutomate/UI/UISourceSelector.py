@@ -5,6 +5,7 @@ import tkFileDialog
 from Common.Git import Git
 from Common.Logger import Logger
 from Common.MessageBox import MessageBox
+from Common.OsOperations import OsOperations
 from Common.PrettyTable import PrettyTable, TableFormat
 from Common.UIFactory import UIFactory, CheckBoxCreator
 from KLA.AppRunner import AppRunner
@@ -215,6 +216,7 @@ class UISourceSelector(UIWindow):
         if self.model.UILevel < 3:
             UIFactory.AddButton(row1, 'Git GUI', 0, 1, Git.OpenGitGui, (self.model,), 19)
         UIFactory.AddButton(row1, 'Git Submodule Update', 0, 2, Git.SubmoduleUpdate, (self.model,), 19)
+        UIFactory.AddButton(row1, 'Nuget Restore', 0, 3, self.NugetRestore, (self.model,), 19)
 
     def AddSolutions(self):
         allSlns = self.vsSolutions.GetAllSlnFiles()
@@ -290,3 +292,8 @@ class UISourceSelector(UIWindow):
                 self.OnClosing() # After removing grid row, this line can be omitted
             else:
                 print 'The source can not be removed.'
+
+    def NugetRestore(self, model):
+        curSrc = model.CurSrc()
+        par = 'nuget restore {}\mmi\mmi\Mmi.sln'.format(curSrc.Source)
+        OsOperations.System(par, 'Restore Nuget Packages')
