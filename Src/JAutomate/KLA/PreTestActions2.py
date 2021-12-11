@@ -33,27 +33,30 @@ class KlaRunner:
 
     def PrintMissingIds(self):
         curSrc = self.model.CurSrc()
-        fileName = os.path.abspath(curSrc.Source + '/mmi/mmi/mmi_lang/mmi.h')
-        ids = []
-        with open(fileName) as file:
-            for line in file.read().splitlines():
-                parts = line.split()
-                if len(parts) == 3:
-                    ids.append(int(parts[2]))
-        print 'Missing IDs in ' + fileName
-        singles = []
-        sets = []
-        lastId = 1
-        for id in ids:
-            if lastId + 2 == id:
-                singles.append(lastId + 1)
-            elif lastId + 2 < id:
-                sets.append((lastId + 1, id - 1))
-            lastId = max(lastId, id)
-        PrettyTable.PrintArray([str(id).rjust(5) for id in singles], 15)
-        pr = lambda st : '{:>6}, {:<6}{:<7}'.format('[' + str(st[0]), str(st[1]) + ']', '(' + str(st[1] - st[0]) + ')')
-        PrettyTable.PrintArray([pr(st) for st in sets], 5)
-        print
+        fileNames = [
+            os.path.abspath(curSrc.Source + '/mmi/mmi/mmi_lang/mmi.h'),
+            os.path.abspath(curSrc.Source + '/mmi/mmi/env/env_stringtable.h')]
+        for fileName in fileNames:
+            ids = []
+            with open(fileName) as file:
+                for line in file.read().splitlines():
+                    parts = line.split()
+                    if len(parts) == 3:
+                        ids.append(int(parts[2]))
+            print 'Missing IDs in ' + fileName
+            singles = []
+            sets = []
+            lastId = 1
+            for id in ids:
+                if lastId + 2 == id:
+                    singles.append(lastId + 1)
+                elif lastId + 2 < id:
+                    sets.append((lastId + 1, id - 1))
+                lastId = max(lastId, id)
+            PrettyTable.PrintArray([str(id).rjust(5) for id in singles], 15)
+            pr = lambda st : '{:>6}, {:<6}{:<7}'.format('[' + str(st[0]), str(st[1]) + ']', '(' + str(st[1] - st[0]) + ')')
+            PrettyTable.PrintArray([pr(st) for st in sets], 5)
+            print
 
     def SetWorkingDir(self):
         wd = os.path.join(self.model.StartPath, self.model.TempDir)
