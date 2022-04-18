@@ -78,8 +78,8 @@ class AutoTestRunner:
         my.c.platform = curSrc.Platform
         my.c.mmiConfigurationsPath = self.model.MMiConfigPath
         my.c.mmiSetupsPath = self.model.MMiSetupsPath
-        if self.model.MMiSetupVersion:
-            my.run(self.tests[0][0], version=self.model.MMiSetupVersion)
+        if curSrc.MMiSetupVersion:
+            my.run(self.tests[0][0], version=curSrc.MMiSetupVersion)
         else:
             my.run(self.tests[0][0])
         if self.VM is not None:

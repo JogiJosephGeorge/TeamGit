@@ -89,28 +89,31 @@ class UITestGroup:
 
         self.versions = ['Default'] + OsOperations.GetAllSubDir(self.model.MMiSetupsPath)
         verInx = 0
-        if self.model.MMiSetupVersion in self.versions:
-            verInx = self.versions.index(self.model.MMiSetupVersion)
+        curSrc = self.model.CurSrc()
+        if curSrc.MMiSetupVersion in self.versions:
+            verInx = self.versions.index(curSrc.MMiSetupVersion)
         self.cmbVersions = UIFactory.AddCombo(parent, self.versions, verInx, r, self.col, self.OnVersionChanged, None, 10)
         self.col += 1
         self.VM.UpdateVersionCombo = self.UpdateVersionCombo
 
     def OnVersionChanged(self, event):
         index = self.cmbVersions.current()
+        curSrc = self.model.CurSrc()
         if index == 0:
-            self.model.MMiSetupVersion = ''
+            curSrc.MMiSetupVersion = ''
             print 'MMI Setup Version changed to : Default'
         elif len(self.versions) > index:
-            self.model.MMiSetupVersion = self.versions[index]
-            print 'MMI Setup Version changed to : ' + self.model.MMiSetupVersion
+            curSrc.MMiSetupVersion = self.versions[index]
+            print 'MMI Setup Version changed to : ' + curSrc.MMiSetupVersion
         else:
             print 'MMI Setup Version Combo is NOT correct.'
 
     def UpdateVersionCombo(self):
         self.versions = ['Default'] + OsOperations.GetAllSubDir(self.model.MMiSetupsPath)
         verInx = 0
-        if self.model.MMiSetupVersion in self.versions:
-            verInx = self.versions.index(self.model.MMiSetupVersion)
+        curSrc = self.model.CurSrc()
+        if curSrc.MMiSetupVersion in self.versions:
+            verInx = self.versions.index(curSrc.MMiSetupVersion)
         self.cmbVersions['values'] = self.versions
         self.cmbVersions.current(verInx)
 

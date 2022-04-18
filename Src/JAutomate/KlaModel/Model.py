@@ -14,6 +14,7 @@ class SrcData:
         self.Platform = Platform.Win32
         self.IsActive = False
         self.Description = ''
+        self.MMiSetupVersion = ''
 
     @classmethod
     def CreateFromJson(cls, jsonData):
@@ -23,6 +24,7 @@ class SrcData:
         srcData.Platform = cls.ReadField(jsonData, 'Platform', Platform.Win32)
         srcData.IsActive = cls.ReadField(jsonData, 'IsActive', False)
         srcData.Description = cls.ReadField(jsonData, 'Description', '')
+        srcData.MMiSetupVersion = cls.ReadField(jsonData, 'MMiSetupVersion', '')
         return srcData
 
     @classmethod
@@ -38,6 +40,7 @@ class SrcData:
         jsonData['Platform'] = self.Platform
         jsonData['IsActive'] = self.IsActive
         jsonData['Description'] = self.Description
+        jsonData['MMiSetupVersion'] = self.MMiSetupVersion
         return jsonData
 
 
@@ -71,6 +74,7 @@ class SourceInfo:
                 index += 1
         SrcIndex = iniFile.ReadField('SrcIndex', -1)
         self.UpdateSource(SrcIndex, False)
+        self.ReadMMiSetupVersion(iniFile) # For old version
 
     def Write(self, iniFile):
         iniFile.Write('SrcIndex', self.model.SrcIndex)
@@ -111,6 +115,13 @@ class SourceInfo:
             index -= 1
         self.model.SrcIndex = index
         return True
+
+    def ReadMMiSetupVersion(self, iniFile):
+        if iniFile.HasKey('MMiSetupVersion'):
+            MMiSetupVersion = iniFile.ReadField('MMiSetupVersion', '')
+            if MMiSetupVersion:
+                for srcData in self.SrcArray:
+                    srcData.MMiSetupVersion = MMiSetupVersion
 
 
 class IniFile:

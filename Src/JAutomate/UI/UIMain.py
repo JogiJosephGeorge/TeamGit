@@ -46,7 +46,7 @@ class UIMain:
         self.Row = 0
         vsSolutions = VisualStudioSolutions(self.model)
         threadHandler = ThreadHandler()
-        self.uiSourceGroup = UISourceGroup(self, klaRunner, vsSolutions, threadHandler)
+        self.uiSourceGroup = UISourceGroup(self, klaRunner, vsSolutions, threadHandler, self.OnSrcChanged)
         self.uiTestGroup = UITestGroup(self, klaRunner, vsSolutions, threadHandler, testRunner)
         UIMainMenu(self, klaRunner, vsSolutions, threadHandler, testRunner)
 
@@ -54,6 +54,9 @@ class UIMain:
         self.window.protocol('WM_DELETE_WINDOW', self.OnClosing)
         self.window.after(200, self.LazyInit)
         self.window.mainloop()
+
+    def OnSrcChanged(self):
+        self.uiTestGroup.UpdateVersionCombo()
 
     def DebugViewLog(self, message):
         OutputDebugString(self.model.LogName + message)

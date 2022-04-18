@@ -3,12 +3,13 @@ from UI.UISourceSelector import UISourceSelector
 
 
 class UISourceGroup:
-    def __init__(self, UI, klaRunner, vsSolutions, threadHandler):
+    def __init__(self, UI, klaRunner, vsSolutions, threadHandler, OnSrcChanged):
         self.window = UI.window
         self.model = UI.model
         self.klaRunner = klaRunner
         self.vsSolutions = vsSolutions
         self.threadHandler = threadHandler
+        self.OnSrcChanged = OnSrcChanged
 
         row1 = UI.AddRow()
         UIFactory.AddLabel(row1, 'Source', 0, 0)
@@ -33,6 +34,7 @@ class UISourceGroup:
         source = self.GetSource()
         self.lblSource.set(source)
         self.UpdateBranch()
+        self.OnSrcChanged()
 
     def UpdateBranch(self):
         branch = self.model.Branch
