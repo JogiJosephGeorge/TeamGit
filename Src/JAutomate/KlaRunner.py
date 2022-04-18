@@ -1,6 +1,7 @@
 # coding=utf-8
 import sys
 
+from Common.FileOperations import FileOperations
 from KLA.GoldenReportComparer import GoldenReportComparer
 from KLA.MmiLogReader import MmiLogReader
 from KlaModel.Model import Model

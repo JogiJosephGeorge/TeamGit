@@ -238,20 +238,25 @@ class KlaSourceCleaner:
     def __init__(self, model):
         self.model = model
 
-    def RemoveAllHandlerTemp(self):
+    def DoOnAllActiveSrc(self, func):
         activeSrcs = list(self.model.GetAllActiveSrcs())
         if len(activeSrcs) == 0:
             MessageBox.ShowMessage('There is no active source.')
         for activeSrc in activeSrcs:
-            self.RemoveHandlerTemp(activeSrc.Source)
+            func(activeSrc.Source)
+
+    def RemoveAllHandlerTemp(self):
+        self.DoOnAllActiveSrc(self.RemoveHandlerTemp)
+        print 'All temporary folders are removed.'
 
     def RemoveHandlerTemp(self, source):
         path = source + '/handler'
         print 'Removing temp files from : ' + path
-        filesToDelete = FileOperations.GetAllFiles(path, self.CanDelete)
-        for file in filesToDelete:
+        count = 0
+        for file in FileOperations.GetAllFiles(path, self.CanDelete):
             os.remove(file)
-        print '{} files have been removed'.format(len(filesToDelete))
+            count += 1
+        print '{} files have been removed'.format(count)
 
     def CanDelete(self, fileName):
         excludedPaths = [
@@ -274,6 +279,20 @@ class KlaSourceCleaner:
                 return True
         return False
 
+    def RemoveAllTilt(self):
+        self.DoOnAllActiveSrc(self.RemoveAllTiltOnSrc)
+        print 'All temporary folders are removed.'
+
+    def RemoveAllTiltOnSrc(self, source):
+        filterFun = lambda d: d[-1] == '~'
+        print 'Removing all auto test temporary folders on : ' + str(source)
+        count = 0
+        for dir in FileOperations.GetAllDirs(source, filterFun):
+            print dir
+            shutil.rmtree(dir)
+            count += 1
+        print '{} directories have been removed'.format(count)
+
     def RemoveMvsTemp(self):
         mvsPaths = VMWareRunner.GetAllMvsPaths()
         print 'Removing temp files from : ' + str(mvsPaths)
@@ -281,7 +300,8 @@ class KlaSourceCleaner:
         filterDirFun = lambda f : f[:4] == 'logs'
         dirsToDelete = []
         for mvsPath in mvsPaths:
-            dirsToDelete += FileOperations.GetAllDirs(mvsPath, filterDirFun)
+            for p in FileOperations.GetAllDirs(mvsPath, filterDirFun):
+                dirsToDelete.append(p)
         for dir in dirsToDelete:
             shutil.rmtree(dir)
 
@@ -297,7 +317,6 @@ class KlaSourceCleaner:
         for file in filesToDelete:
             os.remove(file)
         print '{} files have been removed'.format(len(filesToDelete))
-
 
 def main():
     # This will not work with KLA Runner. Stop All apps will close this also.

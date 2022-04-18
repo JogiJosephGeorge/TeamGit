@@ -82,35 +82,33 @@ class FileOperations:
         if not os.path.exists(dirPath):
             print '({}) not existing. Try to create ({}) later.'.format(dirPath, dirName)
             return False
+        if os.path.exists(dirPath + dirName):
+            return True
         os.mkdir(dirPath + dirName)
         return True
 
     @classmethod
     def GetAllFiles(cls, path, filterFun):
-        selectedFiles = []
         for root, dirs, files in os.walk(path):
             for file in files:
                 selectedFile = os.path.join(root, file).replace('/', '\\')
                 if filterFun(selectedFile):
-                    selectedFiles.append(selectedFile)
-        return selectedFiles
+                    yield selectedFile
 
     @classmethod
     def GetAllFilesFromList(cls, pathCollection, filterFun):
         selectedFiles = []
         for path in pathCollection:
-            selectedFiles += cls.GetAllFiles(path, filterFun)
+            for file in cls.GetAllFiles(path, filterFun):
+                selectedFiles.append(file)
         return selectedFiles
 
     @classmethod
     def GetAllDirs(cls, path, filterFun):
-        selectedDirs = []
         for root, dirs, files in os.walk(path):
             for dir in dirs:
                 if filterFun(dir):
-                    selectedDir = os.path.join(root, dir).replace('\\', '/')
-                    selectedDirs.append(selectedDir)
-        return selectedDirs
+                    yield os.path.join(root, dir).replace('\\', '/')
 
     @classmethod
     def MoveFile(cls, srcPath, desPath):
