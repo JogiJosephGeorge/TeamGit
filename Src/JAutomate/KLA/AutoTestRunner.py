@@ -1,5 +1,6 @@
 import os
 import sys
+import imp
 
 from Common.FileOperations import FileOperations
 from Common.Logger import Logger
@@ -23,15 +24,19 @@ class AutoTestRunner:
         if not curSrc.Source:
             print 'No source is selected.'
             return False
-        elif not os.path.exists(curSrc.Source):
+        if not os.path.exists(curSrc.Source):
             print 'The directory does not exist : ' + curSrc.Source
             return False
-        elif self.lastSrc is None:
+        if self.lastSrc is None:
             self.lastSrc = curSrc.Source
         elif self.lastSrc != curSrc.Source:
-            msg = 'Test has already been executed with {}. So please restart KLA Runner.'.format(self.lastSrc)
-            MessageBox.ShowMessage(msg)
-            return False
+            if self.model.RestartAfterSrcChange:
+                msg = 'Test has already been executed with {}. So please restart KLA Runner.'.format(self.lastSrc)
+                MessageBox.ShowMessage(msg)
+                return False
+            else:
+                AutoTestRunner.ReplaceLibsTestingPath(self.lastSrc, curSrc.Source)
+            self.lastSrc = curSrc.Source
         TaskMan.StopTasks()
         return VMWareRunner.RunSlots(self.model)
 
@@ -59,13 +64,16 @@ class AutoTestRunner:
 
         # After switching sources with different configurations, we have to remove myconfig.py
         FileOperations.Delete('{}/libs/testing/myconfig.py'.format(curSrc.Source))
+        FileOperations.Delete('{}/libs/testing/myconfig.pyc'.format(curSrc.Source))
 
         libsPath = AutoTestRunner.UpdateLibsTestingPath(curSrc.Source)
-        self.tests = AutoTestRunner.SearchInTests(libsPath, self.model.TestName)
+        my = self.LoadMyModule(curSrc.Source)
+        self.tests = AutoTestRunner.SearchInTests(my, libsPath, self.model.TestName)
         if len(self.tests) == 0:
+            print 'Test is not available'
             return
-        import my
-        #print 'Module location of my : ' + my.__file__
+
+        print 'Module location of my : ' + my.__file__
         my.c.startup = self.model.StartOnly
         my.c.debugvision = self.model.DebugVision
         my.c.copymmi = self.model.CopyMmi
@@ -78,10 +86,11 @@ class AutoTestRunner:
         my.c.platform = curSrc.Platform
         my.c.mmiConfigurationsPath = self.model.MMiConfigPath
         my.c.mmiSetupsPath = self.model.MMiSetupsPath
+        testNum = self.tests[0][0]
         if curSrc.MMiSetupVersion:
-            my.run(self.tests[0][0], version=curSrc.MMiSetupVersion)
+            my.run(testNum, version=curSrc.MMiSetupVersion)
         else:
-            my.run(self.tests[0][0])
+            my.run(testNum)
         if self.VM is not None:
             self.VM.UpdateSlots()
 
@@ -91,13 +100,19 @@ class AutoTestRunner:
         print msg
         self.VM.window.focus_force()
 
+    def LoadMyModule(self, source):
+        #sys.stdout = stdOutRedirect = StdOutRedirect()
+        myPyFileName = '{}/libs/testing/my.py'.format(source)
+        myMod = imp.load_source('my', myPyFileName)
+        #stdOutRedirect.ResetOriginal()
+        return myMod
+
     @classmethod
-    def SearchInTests(cls, libsPath, text):
+    def SearchInTests(cls, myMod, libsPath, text):
         sys.stdout = stdOutRedirect = StdOutRedirect()
-        import my
         lineBreak = 'KLARunnerLineBreak'
         print lineBreak
-        my.h.l(text)
+        myMod.h.l(text)
         msgs = stdOutRedirect.ResetOriginal()
         inx = msgs.index(lineBreak)
         tests = []
@@ -108,16 +123,32 @@ class AutoTestRunner:
         return tests
 
     @classmethod
-    def GetTestName(cls, source, number):
-        libsPath = cls.UpdateLibsTestingPath(source)
-        tests = cls.SearchInTests(libsPath, number)
-        if len(tests) > 0:
-            return tests[0][1]
-        return ''
-
-    @classmethod
     def UpdateLibsTestingPath(cls, source):
         libsTesting = '/libs/testing'
         newPath = os.path.abspath(source + libsTesting)
         sys.path.append(newPath)
         return newPath
+
+    @classmethod
+    def ReplaceLibsTestingPath(cls, lastSrc, source):
+        lastSrc = lastSrc.replace('/', '\\')
+        a = lastSrc + u'\\libs\\testing'
+        sys.path.remove(a)
+        b = str(lastSrc + u'\\libs\\testing\\..\\..\\handler/scripts')
+        sys.path.remove(b)
+
+        source = source.replace('/', '\\')
+        a = source + u'\\libs\\testing'
+        sys.path.append(a)
+        b = str(source + u'\\libs\\testing\\..\\..\\handler/scripts')
+        sys.path.append(b)
+
+        keys = []
+        for key in sys.modules:
+            mo = sys.modules[key]
+            if mo:
+                if 'libs\\testing' in str(mo):
+                    print 'Unloading module : ' + str(sys.modules[key])
+                    keys.append(key)
+        for key in keys:
+            del sys.modules[key]

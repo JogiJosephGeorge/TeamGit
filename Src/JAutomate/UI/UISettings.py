@@ -94,6 +94,11 @@ class UISettings(UIWindow):
         msgOff = 'On AutoTest, Console will be running from build source'
         AddCheckBox(txt, 'ConsoleFromCHandler', msgOn, msgOff, False, False)
 
+        txt = 'On AutoTest do not proceed after changing source'
+        msgOn = 'On AutoTest, user has to restart KlaRunner after changing source.'
+        msgOff = 'This may not work for all auto tests. This is NOT RECOMMENDED.'
+        AddCheckBox(txt, 'RestartAfterSrcChange', msgOn, msgOff, False, True)
+
         self.AddBackButton(parent, self.GrpRow, 0)
 
     def AddGroup(self, parent):
