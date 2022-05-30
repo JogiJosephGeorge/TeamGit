@@ -64,6 +64,11 @@ class UISettings(UIWindow):
         msgOff = 'Do NOT copy the mmi built over the installation in C:/icos. This is NOT RECOMMENDED.'
         AddCheckBox(txt, 'CopyMmi', msgOn, msgOff, False, True)
 
+        txt = 'On AutoTest Remove old copies of the testcase'
+        msgOn = 'Remove old copies of the testcase.'
+        msgOff = 'Do NOT Remove old copies of the testcase. This is NOT RECOMMENDED.'
+        AddCheckBox(txt, 'removeOldCopies', msgOn, msgOff, False, True)
+
         txt = 'On AutoTest Generate LicMgrConfig.xml'
         msgOn = 'The file LicMgrConfig.xml will be created while running auto test. This is NOT RECOMMENDED.'
         msgOff = 'The file LicMgrConfig.xml will NOT be created while running auto test.'

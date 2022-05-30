@@ -5,8 +5,8 @@ class VisualStudioSolutions:
     def __init__(self, model):
         self.model = model
         self.Solutions = [
-            '/mmi/mmi/Mmi.sln',
-            '/handler/cpp/CIT100.sln'
+            '/handler/cpp/CIT100.sln',
+            '/mmi/mmi/Mmi.sln'
         ]
         self.OtherSolutions = [
             '/handler/Simulator/CIT100Simulator/CIT100Simulator.sln',

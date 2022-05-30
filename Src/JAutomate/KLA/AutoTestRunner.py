@@ -86,6 +86,7 @@ class AutoTestRunner:
         my.c.platform = curSrc.Platform
         my.c.mmiConfigurationsPath = self.model.MMiConfigPath
         my.c.mmiSetupsPath = self.model.MMiSetupsPath
+        my.c.removeOldCopies = self.model.removeOldCopies
         testNum = self.tests[0][0]
         if curSrc.MMiSetupVersion:
             my.run(testNum, version=curSrc.MMiSetupVersion)
