@@ -30,14 +30,17 @@ class PreTestActions:
 
     @classmethod
     def PrintAvailableExes(cls, model):
-        data = [['Source', 'Available EXEs', 'Platform', 'Config']]
+        data = [['Source', 'Solutions', 'Platform', 'Config']]
         for srcData in model.GetAllSrcs():
             data.append(['-'])
-            data.append([srcData.Source])
+            src = srcData.Source
             exePaths = cls.GetPossibleExePathsOnSource(srcData.Source, model.ConsoleFromCHandler)
-            for exePath, pf, cfg in exePaths:
+            for solName, exePath, pf, cfg in exePaths:
                 if os.path.exists(exePath):
-                    data.append(['', exePath, pf, cfg])
+                    data.append([src, solName, pf, cfg])
+                    src = ''
+            if src:
+                data.append([src])
         PrettyTable(TableFormat().SetSingleLine()).PrintTable(data)
 
     @classmethod
@@ -51,7 +54,7 @@ class PreTestActions:
     @classmethod
     def ConfigExistsOnSource(cls, source, pf, cfg, runFromCHandler):
         exePaths = cls.GetPossibleExePathsOnConfig(source, pf, cfg, runFromCHandler)
-        for exePath, pf, cfg in exePaths:
+        for solName, exePath, pf, cfg in exePaths:
             if not os.path.exists(exePath):
                 return False
         return True
@@ -59,11 +62,11 @@ class PreTestActions:
     @classmethod
     def GetPossibleExePathsOnConfig(cls, source, pf, cfg, runFromCHandler):
         exePaths = []
-        exePaths.append((IcosPaths.GetMmiExePath(source, pf, cfg), pf, cfg))
+        exePaths.append(('Mmi', IcosPaths.GetMmiExePath(source, pf, cfg), pf, cfg))
         if not runFromCHandler:
-            exePaths.append((IcosPaths.GetConsolePath(source, pf, cfg, False), pf, cfg))
-        exePaths.append((IcosPaths.GetSimulatorPath(source, pf, cfg), pf, cfg))
-        exePaths.append((IcosPaths.GetMockLicensePath(source, pf, cfg), pf, cfg))
+            exePaths.append(('Console', IcosPaths.GetConsolePath(source, pf, cfg, False), pf, cfg))
+        exePaths.append(('Simulator', IcosPaths.GetSimulatorPath(source, pf, cfg), pf, cfg))
+        exePaths.append(('MockLicense', IcosPaths.GetMockLicensePath(source, pf, cfg), pf, cfg))
         return exePaths
 
     @classmethod

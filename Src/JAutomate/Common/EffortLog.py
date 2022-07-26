@@ -13,6 +13,7 @@ class EffortReader:
         self.LogFileEncode = 'UTF-16'
         self.DTFormat = '%d-%b-%Y %H:%M:%S'
         self.DayStarts = timedelta(hours=4) # 4am
+        self.MaxReportDays = 90
 
     def ReadFile(self, logFile):
         self.content = []
@@ -51,21 +52,22 @@ class EffortReader:
         data = []
         self.weeklyHours = timedelta()
         self.lastDay = 0
-        def AddRow(d1, t1, isLast):
-            formattedDay = d1.strftime('%d-%b-%Y %a %H:%M')
+        def AddRow(d1, d2, t1, isLast):
+            formattedDayStart = d1.strftime('%d-%b-%Y %a %H:%M')
+            formattedDayEnd = d2.strftime('%H:%M')
             formattedTime = DateTimeOps.Strftime(t1, '{:02}:{:02}')
             todayInt = int(d1.strftime('%w'))
             if self.lastDay > todayInt:
                 weeklyTotal = DateTimeOps.Strftime(self.weeklyHours, '{:02}:{:02}')
-                data.append(['', '', weeklyTotal])
+                data.append(['', '', '', weeklyTotal])
                 self.weeklyHours = timedelta()
             self.weeklyHours += t1
             self.lastDay = todayInt
-            data.append([formattedDay, formattedTime, ''])
+            data.append([formattedDayStart, formattedDayEnd, formattedTime, ''])
             if isLast:
                 weeklyTotal = DateTimeOps.Strftime(self.weeklyHours, '{:02}:{:02}')
-                data.append(['', '', weeklyTotal])
-        startDate = datetime.now().today() - timedelta(days=30)
+                data.append(['', '', '', weeklyTotal])
+        startDate = datetime.now().today() - timedelta(days=self.MaxReportDays)
         for lineParts in self.content:
             dt = datetime.strptime(lineParts[0], self.DTFormat)
             if dt > startDate:
@@ -75,11 +77,11 @@ class EffortReader:
                         actualTime += ts
                 else:
                     if date is not None:
-                        AddRow(date, actualTime, False)
+                        AddRow(date, lastDt, actualTime, False)
                     date = dt
                     actualTime = timedelta()
             lastDt = dt
-        AddRow(date, actualTime, True)
+        AddRow(date, lastDt, actualTime, True)
         return data,actualTime
 
     def FormatText(self, message):
@@ -156,7 +158,7 @@ class EffortLogger:
         data,todaysTime = reader.GetDailyLog()
         if data is None:
             return
-        effortData = [['Daily Start Time', 'Log', 'Total'], ['-']] + data
+        effortData = [['Daily Start Time', 'End Time', 'Log', 'Total'], ['-']] + data
         table = PrettyTable(TableFormat().SetSingleLine()).ToString(effortData)
         print table,
         print (datetime.now() + timedelta(hours=9) - todaysTime).strftime('%H:%M')

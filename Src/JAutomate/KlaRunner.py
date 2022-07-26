@@ -34,6 +34,9 @@ def main():
         UIMain().Run()
         print 'Have a nice day...'
 
+# New Functionality
+# Modify last fline of "C:\Mvs Message Analyzer\Preferences.ini"
+# with content of "C:\MVS8000\slot1\software_link.cfg"
 
 #CompareGolderReports()
 main()
