@@ -3,6 +3,7 @@ import sys
 import imp
 
 from Common.FileOperations import FileOperations
+from Common.Git import Git
 from Common.Logger import Logger
 from Common.MessageBox import MessageBox
 from Common.StdOutRedirect import StdOutRedirect
@@ -43,7 +44,8 @@ class AutoTestRunner:
     def RunAutoTest(self):
         curSrc = self.model.CurSrc()
         testType = 'Start' if self.model.StartOnly else 'Run'
-        Logger.Log('{} Auto Test {} in {}'.format(testType, self.model.TestName, curSrc.Source))
+        commitId = Git.GetCommitId(curSrc.Source)
+        Logger.Log('{} Auto Test {} in {} ({})'.format(testType, self.model.TestName, curSrc.Source, commitId))
         SourceCodeUpdater.ModifyVisionSystem(self.model)
 
         initWait = 15  # 8 is not working for CDA/Mmi/WithLead3D

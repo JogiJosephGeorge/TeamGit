@@ -1,3 +1,4 @@
+from Common.Git import Git
 from Common.UIFactory import UIFactory
 from UI.UISourceSelector import UISourceSelector
 
@@ -31,8 +32,8 @@ class UISourceGroup:
                          ).Show()
 
     def OnSrcSelectorClosed(self):
-        source = self.GetSource()
-        self.lblSource.set(source)
+        sourceDec = self.GetSource()
+        self.lblSource.set(sourceDec)
         self.UpdateBranch()
         self.OnSrcChanged()
 
@@ -40,7 +41,8 @@ class UISourceGroup:
         branch = self.model.Branch
         curSrc = self.model.CurSrc()
         if len(curSrc.Description) > 0:
-            branch = '{} ({})'.format(self.model.Branch, curSrc.Description)
+            commitId = Git.GetCommitId(curSrc.Source)
+            branch = '{} ({}) {}'.format(self.model.Branch, commitId, curSrc.Description)
         self.lblBranch.set(branch)
 
     def GetSource(self):
