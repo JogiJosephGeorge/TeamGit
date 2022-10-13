@@ -36,8 +36,9 @@ class VisualStudioSolutions:
     def OpenSolutionFile(self, slnFileName):
         curSrc = self.model.CurSrc()
         fileName = curSrc.Source + slnFileName
+        devEnvExe = self.model.DevEnvExe22 if self.model.UseVS2022 else self.model.DevEnvExe
         param = [
-            self.model.DevEnvExe,
+            devEnvExe,
             fileName
         ]
         subprocess.Popen(param)

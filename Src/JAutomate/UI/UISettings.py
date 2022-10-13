@@ -19,8 +19,10 @@ class UISettings(UIWindow):
         self.AddSelectPathRow(pathFrame, 'MMi Setups Path', 'MMiSetupsPath')
         self.AddSelectPathRow(pathFrame, 'MMi Config Path', 'MMiConfigPath')
         self.AddSelectFileRow(pathFrame, 'Effort Log File', 'EffortLogFile')
-        self.AddSelectFileRow(pathFrame, 'DevEnv.com', 'DevEnvCom')
-        self.AddSelectFileRow(pathFrame, 'DevEnv.exe', 'DevEnvExe')
+        self.AddSelectFileRow(pathFrame, 'DevEnv.com 2017', 'DevEnvCom')
+        self.AddSelectFileRow(pathFrame, 'DevEnv.exe 2017', 'DevEnvExe')
+        self.AddSelectFileRow(pathFrame, 'DevEnv.com 2022', 'DevEnvCom22')
+        self.AddSelectFileRow(pathFrame, 'DevEnv.exe 2022', 'DevEnvExe22')
         self.AddSelectPathRow(pathFrame, 'Git Path', 'GitPath')
         self.AddSelectFileRow(pathFrame, 'VMware.exe', 'VMwareExe')
         self.AddSelectFileRow(pathFrame, 'Beyond Compare', 'BCompare')
@@ -43,6 +45,11 @@ class UISettings(UIWindow):
         isChecked = self.model.UILevel < 3
         self.ShowAllChkBox = UIFactory.AddCheckBox(checkFrame, txt, isChecked, self.chkRow, 0, self.OnClickShowAllCheckBox)
         self.chkRow += 1
+
+        txt = 'Use Visual Studio 2022'
+        msgOn = 'Visual Studio 2022 will be the default IDE.'
+        msgOff = 'Visual Studio 2017 will be the default IDE.'
+        AddCheckBox(txt, 'UseVS2022', msgOn, msgOff, False, False)
 
         txt = 'Run Host Cam while running MMi alone'
         msgOn = 'Run Host Cam while running MMi alone.'

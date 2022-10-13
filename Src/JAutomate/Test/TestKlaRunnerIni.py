@@ -37,6 +37,8 @@ class TestKlaRunnerIni:
     def FileExists(self):
         Test.Assert(os.path.isfile(self.model.DevEnvCom), True, 'DevEnv.com')
         Test.Assert(os.path.isfile(self.model.DevEnvExe), True, 'DevEnv.exe')
+        Test.Assert(os.path.isfile(self.model.DevEnvCom22), True, 'DevEnv.com')
+        Test.Assert(os.path.isfile(self.model.DevEnvExe22), True, 'DevEnv.exe')
         Test.Assert(os.path.isfile(self.model.EffortLogFile), True, 'EffortLogFile')
         Test.Assert(os.path.isfile(self.model.VMwareExe), True, 'VMwareExe')
         Test.Assert(os.path.isfile(self.model.BCompare), True, 'BCompare')

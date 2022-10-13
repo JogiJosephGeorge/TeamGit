@@ -13,6 +13,8 @@ class ConfigInfo:
             model.TestIndex = 0
         model.DevEnvCom = iniFile.ReadField('DevEnvCom', 'C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com')
         model.DevEnvExe = iniFile.ReadField('DevEnvExe', 'C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/Common7/IDE/devenv.exe')
+        model.DevEnvCom22 = iniFile.ReadField('DevEnvCom22', 'C:/Program Files/Microsoft Visual Studio/2022/Professional/Common7/IDE/devenv.com')
+        model.DevEnvExe22 = iniFile.ReadField('DevEnvExe22', 'C:/Program Files/Microsoft Visual Studio/2022/Professional/Common7/IDE/devenv.exe')
         model.GitPath = iniFile.ReadField('GitPath', 'C:/Program Files/Git')
         model.VMwareExe = iniFile.ReadField('VMwareExe', 'C:/Program Files (x86)/VMware/VMware Workstation/vmware.exe')
         model.VMwarePwd = iniFile.ReadField('VMwarePwd', '1')
@@ -40,6 +42,7 @@ class ConfigInfo:
         model.RemoveStartedTXT = iniFile.ReadField('RemoveStartedTXT', False)
         model.CleanDotVsOnReset = iniFile.ReadField('CleanDotVsOnReset', False)
         model.UpdateSubmodulesOnReset = iniFile.ReadField('UpdateSubmodulesOnReset', False)
+        model.UseVS2022 = iniFile.ReadField('UseVS2022', False)
         model.RunHostCam = iniFile.ReadField('RunHostCam', False)
         model.ShowBuildInProgress = iniFile.ReadField('ShowBuildInProgress', True)
 
@@ -58,6 +61,8 @@ class ConfigInfo:
         iniFile.Write('TestIndex', model.TestIndex)
         iniFile.Write('DevEnvCom', model.DevEnvCom)
         iniFile.Write('DevEnvExe', model.DevEnvExe)
+        iniFile.Write('DevEnvCom22', model.DevEnvCom22)
+        iniFile.Write('DevEnvExe22', model.DevEnvExe22)
         iniFile.Write('GitPath', model.GitPath)
         iniFile.Write('VMwareExe', model.VMwareExe)
         iniFile.Write('VMwarePwd', model.VMwarePwd)
@@ -85,6 +90,7 @@ class ConfigInfo:
         iniFile.Write('RemoveStartedTXT', model.RemoveStartedTXT)
         iniFile.Write('CleanDotVsOnReset', model.CleanDotVsOnReset)
         iniFile.Write('UpdateSubmodulesOnReset', model.UpdateSubmodulesOnReset)
+        iniFile.Write('UseVS2022', model.UseVS2022)
         iniFile.Write('RunHostCam', model.RunHostCam)
         iniFile.Write('ShowBuildInProgress', model.ShowBuildInProgress)
 
