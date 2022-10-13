@@ -178,7 +178,9 @@ class BuildLoger:
     def StartSource(self, src, branch):
         self.srcStartTime = datetime.now()
         self.AddOutput('Source : ' + src, True)
-        self.AddOutput('Branch : ' + branch, True)
+        commitId = Git.GetCommitId(src)
+        branchWithCommit = branch + ' (' + commitId + ')'
+        self.AddOutput('Branch : ' + branchWithCommit, True)
         self.logDataTable = [
             [ 'Solution', 'Config', 'Platform', 'Succeeded', 'Failed', 'Up To Date', 'Skipped', 'Time Taken' ],
             ['-']
@@ -191,7 +193,7 @@ class BuildLoger:
             self.logDataTable.append(['-'])
             self.logDataTable.append([''] * 7 + [timeDelta])
             table = '\n' + PrettyTable(TableFormat().SetSingleLine()).ToString(self.logDataTable)
-            self.AddOutput(table, True)
+            self.AddOutput(table, False)
             FileOperations.Append(self.fileName, table)
 
     def StartSolution(self, slnFile, name, config, platform):

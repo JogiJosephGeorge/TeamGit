@@ -24,13 +24,17 @@ class AppRunner:
         TaskMan.StopTasks()
 
         runFromCHandler = self.model.ConsoleFromCHandler
-        handlerPath = IcosPaths.GetHandlerPath(curSrc.Source, curSrc.Platform, curSrc.Config, runFromCHandler)
         consoleExe = IcosPaths.GetConsolePath(curSrc.Source, curSrc.Platform, curSrc.Config, runFromCHandler)
-        testTempDir = IcosPaths.GetTestPathTemp(curSrc.Source, self.model.TestName)
+        simulatorExe = IcosPaths.GetSimulatorPath(curSrc.Source, curSrc.Platform, curSrc.Config, runFromCHandler)
+        EXEs = [consoleExe, simulatorExe]
+        handlerPath = ''
+        testTempDir = ''
+        if not runFromCHandler:
+            handlerPath = IcosPaths.GetHandlerPath(curSrc.Source, curSrc.Platform, curSrc.Config, False)
+            testTempDir = IcosPaths.GetTestPathTemp(curSrc.Source, self.model.TestName)
+            EXEs.append(testTempDir)
 
-        simulatorExe = IcosPaths.GetSimulatorPath(curSrc.Source, curSrc.Platform, curSrc.Config)
-
-        for file in [consoleExe, testTempDir, simulatorExe]:
+        for file in EXEs:
             if not os.path.exists(file):
                 MessageBox.ShowMessage('File not found : ' + file)
                 return

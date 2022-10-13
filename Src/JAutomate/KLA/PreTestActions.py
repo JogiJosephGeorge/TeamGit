@@ -34,7 +34,7 @@ class PreTestActions:
         for srcData in model.GetAllSrcs():
             data.append(['-'])
             src = srcData.Source
-            exePaths = cls.GetPossibleExePathsOnSource(srcData.Source, model.ConsoleFromCHandler)
+            exePaths = cls.GetPossibleExePathsOnSource(srcData.Source)
             for solName, exePath, pf, cfg in exePaths:
                 if os.path.exists(exePath):
                     data.append([src, solName, pf, cfg])
@@ -44,37 +44,36 @@ class PreTestActions:
         PrettyTable(TableFormat().SetSingleLine()).PrintTable(data)
 
     @classmethod
-    def GetPossibleExePathsOnSource(cls, source, runFromCHandler):
+    def GetPossibleExePathsOnSource(cls, source):
         exePaths = []
         for pf in Platform.GetList():
             for cfg in Config.GetList():
-                exePaths += cls.GetPossibleExePathsOnConfig(source, pf, cfg, runFromCHandler)
+                exePaths += cls.GetPossibleExePathsOnConfig(source, pf, cfg)
         return exePaths
 
     @classmethod
-    def ConfigExistsOnSource(cls, source, pf, cfg, runFromCHandler):
-        exePaths = cls.GetPossibleExePathsOnConfig(source, pf, cfg, runFromCHandler)
+    def ConfigExistsOnSource(cls, source, pf, cfg):
+        exePaths = cls.GetPossibleExePathsOnConfig(source, pf, cfg)
         for solName, exePath, pf, cfg in exePaths:
             if not os.path.exists(exePath):
                 return False
         return True
 
     @classmethod
-    def GetPossibleExePathsOnConfig(cls, source, pf, cfg, runFromCHandler):
+    def GetPossibleExePathsOnConfig(cls, source, pf, cfg):
         exePaths = []
         exePaths.append(('Mmi', IcosPaths.GetMmiExePath(source, pf, cfg), pf, cfg))
-        if not runFromCHandler:
-            exePaths.append(('Console', IcosPaths.GetConsolePath(source, pf, cfg, False), pf, cfg))
-        exePaths.append(('Simulator', IcosPaths.GetSimulatorPath(source, pf, cfg), pf, cfg))
+        exePaths.append(('Console', IcosPaths.GetConsolePath(source, pf, cfg, False), pf, cfg))
+        exePaths.append(('Simulator', IcosPaths.GetSimulatorPath(source, pf, cfg, False), pf, cfg))
         exePaths.append(('MockLicense', IcosPaths.GetMockLicensePath(source, pf, cfg), pf, cfg))
         return exePaths
 
     @classmethod
-    def GetExistingConfigs(cls, source, runFromCHandler):
+    def GetExistingConfigs(cls, source):
         configPlatforms = []
         for pf in Platform.GetList():
             for cfg in Config.GetList():
-                if cls.ConfigExistsOnSource(source, pf, cfg, runFromCHandler):
+                if cls.ConfigExistsOnSource(source, pf, cfg):
                     configPlatforms.append((pf, cfg))
         return configPlatforms
 

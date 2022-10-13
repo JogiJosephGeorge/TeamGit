@@ -18,8 +18,11 @@ class Git:
                 isCurrent = True
 
     @classmethod
-    def GetCommitId(cls, source):
-        commitId = cls.GitSilent(source, 'log --pretty=format:"%h" -n 1')
+    def GetCommitId(cls, source, localBranch=''):
+        cmd = 'log --pretty=format:"%h" -n 1'
+        if len(localBranch) > 0:
+            cmd += ' ' + localBranch
+        commitId = cls.GitSilent(source, cmd)
         return commitId.replace('\r', '').replace('\n', '')
 
     @classmethod

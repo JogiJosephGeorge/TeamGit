@@ -183,20 +183,22 @@ class UISourceSelector(UIWindow):
 
     def LazyUiInit(self):
         index = 0
-        data = [['Source', 'Branch', 'Available Configs']]
-        runFromCHandler = self.model.ConsoleFromCHandler
+        data = [['Source', 'Commit ID', 'Branch', 'Available Configs']]
         for srcData in self.model.GetAllSrcs():
             data.append(['-'])
             branch = '' # Git.GetBranch(src)
             configs = ''
-            for pf,cfg in PreTestActions.GetExistingConfigs(srcData.Source, runFromCHandler):
+            for pf,cfg in PreTestActions.GetExistingConfigs(srcData.Source):
                 configs = '{}|{} '.format(pf, cfg)
             for brn1 in Git.GetLocalBranches(srcData.Source):
                 if brn1.startswith('* '):
+                    commitId = Git.GetCommitId(srcData.Source, brn1[2:])
                     branch = brn1[2:]
-                    data.append([srcData.Source, branch, configs])
+                    data.append([srcData.Source, commitId, branch, configs])
                 else:
-                    data.append(['', brn1, ''])
+                    if brn1 != 'master':
+                        commitId = Git.GetCommitId(srcData.Source, brn1)
+                        data.append(['', commitId, brn1, ''])
             self.SourceGrid.SetBranch(index, branch)
             if index == self.model.SrcIndex:
                 self.model.Branch = branch

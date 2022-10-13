@@ -21,7 +21,9 @@ class IcosPaths:
         return cls.GetHandlerPath(source, platform, config, runFromCHandler) + '/console.exe'
 
     @classmethod
-    def GetSimulatorPath(cls, source, platform, config):
+    def GetSimulatorPath(cls, source, platform, config, runFromCHandler):
+        if runFromCHandler:
+            return 'C:/Handler/simulator/CIT100Simulator.exe'
         platform = VisualStudioSolutions.GetPlatformStr(platform, True)
         return '{}/handler/Simulator/ApplicationFiles/bin/{}/{}/CIT100Simulator.exe'.format(source, platform, config)
 
