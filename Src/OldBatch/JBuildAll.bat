@@ -3,17 +3,21 @@ REM ~~~~~~~~~~~~~
 REM Configurations : Debug Release
 REM Platform       : Win32 x64
 REM Visual Studio  : 2017 2022
-REM Solutions      : Han
+REM Solutions      : HanAll Han
 REM Solutions      : Mmi
 REM Solutions      : Others
 
 CALL:Initialize %0
-CALL:BuildSource D:\CI\Src4 Debug Win32 2017 Han Mmi Others
-CALL:BuildSource D:\CI\Src3 Debug Win32 2022 Han Mmi Others
+REM CALL:BuildSource D:\CI\Src2 Debug Win32 2017 -Han Mmi -Others
+REM CALL:BuildSource D:\CI\Src3 Debug Win32 2022 -Han Mmi -Others
+CALL:BuildSource D:\CI\Src5 Debug Win32 2017 -Han Mmi -Others
+
+REM CALL:JCleanSource D:\CI\Src3
 
 REM --------------------------------------------------------------------------------------------------------
 REM ----------------------------              End of Execution              --------------------------------
 REM --------------------------------------------------------------------------------------------------------
+TYPE %JCD%\JTemp.txt
 EXIT /B %ERRORLEVEL%
 
 REM ------------------------------  Initialize  ------------------------------------------------------------
@@ -24,6 +28,8 @@ REM ------------------------------  Initialize  --------------------------------
 	)
 	CD /d %JCD%
 	SET JCD=%CD%
+	ECHO     Build Status > %JCD%/JTemp.txt
+	ECHO     ------------ >> %JCD%/JTemp.txt
 EXIT /B 0
 
 REM ------------------------------  Build Source  ----------------------------------------------------------
@@ -49,8 +55,12 @@ REM ------------------------------  Build Source  ------------------------------
 	CALL::JPrint Branch : %JBranch% (%JCommit:~0,11%)
 	CALL::JPrint DevEnv : Microsoft Visual Studio %4
 
+	IF "%5" == "HanAll" (
+		CALL:BuildSln handler/cpp/CIT100 %JConPlat% Handler
+	)
 	IF "%5" == "Han" (
 		CALL:BuildSln handler/cpp/CIT100 %JConPlat% Handler
+		CALL:JCleanHanTemp %JSource%
 	)
 	IF "%6" == "Mmi" (
 		CALL:BuildSln mmi/mmi/mmi %JConPlat% MMi
@@ -97,11 +107,30 @@ REM ------------------------------  Clean Source  ------------------------------
 	RD /S /Q "%JSource%/mmi/mmi/output"
 	RD /S /Q "%JSource%/mmi/mmi/Bin"
 	RD /S /Q "%JSource%/mmi/mmi/Temp/Win32"
+	RD /S /Q "%JSource%/mmi/mmi/Temp/x64"
+	RD /S /Q "%JSource%/mmi/mmi/mmi/Debug
+	RD /S /Q "%JSource%/mmi/mmi/mmi_stat/Debug
 	RD /S /Q "%JSource%/handler/cpp/bin"
 	RD /S /Q "%JSource%/handler/cpp/output"
+	RD /S /Q "%JSource%/mmi/mmi/display_libs/DisplayClient/DISPLAY/Debug
+	RD /S /Q "%JSource%/mmi/mmi/display_libs/DisplayClient/DISPLAY/x64
+	
+	REM Deep Clean
+	RD /S /Q "%JSource%/mmi/mmi/.vs
+EXIT /B 0
+
+REM ------------------------------  Clean Handler Temp  ----------------------------------------------------
+:JCleanHanTemp
+	SET JSource=%1
+
+	SET AbsPat=import os;import sys;sys.path.append(os.path.abspath('..\JAutomate'))
+	SET ImpCle=from KLA.KlaSourceBuilder import KlaSourceCleaner
+	python -c "%AbsPat%;%ImpCle%;KlaSourceCleaner(0).RemoveHandlerTemp('%JSource%')"
+	CALL::JPrint Removing temp files from : %JSource%\handler
 EXIT /B 0
 
 REM ------------------------------  Print  -----------------------------------------------------------------
 :JPrint
 	ECHO %DATE% %TIME:~0,5% %*>> %JCD%/JLog.txt
+	ECHO %DATE% %TIME:~0,5% %*>> %JCD%/JTemp.txt
 EXIT /B 0

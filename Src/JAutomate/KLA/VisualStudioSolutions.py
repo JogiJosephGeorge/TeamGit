@@ -1,5 +1,7 @@
 import subprocess
 
+from KlaModel.VsVersions import VsVersions
+
 
 class VisualStudioSolutions:
     def __init__(self, model):
@@ -36,7 +38,7 @@ class VisualStudioSolutions:
     def OpenSolutionFile(self, slnFileName):
         curSrc = self.model.CurSrc()
         fileName = curSrc.Source + slnFileName
-        devEnvExe = self.model.DevEnvExe22 if self.model.UseVS2022 else self.model.DevEnvExe
+        devEnvExe = VsVersions().GetDevEnvExe(self.model, curSrc.VsVersion)
         param = [
             devEnvExe,
             fileName

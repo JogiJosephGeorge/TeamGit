@@ -42,7 +42,6 @@ class ConfigInfo:
         model.RemoveStartedTXT = iniFile.ReadField('RemoveStartedTXT', False)
         model.CleanDotVsOnReset = iniFile.ReadField('CleanDotVsOnReset', False)
         model.UpdateSubmodulesOnReset = iniFile.ReadField('UpdateSubmodulesOnReset', False)
-        model.UseVS2022 = iniFile.ReadField('UseVS2022', False)
         model.RunHostCam = iniFile.ReadField('RunHostCam', False)
         model.ShowBuildInProgress = iniFile.ReadField('ShowBuildInProgress', True)
 
@@ -90,7 +89,6 @@ class ConfigInfo:
         iniFile.Write('RemoveStartedTXT', model.RemoveStartedTXT)
         iniFile.Write('CleanDotVsOnReset', model.CleanDotVsOnReset)
         iniFile.Write('UpdateSubmodulesOnReset', model.UpdateSubmodulesOnReset)
-        iniFile.Write('UseVS2022', model.UseVS2022)
         iniFile.Write('RunHostCam', model.RunHostCam)
         iniFile.Write('ShowBuildInProgress', model.ShowBuildInProgress)
 

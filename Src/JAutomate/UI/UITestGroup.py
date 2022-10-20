@@ -2,6 +2,7 @@ from Common.OsOperations import OsOperations
 from Common.UIFactory import UIFactory
 from KLA.GoldenReportComparer import GoldenReportComparer
 from KLA.VMWareRunner import VMWareRunner
+from KlaModel.VsVersions import VsVersions
 from UI.UIAutoTestSettings import UIAutoTestSettings
 
 
@@ -33,7 +34,8 @@ class UITestGroup:
         UIFactory.AddButton(row2, 'Compare Test Results', 0, self.col, self.grComparer.CompareMmiReports)
         self.col += 1
         if self.model.UILevel < 3:
-            self.AddVersion(row2, 0)
+            self.AddSetupVersion(row2, 0)
+            self.AddVSVersion(row2, 0)
 
         row3 = UI.AddRow()
         self.col = 0
@@ -83,7 +85,7 @@ class UITestGroup:
         self.model.WriteConfigFile()
         print 'Test Runner will ' + ['NOT ', ''][self.model.DebugVision] + 'wait for debugger to attach to testhost/mmi.'
 
-    def AddVersion(self, parent, r):
+    def AddSetupVersion(self, parent, r):
         UIFactory.AddLabel(parent, 'MMi Setup Version', r, self.col)
         self.col += 1
 
@@ -92,11 +94,11 @@ class UITestGroup:
         curSrc = self.model.CurSrc()
         if curSrc.MMiSetupVersion in self.versions:
             verInx = self.versions.index(curSrc.MMiSetupVersion)
-        self.cmbVersions = UIFactory.AddCombo(parent, self.versions, verInx, r, self.col, self.OnVersionChanged, None, 10)
+        self.cmbVersions = UIFactory.AddCombo(parent, self.versions, verInx, r, self.col, self.OnSetupVerChanged, None, 10)
         self.col += 1
         self.VM.UpdateVersionCombo = self.UpdateVersionCombo
 
-    def OnVersionChanged(self, event):
+    def OnSetupVerChanged(self, event):
         index = self.cmbVersions.current()
         curSrc = self.model.CurSrc()
         if index == 0:
@@ -116,6 +118,26 @@ class UITestGroup:
             verInx = self.versions.index(curSrc.MMiSetupVersion)
         self.cmbVersions['values'] = self.versions
         self.cmbVersions.current(verInx)
+
+        verInx = VsVersions().GetIndex(curSrc.VsVersion)
+        self.cmbVsVersions.current(verInx)
+
+    def AddVSVersion(self, parent, r):
+        UIFactory.AddLabel(parent, 'Visual Studio', r, self.col)
+        self.col += 1
+
+        vsVersions = VsVersions()
+        curSrc = self.model.CurSrc()
+        verInx = vsVersions.GetIndex(curSrc.VsVersion)
+        self.cmbVsVersions = UIFactory.AddCombo(parent, vsVersions.GetAll(), verInx, r, self.col, self.OnVsVerChanged, None, 5)
+        self.col += 1
+        self.VM.UpdateVersionCombo = self.UpdateVersionCombo
+
+    def OnVsVerChanged(self, event):
+        index = self.cmbVsVersions.current()
+        curSrc = self.model.CurSrc()
+        curSrc.VsVersion = VsVersions().GetAll()[index]
+        print 'MMI Setup Version changed to : ' + curSrc.VsVersion
 
     def AddSlots(self, parent, r):
         frame = UIFactory.AddFrame(parent, r, self.col)

@@ -5,6 +5,7 @@ import os
 from KlaModel.AutoTestModel import AutoTestModel
 from KlaModel.ConfigEncoder import Config, Platform
 from KlaModel.ConfigInfo import ConfigInfo, Geometry
+from KlaModel.VsVersions import VsVersions
 
 
 class SrcData:
@@ -15,6 +16,7 @@ class SrcData:
         self.IsActive = False
         self.Description = ''
         self.MMiSetupVersion = ''
+        self.VsVersion = ''
 
     @classmethod
     def CreateFromJson(cls, jsonData):
@@ -25,6 +27,7 @@ class SrcData:
         srcData.IsActive = cls.ReadField(jsonData, 'IsActive', False)
         srcData.Description = cls.ReadField(jsonData, 'Description', '')
         srcData.MMiSetupVersion = cls.ReadField(jsonData, 'MMiSetupVersion', '')
+        srcData.VsVersion = cls.ReadField(jsonData, 'VsVersion', VsVersions().GetAll()[0])
         return srcData
 
     @classmethod
@@ -41,6 +44,7 @@ class SrcData:
         jsonData['IsActive'] = self.IsActive
         jsonData['Description'] = self.Description
         jsonData['MMiSetupVersion'] = self.MMiSetupVersion
+        jsonData['VsVersion'] = self.VsVersion
         return jsonData
 
 

@@ -114,7 +114,7 @@ class UISourceGrid:
         return self.cboConfig[row].current()
 
     def AddDescription(self, r, c, descr):
-        textVar = UIFactory.AddTextBox(self.ParentFrame, descr, r, c, 30)
+        textVar = UIFactory.AddTextBox(self.ParentFrame, descr, r, c, 100)
         self.txtDescription.append(textVar)
 
     def OnDescriptionChanged(self, input):

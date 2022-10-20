@@ -46,11 +46,6 @@ class UISettings(UIWindow):
         self.ShowAllChkBox = UIFactory.AddCheckBox(checkFrame, txt, isChecked, self.chkRow, 0, self.OnClickShowAllCheckBox)
         self.chkRow += 1
 
-        txt = 'Use Visual Studio 2022'
-        msgOn = 'Visual Studio 2022 will be the default IDE.'
-        msgOff = 'Visual Studio 2017 will be the default IDE.'
-        AddCheckBox(txt, 'UseVS2022', msgOn, msgOff, False, False)
-
         txt = 'Run Host Cam while running MMi alone'
         msgOn = 'Run Host Cam while running MMi alone.'
         msgOff = 'Do NOT run Host Cam while running MMi alone.'
