@@ -12,7 +12,7 @@ class GoldenReportComparer:
 
     def GetTestPath(self):
         curSrc = self.model.CurSrc()
-        return IcosPaths.GetTestPath(curSrc.Source, self.model.TestName)
+        return IcosPaths.GetTestPath(curSrc.Source, self.model.AutoTests.TestName)
 
     def OpenTestFolder(self):
         dirPath = self.GetTestPath()
@@ -127,7 +127,7 @@ class GoldenReportComparerTest:
             pass
         model = Model()
         model.Source = r'D:\CI\Src4'
-        model.TestName = r'CDA\Mmi\SurfaceReport'
+        model.AutoTests.TestName = r'CDA\Mmi\SurfaceReport'
         model.BCompare = ''
         return model
 

@@ -45,7 +45,7 @@ class AutoTestRunner:
         curSrc = self.model.CurSrc()
         testType = 'Start' if self.model.StartOnly else 'Run'
         commitId = Git.GetCommitId(curSrc.Source)
-        Logger.Log('{} Auto Test {} in {} ({})'.format(testType, self.model.TestName, curSrc.Source, commitId))
+        Logger.Log('{} Auto Test {} in {} ({})'.format(testType, self.model.AutoTests.TestName, curSrc.Source, commitId))
         SourceCodeUpdater.ModifyVisionSystem(self.model)
 
         initWait = 15  # 8 is not working for CDA/Mmi/WithLead3D
@@ -70,7 +70,7 @@ class AutoTestRunner:
 
         libsPath = AutoTestRunner.UpdateLibsTestingPath(curSrc.Source)
         my = self.LoadMyModule(curSrc.Source)
-        self.tests = AutoTestRunner.SearchInTests(my, libsPath, self.model.TestName)
+        self.tests = AutoTestRunner.SearchInTests(my, libsPath, self.model.AutoTests.TestName)
         if len(self.tests) == 0:
             print 'Test is not available'
             return

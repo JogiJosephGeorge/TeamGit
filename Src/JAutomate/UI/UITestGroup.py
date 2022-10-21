@@ -148,19 +148,19 @@ class UITestGroup:
         self.col += 1
         self.VM.chkSlots = []
         for i in range(self.model.MaxSlots):
-            isSelected = (i+1) in self.model.slots
+            isSelected = (i+1) in self.model.AutoTests.slots
             txt = str(i+1)
             self.VM.chkSlots.append(UIFactory.AddCheckBox(frame, txt, isSelected, 0, i, self.OnSlotChn, (i,)))
 
     def OnSlotChn(self, index):
         self.model.UpdateSlot(index, self.VM.chkSlots[index].get())
         self.model.WriteConfigFile()
-        print 'Slots for the current test : ' + str(self.model.slots)
+        print 'Slots for the current test : ' + str(self.model.AutoTests.slots)
 
         label = self.GetSlotLabel()
         self.TestSlotBut.config(text=label)
 
     def GetSlotLabel(self):
-        if len(self.model.slots) > 0:
-            return 'Test ' + str(self.model.slots[0])
+        if len(self.model.AutoTests.slots) > 0:
+            return 'Test ' + str(self.model.AutoTests.slots[0])
         return 'Test None'

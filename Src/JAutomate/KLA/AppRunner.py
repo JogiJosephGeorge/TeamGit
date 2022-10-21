@@ -31,7 +31,7 @@ class AppRunner:
         testTempDir = ''
         if not runFromCHandler:
             handlerPath = IcosPaths.GetHandlerPath(curSrc.Source, curSrc.Platform, curSrc.Config, False)
-            testTempDir = IcosPaths.GetTestPathTemp(curSrc.Source, self.model.TestName)
+            testTempDir = IcosPaths.GetTestPathTemp(curSrc.Source, self.model.AutoTests.TestName)
             EXEs.append(testTempDir)
 
         for file in EXEs:

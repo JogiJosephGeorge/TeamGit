@@ -188,8 +188,6 @@ class Model:
         self.IniFile = IniFile(filePath)
         self.AutoTests = AutoTestModel()
         self.SrcCnf = SourceInfo(self)
-        self.TestName = ''
-        self.slots = []
         self.Geometry = Geometry()
         self.UserAccess = UserAccess()
         self.VsVersions = VsVersions()
@@ -230,7 +228,7 @@ class Model:
         if self.AutoTests.TestIndex == index:
             return False
         self.AutoTests.TestIndex = index
-        [self.TestName, self.slots] = self.AutoTests.Tests[self.AutoTests.TestIndex]
+        [self.AutoTests.TestName, self.AutoTests.slots] = self.AutoTests.Tests[self.AutoTests.TestIndex]
         if writeToFile:
             self.WriteConfigFile()
         return True
@@ -258,13 +256,13 @@ class Model:
     def UpdateSlot(self, index, isSelected):
         slotNum = index + 1
         if isSelected:
-            self.slots.append(slotNum)
-            self.slots.sort()
+            self.AutoTests.slots.append(slotNum)
+            self.AutoTests.slots.sort()
         else:
-            self.slots.remove(slotNum)
-        self.AutoTests.SetNameSlots(self.TestName, self.slots)
+            self.AutoTests.slots.remove(slotNum)
+        self.AutoTests.SetNameSlots(self.AutoTests.TestName, self.AutoTests.slots)
 
     def SelectSlots(self, slots):
-        self.slots = slots
-        self.slots.sort()
-        self.AutoTests.SetNameSlots(self.TestName, self.slots)
+        self.AutoTests.slots = slots
+        self.AutoTests.slots.sort()
+        self.AutoTests.SetNameSlots(self.AutoTests.TestName, self.AutoTests.slots)

@@ -43,7 +43,7 @@ class VMWareRunner:
     def RunSlots(cls, model, startSlot = True, showMessage = True):
         vmWareExe = model.VMwareExe
         pwd = model.VMwarePwd
-        slots = model.slots
+        slots = model.AutoTests.slots
         if len(slots) == 0:
             if showMessage:
                 MessageBox.ShowMessage('Please select necessary slot(s).')
@@ -81,7 +81,7 @@ class VMWareRunner:
 
     @classmethod
     def TestSlots(cls, model):
-        slots = model.slots
+        slots = model.AutoTests.slots
         if len(slots) == 0:
             MessageBox.ShowMessage('Please select necessary slot(s).')
             return

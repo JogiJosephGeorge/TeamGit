@@ -86,7 +86,7 @@ class PreTestActions:
     @classmethod
     def GetTestPath(cls, model):
         curSrc = model.CurSrc()
-        return IcosPaths.GetTestPath(curSrc.Source, model.TestName)
+        return IcosPaths.GetTestPath(curSrc.Source, model.AutoTests.TestName)
 
     @classmethod
     def GenerateLicMgrConfig(cls, model):
@@ -124,7 +124,7 @@ class PreTestActions:
     @classmethod
     def CopyMmiSaveLogExe(cls, model):
         curSrc = model.CurSrc()
-        destin = IcosPaths.GetTestPathTemp(curSrc.Source, model.TestName) + '/Icos'
+        destin = IcosPaths.GetTestPathTemp(curSrc.Source, model.AutoTests.TestName) + '/Icos'
         src = os.path.abspath(IcosPaths.GetMmiSaveLogsPath(curSrc.Source, curSrc.Platform, curSrc.Config))
         FileOperations.Copy(src, destin)
 

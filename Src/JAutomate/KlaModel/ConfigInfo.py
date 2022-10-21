@@ -5,7 +5,6 @@ from KlaModel.VsVersions import VsVersions
 class ConfigInfo:
     def Read(self, model, iniFile):
         model.Branch = ''
-        model.slots = []
         model.SrcCnf.Read(iniFile)
         model.AutoTests.Read(iniFile)
         model.VsVersions.Read(iniFile)

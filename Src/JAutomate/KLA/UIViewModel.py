@@ -28,7 +28,7 @@ class UIViewModel:
 
     def UpdateSlotsChk(self, writeToFile):
         for i in range(self.model.MaxSlots):
-            self.chkSlots[i].set((i+1) in self.model.slots)
+            self.chkSlots[i].set((i+1) in self.model.AutoTests.slots)
         if writeToFile:
             self.model.WriteConfigFile()
 
@@ -45,10 +45,10 @@ class UIViewModel:
 
     def OnTestChanged(self, event):
         if self.model.UpdateTest(self.cmbTest.current(), False):
-            print 'Test Changed to : ' + self.model.TestName
+            print 'Test Changed to : ' + self.model.AutoTests.TestName
             self.UpdateSlotsChk(True)
 
     def UpdateSlots(self):
         if VMWareRunner.SelectSlots(self.model):
-            print 'Slots Updated : ' + str(self.model.slots)
+            print 'Slots Updated : ' + str(self.model.AutoTests.slots)
             self.UpdateSlotsChk(True)
