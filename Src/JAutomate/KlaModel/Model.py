@@ -52,9 +52,10 @@ class SourceInfo:
     def __init__(self, model):
         self.model = model
         self.SrcArray = []
+        self.SrcIndex = -1
 
     def Read(self, iniFile):
-        self.model.SrcIndex = -1
+        self.SrcIndex = -1
         if iniFile.HasKey('SourceInfo'):
             # Read New Data from New Version
             sourceInfo = iniFile.ReadField('SourceInfo', [])
@@ -76,12 +77,12 @@ class SourceInfo:
                 srcData.IsActive = index in ActiveSrcs
                 self.SrcArray.append(srcData)
                 index += 1
-        SrcIndex = iniFile.ReadField('SrcIndex', -1)
-        self.UpdateSource(SrcIndex, False)
+        srcIndex = iniFile.ReadField('SrcIndex', -1)
+        self.UpdateSource(srcIndex, False)
         self.ReadMMiSetupVersion(iniFile) # For old version
 
     def Write(self, iniFile):
-        iniFile.Write('SrcIndex', self.model.SrcIndex)
+        iniFile.Write('SrcIndex', self.SrcIndex)
 
         sourceInfo = []
         for src in self.SrcArray:
@@ -92,9 +93,9 @@ class SourceInfo:
     def UpdateSource(self, index, writeToFile):
         if index < 0 or index >= len(self.SrcArray):
             return False
-        if self.model.SrcIndex == index:
+        if self.SrcIndex == index:
             return False
-        self.model.SrcIndex = index
+        self.SrcIndex = index
         if writeToFile:
             self.model.WriteConfigFile()
         return True
@@ -106,8 +107,8 @@ class SourceInfo:
         srcData = SrcData()
         srcData.Source = newPath
         self.SrcArray.append(srcData)
-        if self.model.SrcIndex < 0:
-            self.model.SrcIndex = 0
+        if self.SrcIndex < 0:
+            self.SrcIndex = 0
         return True
 
     def RemoveSource(self, index):
@@ -117,7 +118,7 @@ class SourceInfo:
         del self.SrcArray[index]
         if index + 1 >= srcCnt:
             index -= 1
-        self.model.SrcIndex = index
+        self.SrcIndex = index
         return True
 
     def ReadMMiSetupVersion(self, iniFile):
@@ -205,8 +206,8 @@ class Model:
         self.IniFile.Save()
 
     def CurSrc(self):
-        if self.SrcIndex >= 0 and len(self.SrcCnf.SrcArray) > self.SrcIndex:
-            return self.SrcCnf.SrcArray[self.SrcIndex]
+        if self.SrcCnf.SrcIndex >= 0 and len(self.SrcCnf.SrcArray) > self.SrcCnf.SrcIndex:
+            return self.SrcCnf.SrcArray[self.SrcCnf.SrcIndex]
         curSrcData = SrcData()
         return curSrcData
 
@@ -239,7 +240,7 @@ class Model:
         if not newConfig:
             return False
         srcData = self.GetSrcAt(row)
-        if self.SrcIndex == row and srcData.Config == newConfig:
+        if self.SrcCnf.SrcIndex == row and srcData.Config == newConfig:
             return False
         srcData.Config = newConfig
         return True
@@ -249,7 +250,7 @@ class Model:
         if not newPlatform:
             return False
         srcData = self.GetSrcAt(row)
-        if self.SrcIndex == row and srcData.Platform == newPlatform:
+        if self.SrcCnf.SrcIndex == row and srcData.Platform == newPlatform:
             return False
         srcData.Platform = newPlatform
         return True

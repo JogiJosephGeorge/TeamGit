@@ -26,7 +26,7 @@ class UISourceGrid:
         self.cboPlatform = []
         self.txtDescription = []
         self.SelectedSrc = tk.IntVar()
-        self.SelectedSrc.set(self.model.SrcIndex)
+        self.SelectedSrc.set(self.model.SrcCnf.SrcIndex)
 
     def CreateUI(self):
         self.AddHeader()
@@ -79,8 +79,8 @@ class UISourceGrid:
         self.radCurSrc.append(rd)
 
     def OnSelectSrc(self):
-        SrcIndex = self.SelectedSrc.get()
-        self.model.SrcCnf.UpdateSource(SrcIndex, False)
+        srcIndex = self.SelectedSrc.get()
+        self.model.SrcCnf.UpdateSource(srcIndex, False)
         curSrc = self.model.CurSrc()
         print 'Source changed to : ' + curSrc.Source
         Logger.Log('Source changed to : ' + curSrc.Source)
@@ -200,14 +200,14 @@ class UISourceSelector(UIWindow):
                         commitId = Git.GetCommitId(srcData.Source, brn1)
                         data.append(['', commitId, brn1, ''])
             self.SourceGrid.SetBranch(index, branch)
-            if index == self.model.SrcIndex:
+            if index == self.model.SrcCnf.SrcIndex:
                 self.model.Branch = branch
             index += 1
         print PrettyTable(TableFormat().SetDoubleLineBorder()).ToString(data)
 
     def OnClosing(self):
         self.SourceGrid.OnClosing()
-        self.model.Branch = self.SourceGrid.GetBranch(self.model.SrcIndex)
+        self.model.Branch = self.SourceGrid.GetBranch(self.model.SrcCnf.SrcIndex)
         SourceCodeUpdater.CopyPreCommit(self.model)
         super(UISourceSelector, self).OnClosing()
 
@@ -284,13 +284,13 @@ class UISourceSelector(UIWindow):
             self.SourceGrid.SetBranch(row - 1, branch)
 
     def OnRemoveSource(self):
-        if self.model.SrcIndex < 0:
+        if self.model.SrcCnf.SrcIndex < 0:
             return
-        src = self.model.GetSrcAt(self.model.SrcIndex).Source
+        src = self.model.GetSrcAt(self.model.SrcCnf.SrcIndex).Source
         if MessageBox.YesNoQuestion('Remove Source', 'Do you want to remove source ' + src):
-            if self.model.SrcCnf.RemoveSource(self.model.SrcIndex):
+            if self.model.SrcCnf.RemoveSource(self.model.SrcCnf.SrcIndex):
                 msg = 'The source ' + src + ' has been removed.'
-                self.SourceGrid.DeleteRow(self.model.SrcIndex)
+                self.SourceGrid.DeleteRow(self.model.SrcCnf.SrcIndex)
                 print msg
                 self.OnClosing() # After removing grid row, this line can be omitted
             else:

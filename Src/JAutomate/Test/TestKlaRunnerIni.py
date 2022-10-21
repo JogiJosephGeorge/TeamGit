@@ -17,7 +17,7 @@ class TestKlaRunnerIni:
         srcs = list(self.model.GetAllSrcs())
         for src in srcs:
             Test.Assert(os.path.isdir(src.Source), True, 'Directory {} exists.'.format(src.Source))
-        self.DoTestIndex(srcs, self.model.SrcIndex, 'Index')
+        self.DoTestIndex(srcs, self.model.SrcCnf.SrcIndex, 'Index')
 
     def AutoTest(self):
         self.VerifyNamesAndSlots(self.model.AutoTests.Tests)
