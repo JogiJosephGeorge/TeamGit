@@ -139,7 +139,7 @@ class IniFile:
                 with open(self.FileName) as f:
                     self.IniData = json.load(f)
             except:
-                print 'There are issues in reading ' + self.FileName
+                print('There are issues in reading ' + self.FileName)
 
     def HasKey(self, key):
         return key in self.IniData
@@ -165,14 +165,20 @@ class IniFile:
 
 
 class UserAccess:
-    def __init__(self, model):
-        self.model = model
+    def SetIsExpertUser(self, isExpUser):
+        self.UILevel = 2 if isExpUser else 3
 
     def IsDeveloper(self):
-        return self.model.UILevel < 2
+        return self.UILevel < 2
 
     def IsExpertUser(self):
-        return self.model.UILevel < 3
+        return self.UILevel < 3
+
+    def Read(self, iniFile):
+        self.UILevel = iniFile.ReadField('UILevel', 3)
+
+    def Write(self, iniFile):
+        iniFile.Write('UILevel', self.UILevel)
 
 class Model:
     def __init__(self):
@@ -184,7 +190,8 @@ class Model:
         self.TestName = ''
         self.slots = []
         self.Geometry = Geometry()
-        self.UserAccess = UserAccess(self)
+        self.UserAccess = UserAccess()
+        self.VsVersions = VsVersions()
 
     def ReadConfigFile(self):
         self.IniFile.Open()

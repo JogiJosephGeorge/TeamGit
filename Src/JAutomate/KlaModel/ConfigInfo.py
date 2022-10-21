@@ -1,4 +1,5 @@
 from Common.Git import Git
+from KlaModel.VsVersions import VsVersions
 
 
 class ConfigInfo:
@@ -11,10 +12,7 @@ class ConfigInfo:
         TestIndex = iniFile.ReadField('TestIndex', -1)
         if not model.UpdateTest(TestIndex, False):
             model.TestIndex = 0
-        model.DevEnvCom = iniFile.ReadField('DevEnvCom', 'C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com')
-        model.DevEnvExe = iniFile.ReadField('DevEnvExe', 'C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/Common7/IDE/devenv.exe')
-        model.DevEnvCom22 = iniFile.ReadField('DevEnvCom22', 'C:/Program Files/Microsoft Visual Studio/2022/Professional/Common7/IDE/devenv.com')
-        model.DevEnvExe22 = iniFile.ReadField('DevEnvExe22', 'C:/Program Files/Microsoft Visual Studio/2022/Professional/Common7/IDE/devenv.exe')
+        model.VsVersions.Read(iniFile)
         model.GitPath = iniFile.ReadField('GitPath', 'C:/Program Files/Git')
         model.VMwareExe = iniFile.ReadField('VMwareExe', 'C:/Program Files (x86)/VMware/VMware Workstation/vmware.exe')
         model.VMwarePwd = iniFile.ReadField('VMwarePwd', '1')
@@ -30,7 +28,7 @@ class ConfigInfo:
         model.LogFileName = iniFile.ReadField('LogFileName', 'bin/Log.txt')
         model.MaxSlots = iniFile.ReadInt('MaxSlots', 8)
         model.LogName = iniFile.ReadField('LogName', 'KLARunner> ')
-        model.UILevel = iniFile.ReadInt('UILevel', 2)
+        model.UserAccess.Read(iniFile)
         model.RestartSlotsForMMiAlone = iniFile.ReadField('RestartSlotsForMMiAlone', False)
         model.GenerateLicMgrConfigOnTest = iniFile.ReadField('GenerateLicMgrConfigOnTest', False)
         model.CopyLicMgrConfigOnTest = iniFile.ReadField('CopyLicMgrConfigOnTest', False)
@@ -59,10 +57,7 @@ class ConfigInfo:
         model.SrcCnf.Write(iniFile)
         model.AutoTests.Write(iniFile)
         iniFile.Write('TestIndex', model.TestIndex)
-        iniFile.Write('DevEnvCom', model.DevEnvCom)
-        iniFile.Write('DevEnvExe', model.DevEnvExe)
-        iniFile.Write('DevEnvCom22', model.DevEnvCom22)
-        iniFile.Write('DevEnvExe22', model.DevEnvExe22)
+        model.VsVersions.Write(iniFile)
         iniFile.Write('GitPath', model.GitPath)
         iniFile.Write('VMwareExe', model.VMwareExe)
         iniFile.Write('VMwarePwd', model.VMwarePwd)
@@ -78,7 +73,7 @@ class ConfigInfo:
         iniFile.Write('LogFileName', model.LogFileName)
         iniFile.Write('MaxSlots', model.MaxSlots)
         iniFile.Write('LogName', model.LogName)
-        iniFile.Write('UILevel', model.UILevel)
+        model.UserAccess.Write(iniFile)
         iniFile.Write('RestartSlotsForMMiAlone', model.RestartSlotsForMMiAlone)
         iniFile.Write('GenerateLicMgrConfigOnTest', model.GenerateLicMgrConfigOnTest)
         iniFile.Write('CopyLicMgrConfigOnTest', model.CopyLicMgrConfigOnTest)

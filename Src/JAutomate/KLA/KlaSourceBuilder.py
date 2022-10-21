@@ -115,7 +115,7 @@ class KlaSourceBuilder:
                 outFile = os.path.abspath(source + '/Out_' + slnName) + '.txt'
 
                 buildLoger.StartSolution(sln, slnName, config, platform)
-                devEnvCom = VsVersions().GetDevEnvCom(self.model, vsVersion)
+                devEnvCom = self.model.VsVersions.GetDevEnvCom(vsVersion)
                 params = [devEnvCom, slnFile, buildOption, BuildConf, '/out', outFile]
                 OsOperations.Popen(params, buildLoger.PrintMsg)
                 buildLoger.EndSolution()

@@ -112,9 +112,9 @@ class UIMainMenu:
         if self.model.UserAccess.IsExpertUser():
             self.uiGrid.AddButton('Clear Output', OsOperations.Cls)
             self.uiGrid.AddButton('Print Missing IDs', self.klaRunner.PrintMissingIds)
+        if self.model.UserAccess.IsDeveloper():
             self.uiGrid.AddButton('Effort Log', effortLogger.PrintEffortLogInDetail, (self.model.EffortLogFile,))
             self.uiGrid.AddButton('Daily Log', effortLogger.PrintDailyLog, (self.model.EffortLogFile,))
-        if self.model.UserAccess.IsDeveloper():
             self.uiGrid.AddButton('Convert Stack', specialTextOps.ConvertStack)
 
     def ShowSettings(self):

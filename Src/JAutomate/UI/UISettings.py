@@ -16,17 +16,17 @@ class UISettings(UIWindow):
         self.checkBoxCreator = CheckBoxCreator()
 
         pathFrame = self.AddGroup(parent)
-        self.AddSelectPathRow(pathFrame, 'MMi Setups Path', 'MMiSetupsPath')
-        self.AddSelectPathRow(pathFrame, 'MMi Config Path', 'MMiConfigPath')
-        if self.model.UserAccess.IsExpertUser():
-            self.AddSelectFileRow(pathFrame, 'Effort Log File', 'EffortLogFile')
-        self.AddSelectFileRow(pathFrame, 'DevEnv.com 2017', 'DevEnvCom')
-        self.AddSelectFileRow(pathFrame, 'DevEnv.exe 2017', 'DevEnvExe')
-        self.AddSelectFileRow(pathFrame, 'DevEnv.com 2022', 'DevEnvCom22')
-        self.AddSelectFileRow(pathFrame, 'DevEnv.exe 2022', 'DevEnvExe22')
-        self.AddSelectPathRow(pathFrame, 'Git Path', 'GitPath')
-        self.AddSelectFileRow(pathFrame, 'VMware.exe', 'VMwareExe')
-        self.AddSelectFileRow(pathFrame, 'Beyond Compare', 'BCompare')
+        self.AddSelectPathRow(pathFrame, 'MMi Setups Path', self.model, 'MMiSetupsPath')
+        self.AddSelectPathRow(pathFrame, 'MMi Config Path', self.model, 'MMiConfigPath')
+        if self.model.UserAccess.IsDeveloper():
+            self.AddSelectFileRow(pathFrame, 'Effort Log File', self.model, 'EffortLogFile')
+        self.AddSelectFileRow(pathFrame, 'DevEnv.com 2017', self.model.VsVersions, 'DevEnvCom')
+        self.AddSelectFileRow(pathFrame, 'DevEnv.exe 2017', self.model.VsVersions, 'DevEnvExe')
+        self.AddSelectFileRow(pathFrame, 'DevEnv.com 2022', self.model.VsVersions, 'DevEnvCom22')
+        self.AddSelectFileRow(pathFrame, 'DevEnv.exe 2022', self.model.VsVersions, 'DevEnvExe22')
+        self.AddSelectPathRow(pathFrame, 'Git Path', self.model, 'GitPath')
+        self.AddSelectFileRow(pathFrame, 'VMware.exe', self.model, 'VMwareExe')
+        self.AddSelectFileRow(pathFrame, 'Beyond Compare', self.model, 'BCompare')
 
         self.textBoxCreator = TextBoxCreator(self.model)
         textFrame = self.AddGroup(parent)
@@ -44,18 +44,18 @@ class UISettings(UIWindow):
             self.checkBoxCreator.AddCheckBox(checkFrame, self.chkRow, 0, txt, self.model, modelParam, msgOn, msgOff, showMsgOn, showMsgOff)
             self.chkRow += 1
 
-        if self.model.UserAccess.IsDeveloper():
-            txt = 'Prevent Running Auto Test'
-            msgOn = 'Start/Run Test buttons will NOT be available for performing diagnostic setup.'
-            msgOff = 'Start/Run Test buttons will be available.'
-            AddCheckBox(txt, 'NoAutoTest', msgOn, msgOff, False, False)
-        else:
+        if not self.model.UserAccess.IsDeveloper():
             txt = 'Show All Commands in KlaRunner'
             isChecked = self.model.UserAccess.IsExpertUser()
             self.ShowAllChkBox = UIFactory.AddCheckBox(checkFrame, txt, isChecked, self.chkRow, 0, self.OnClickShowAllCheckBox)
             self.chkRow += 1
 
         if self.model.UserAccess.IsExpertUser():
+            txt = 'Prevent Running Auto Test'
+            msgOn = 'Start/Run Test buttons will NOT be available for performing diagnostic setup.'
+            msgOff = 'Start/Run Test buttons will be available.'
+            AddCheckBox(txt, 'NoAutoTest', msgOn, msgOff, False, False)
+
             txt = 'Run Host Cam while running MMi alone'
             msgOn = 'Run Host Cam while running MMi alone.'
             msgOff = 'Do NOT run Host Cam while running MMi alone.'
@@ -129,15 +129,15 @@ class UISettings(UIWindow):
         self.textBoxCreator.UpdateModel()
         super(UISettings, self).OnClosing()
 
-    def AddSelectPathRow(self, parent, label, attrName, onPathChanged = None):
-        self.AddSelectItemRow(parent, label, attrName, False, onPathChanged)
+    def AddSelectPathRow(self, parent, label, attrObj, attrName, onPathChanged = None):
+        self.AddSelectItemRow(parent, label, attrObj, attrName, False, onPathChanged)
 
-    def AddSelectFileRow(self, parent, label, attrName):
-        self.AddSelectItemRow(parent, label, attrName, True, None)
+    def AddSelectFileRow(self, parent, label, attrObj, attrName):
+        self.AddSelectItemRow(parent, label, attrObj, attrName, True, None)
 
-    def AddSelectItemRow(self, parent, label, attrName, isFile, onItemChanged):
+    def AddSelectItemRow(self, parent, label, attrObj, attrName, isFile, onItemChanged):
         UIFactory.AddLabel(parent, label, self.Row, 0)
-        text = getattr(self.model, attrName)
+        text = getattr(attrObj, attrName)
         if isFile:
             if not os.path.isfile(text):
                 print "Given file doesn't exist : " + text
@@ -147,24 +147,24 @@ class UISettings(UIWindow):
                 print "Given directory doesn't exist : " + text
             cmd = self.SelectPath
         textVar = UIFactory.AddLabel(parent, text, self.Row, 1)
-        args = (textVar, attrName, onItemChanged)
+        args = (textVar, attrObj, attrName, onItemChanged)
         UIFactory.AddButton(parent, ' ... ', self.Row, 2, cmd, args)
         self.Row += 1
 
-    def SelectPath(self, textVar, attrName, onItemChanged):
+    def SelectPath(self, textVar, attrObj, attrName, onItemChanged):
         folderSelected = tkFileDialog.askdirectory()
         if len(folderSelected) > 0:
             textVar.set(folderSelected)
-            setattr(self.model, attrName, folderSelected)
+            setattr(attrObj, attrName, folderSelected)
             print '{} Path changed : {}'.format(attrName, folderSelected)
             if onItemChanged:
                 onItemChanged()
 
-    def SelectFile(self, textVar, attrName, onItemChanged):
+    def SelectFile(self, textVar, attrObj, attrName, onItemChanged):
         filename = tkFileDialog.askopenfilename(initialdir = "/", title = "Select file")
         if len(filename) > 0:
             textVar.set(filename)
-            setattr(self.model, attrName, filename)
+            setattr(attrObj, attrName, filename)
             print '{} Path changed : {}'.format(attrName, filename)
             if onItemChanged:
                 onItemChanged()
@@ -175,9 +175,9 @@ class UISettings(UIWindow):
         self.Row += 1
 
     def OnClickShowAllCheckBox(self):
-        if self.model.UILevel == 1:
+        if self.model.UserAccess.IsDeveloper():
             return
         isChecked = self.ShowAllChkBox.get()
-        self.model.UILevel = 2 if isChecked else 3
+        self.model.UserAccess.SetIsExpertUser(isChecked)
         msg = 'You need to restart the application to update the UI.'
         MessageBox.ShowMessage(msg)

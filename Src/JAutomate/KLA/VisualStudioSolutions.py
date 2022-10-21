@@ -39,7 +39,7 @@ class VisualStudioSolutions:
     def OpenSolutionFile(self, slnFileName):
         curSrc = self.model.CurSrc()
         fileName = curSrc.Source + slnFileName
-        devEnvExe = VsVersions().GetDevEnvExe(self.model, curSrc.VsVersion)
+        devEnvExe = self.model.VsVersions.GetDevEnvExe(curSrc.VsVersion)
         param = [
             devEnvExe,
             fileName
