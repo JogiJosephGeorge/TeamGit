@@ -40,7 +40,7 @@ class UIViewModel:
     def UpdateCombo(self):
         tests = self.model.AutoTests.GetNames()
         self.cmbTest['values'] = tests
-        if self.model.AutoTests.TestIndex >= 0 and len(tests) > self.model.AutoTests.TestIndex:
+        if self.model.AutoTests.IsValidIndex(self.model.AutoTests.TestIndex):
             self.cmbTest.current(self.model.AutoTests.TestIndex)
 
     def OnTestChanged(self, event):

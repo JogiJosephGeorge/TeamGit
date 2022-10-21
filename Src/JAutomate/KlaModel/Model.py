@@ -261,18 +261,9 @@ class Model:
             self.slots.sort()
         else:
             self.slots.remove(slotNum)
-        self.AutoTests.SetNameSlots(self.AutoTests.TestIndex, self.TestName, self.slots)
+        self.AutoTests.SetNameSlots(self.TestName, self.slots)
 
     def SelectSlots(self, slots):
         self.slots = slots
         self.slots.sort()
-        self.AutoTests.SetNameSlots(self.AutoTests.TestIndex, self.TestName, self.slots)
-
-    def GetLibsTestPath(self):
-        return self.CurSrc().Source + '/libs/testing'
-
-    def TestInfoToString(self):
-        msg  = 'Current Test Index : ' + str(self.AutoTests.TestIndex) + '\n'
-        msg += 'Current Test Name  : ' + self.TestName + '\n'
-        msg += 'Current Slots        : ' + str(self.slots) + '\n'
-        return msg
+        self.AutoTests.SetNameSlots(self.TestName, self.slots)
