@@ -6,12 +6,8 @@ class ConfigInfo:
     def Read(self, model, iniFile):
         model.Branch = ''
         model.slots = []
-        model.TestIndex = -1
         model.SrcCnf.Read(iniFile)
         model.AutoTests.Read(iniFile)
-        TestIndex = iniFile.ReadField('TestIndex', -1)
-        if not model.UpdateTest(TestIndex, False):
-            model.TestIndex = 0
         model.VsVersions.Read(iniFile)
         model.GitPath = iniFile.ReadField('GitPath', 'C:/Program Files/Git')
         model.VMwareExe = iniFile.ReadField('VMwareExe', 'C:/Program Files (x86)/VMware/VMware Workstation/vmware.exe')
@@ -56,7 +52,6 @@ class ConfigInfo:
     def Write(self, iniFile, model):
         model.SrcCnf.Write(iniFile)
         model.AutoTests.Write(iniFile)
-        iniFile.Write('TestIndex', model.TestIndex)
         model.VsVersions.Write(iniFile)
         iniFile.Write('GitPath', model.GitPath)
         iniFile.Write('VMwareExe', model.VMwareExe)

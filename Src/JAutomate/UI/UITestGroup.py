@@ -59,7 +59,8 @@ class UITestGroup:
 
     def AddTestCombo(self, parent, r, c):
         testNames = self.model.AutoTests.GetNames()
-        self.VM.cmbTest = UIFactory.AddCombo(parent, testNames, self.model.TestIndex, r, c, self.VM.OnTestChanged, None, 70)
+        testIndex = self.model.AutoTests.TestIndex
+        self.VM.cmbTest = UIFactory.AddCombo(parent, testNames, testIndex, r, c, self.VM.OnTestChanged, None, 70)
 
     def AddAutoTestSettings(self, parent, r, c):
         UIFactory.AddButton(parent, ' + ', r, c, self.ShowAutoTestSettings)

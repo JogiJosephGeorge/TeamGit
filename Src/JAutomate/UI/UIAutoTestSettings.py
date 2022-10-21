@@ -158,7 +158,7 @@ class RemoveTestMan:
             if index >= len(self.Tests):
                 index = len(self.Tests) - 1
             self.TestCmb.current(index)
-            if self.model.TestIndex >= len(self.Tests):
+            if self.model.AutoTests.TestIndex >= len(self.Tests):
                 self.model.UpdateTest(len(self.Tests) - 1, False)
         else:
             print 'No tests selected'

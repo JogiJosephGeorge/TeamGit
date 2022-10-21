@@ -17,11 +17,11 @@ class TestKlaRunnerIni:
         srcs = list(self.model.GetAllSrcs())
         for src in srcs:
             Test.Assert(os.path.isdir(src.Source), True, 'Directory {} exists.'.format(src.Source))
-        self.TestIndex(srcs, self.model.SrcIndex, 'Index')
+        self.DoTestIndex(srcs, self.model.SrcIndex, 'Index')
 
     def AutoTest(self):
         self.VerifyNamesAndSlots(self.model.AutoTests.Tests)
-        self.TestIndex(self.model.AutoTests.Tests, self.model.TestIndex, 'Index')
+        self.DoTestIndex(self.model.AutoTests.Tests, self.model.AutoTests.TestIndex, 'Index')
 
     def VerifyNamesAndSlots(self, list):
         for testName, slots in list:
@@ -30,7 +30,7 @@ class TestKlaRunnerIni:
             for slot in slots:
                 Test.Assert(slot > 0 and slot <= self.model.MaxSlots, True, 'Test Name {} Slot {}'.format(testName, slot), 1)
 
-    def TestIndex(self, list, index, message):
+    def DoTestIndex(self, list, index, message):
         isValidIndex = index >= 0 and index < len(list)
         Test.Assert(isValidIndex, True, message, 1)
 

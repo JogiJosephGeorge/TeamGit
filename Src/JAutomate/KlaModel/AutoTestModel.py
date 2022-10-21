@@ -4,6 +4,7 @@ from Common.PrettyTable import PrettyTable, TableFormat
 class AutoTestModel:
     def __init__(self):
         self.Tests = []
+        self.TestIndex = -1
 
     def Read(self, iniFile):
         testArray = iniFile.ReadField('Tests', [])
@@ -12,10 +13,12 @@ class AutoTestModel:
             nameSlot = self.Encode(item)
             if nameSlot is not None:
                 self.Tests.append(nameSlot)
+        self.TestIndex = iniFile.ReadField('TestIndex', -1)
 
     def Write(self, iniFile):
         testArray = [self.Decode(item[0], item[1]) for item in self.Tests]
         iniFile.Write('Tests', testArray)
+        iniFile.Write('TestIndex', self.TestIndex)
 
     def IsValidIndex(self, index):
         return index >= 0 and index < len(self.Tests)
