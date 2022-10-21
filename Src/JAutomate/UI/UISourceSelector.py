@@ -114,7 +114,7 @@ class UISourceGrid:
         return self.cboConfig[row].current()
 
     def AddDescription(self, r, c, descr):
-        textVar = UIFactory.AddTextBox(self.ParentFrame, descr, r, c, 100)
+        textVar = UIFactory.AddTextBox(self.ParentFrame, descr, r, c, 50)
         self.txtDescription.append(textVar)
 
     def OnDescriptionChanged(self, input):
@@ -203,7 +203,7 @@ class UISourceSelector(UIWindow):
             if index == self.model.SrcIndex:
                 self.model.Branch = branch
             index += 1
-        print PrettyTable(TableFormat().SetSingleLine()).ToString(data)
+        print PrettyTable(TableFormat().SetDoubleLineBorder()).ToString(data)
 
     def OnClosing(self):
         self.SourceGrid.OnClosing()
@@ -215,7 +215,7 @@ class UISourceSelector(UIWindow):
         self.AddEmptyRow()
         row1 = self.AddRow()
         UIFactory.AddButton(row1, 'Tortoise Git Diff', 0, 0, AppRunner.OpenLocalDif, (self.model,), 19)
-        if self.model.UILevel < 3:
+        if self.model.UserAccess.IsExpertUser():
             UIFactory.AddButton(row1, 'Git GUI', 0, 1, Git.OpenGitGui, (self.model,), 19)
         UIFactory.AddButton(row1, 'Git Submodule Update', 0, 2, Git.SubmoduleUpdate, (self.model,), 19)
         UIFactory.AddButton(row1, 'Nuget Restore', 0, 3, self.NugetRestore, (self.model,), 19)
@@ -236,7 +236,7 @@ class UISourceSelector(UIWindow):
         row2 = self.AddRow()
         self.threadHandler.AddButton(row2, ' Clean Solutions ', 0, 0, self.srcBuilder.CleanSource, None, self.srcBuilder.NotifyClean, None, 19)
         self.threadHandler.AddButton(row2, ' Build Solutions ', 0, 1, self.srcBuilder.BuildSource, None, self.srcBuilder.NotifyBuild, None, 19)
-        if self.model.UILevel < 3:
+        if self.model.UserAccess.IsExpertUser():
             UIFactory.AddButton(row2, 'Available Sources', 0, 2, PreTestActions.PrintAvailableExes, (self.model,), 19)
 
             row3 = self.AddRow()
@@ -248,7 +248,7 @@ class UISourceSelector(UIWindow):
         self.vsSolutions.SelectedInxs[inx] = self.slnChks[inx].get()
 
     def AddFunctions(self):
-        if self.model.UILevel < 3:
+        if self.model.UserAccess.IsExpertUser():
             self.AddEmptyRow()
             self.AddCleanDotVsOnReset(self.AddRow(), 0, 0)
             self.AddUpdateSubmodulesOnReset(self.AddRow(), 0, 0)

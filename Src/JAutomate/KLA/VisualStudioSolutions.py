@@ -1,5 +1,6 @@
 import subprocess
 
+from KlaModel.ConfigEncoder import Config, Platform
 from KlaModel.VsVersions import VsVersions
 
 
@@ -45,7 +46,7 @@ class VisualStudioSolutions:
         ]
         subprocess.Popen(param)
         print 'Open solution : ' + fileName
-        if curSrc.Config is not 'Debug' or curSrc.Platform is not 'Win32':
+        if curSrc.Config is not Config.Debug or curSrc.Platform is not Platform.Win32:
             msg = 'Please check configuration and platform in Visual Studio'
             #MessageBox.ShowMessage(msg, 'Visual Studio')
             print msg
@@ -78,6 +79,6 @@ class VisualStudioSolutions:
 
     @classmethod
     def GetPlatformStr(cls, platform, isSimulator = False):
-        if isSimulator and 'Win32' == platform:
-            platform = 'x86'
+        if isSimulator and Platform.Win32 == platform:
+            platform = Platform.x86
         return platform

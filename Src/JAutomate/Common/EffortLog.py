@@ -159,7 +159,7 @@ class EffortLogger:
         if data is None:
             return
         effortData = [['Daily Start Time', 'End Time', 'Log', 'Total'], ['-']] + data
-        table = PrettyTable(TableFormat().SetSingleLine()).ToString(effortData)
+        table = PrettyTable(TableFormat().SetDoubleLine()).ToString(effortData)
         print table,
         print (datetime.now() + timedelta(hours=9) - todaysTime).strftime('%H:%M')
         #csvTable = PrettyTable(TableFormat().SetNoBorder(u',')).ToString(effortData)

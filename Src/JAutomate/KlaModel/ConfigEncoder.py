@@ -19,6 +19,7 @@ class Config:
 
 class Platform:
     Win32 = 'Win32'
+    x86 = 'x86'
     x64 = 'x64'
 
     @classmethod

@@ -18,7 +18,8 @@ class UISettings(UIWindow):
         pathFrame = self.AddGroup(parent)
         self.AddSelectPathRow(pathFrame, 'MMi Setups Path', 'MMiSetupsPath')
         self.AddSelectPathRow(pathFrame, 'MMi Config Path', 'MMiConfigPath')
-        self.AddSelectFileRow(pathFrame, 'Effort Log File', 'EffortLogFile')
+        if self.model.UserAccess.IsExpertUser():
+            self.AddSelectFileRow(pathFrame, 'Effort Log File', 'EffortLogFile')
         self.AddSelectFileRow(pathFrame, 'DevEnv.com 2017', 'DevEnvCom')
         self.AddSelectFileRow(pathFrame, 'DevEnv.exe 2017', 'DevEnvExe')
         self.AddSelectFileRow(pathFrame, 'DevEnv.com 2022', 'DevEnvCom22')
@@ -32,8 +33,10 @@ class UISettings(UIWindow):
         self.AddTextRow(textFrame, 'VM Ware Password', 'VMwarePwd', None)
         def ValidateMaxSlot(slot):
             return int(slot)
-        self.AddTextRow(textFrame, 'Number of Slots', 'MaxSlots', ValidateMaxSlot)
-        self.AddTextRow(textFrame, 'DebugView Filter', 'LogName', None)
+
+        if self.model.UserAccess.IsExpertUser():
+            self.AddTextRow(textFrame, 'Number of Slots', 'MaxSlots', ValidateMaxSlot)
+            self.AddTextRow(textFrame, 'DebugView Filter', 'LogName', None)
 
         checkFrame = self.AddGroup(parent)
         self.chkRow = 0
@@ -41,70 +44,78 @@ class UISettings(UIWindow):
             self.checkBoxCreator.AddCheckBox(checkFrame, self.chkRow, 0, txt, self.model, modelParam, msgOn, msgOff, showMsgOn, showMsgOff)
             self.chkRow += 1
 
-        txt = 'Show All Commands in KlaRunner'
-        isChecked = self.model.UILevel < 3
-        self.ShowAllChkBox = UIFactory.AddCheckBox(checkFrame, txt, isChecked, self.chkRow, 0, self.OnClickShowAllCheckBox)
-        self.chkRow += 1
+        if self.model.UserAccess.IsDeveloper():
+            txt = 'Prevent Running Auto Test'
+            msgOn = 'Start/Run Test buttons will NOT be available for performing diagnostic setup.'
+            msgOff = 'Start/Run Test buttons will be available.'
+            AddCheckBox(txt, 'NoAutoTest', msgOn, msgOff, False, False)
+        else:
+            txt = 'Show All Commands in KlaRunner'
+            isChecked = self.model.UserAccess.IsExpertUser()
+            self.ShowAllChkBox = UIFactory.AddCheckBox(checkFrame, txt, isChecked, self.chkRow, 0, self.OnClickShowAllCheckBox)
+            self.chkRow += 1
 
-        txt = 'Run Host Cam while running MMi alone'
-        msgOn = 'Run Host Cam while running MMi alone.'
-        msgOff = 'Do NOT run Host Cam while running MMi alone.'
-        AddCheckBox(txt, 'RunHostCam', msgOn, msgOff, False, False)
+        if self.model.UserAccess.IsExpertUser():
+            txt = 'Run Host Cam while running MMi alone'
+            msgOn = 'Run Host Cam while running MMi alone.'
+            msgOff = 'Do NOT run Host Cam while running MMi alone.'
+            AddCheckBox(txt, 'RunHostCam', msgOn, msgOff, False, False)
 
-        txt = 'Restart Slots while running MMi alone'
-        msgOn = 'The selected slots will be restarted while running MMi alone.'
-        msgOff = 'The selected slots will NOT be restarted while running MMi alone.'
-        AddCheckBox(txt, 'RestartSlotsForMMiAlone', msgOn, msgOff, False, False)
+            txt = 'Restart Slots while running MMi alone'
+            msgOn = 'The selected slots will be restarted while running MMi alone.'
+            msgOff = 'The selected slots will NOT be restarted while running MMi alone.'
+            AddCheckBox(txt, 'RestartSlotsForMMiAlone', msgOn, msgOff, False, False)
 
-        txt = 'Remove C:\icos\Started.txt on starting MMI'
-        msgOn = 'The file C:\icos\Started.txt will be removed while running MMi. This is NOT RECOMMENDED.'
-        msgOff = 'The file C:\icos\Started.txt will NOT be removed while running MMi.'
-        AddCheckBox(txt, 'RemoveStartedTXT', msgOn, msgOff, True, False)
+            txt = 'Remove C:\icos\Started.txt on starting MMI'
+            msgOn = 'The file C:\icos\Started.txt will be removed while running MMi. This is NOT RECOMMENDED.'
+            msgOff = 'The file C:\icos\Started.txt will NOT be removed while running MMi.'
+            AddCheckBox(txt, 'RemoveStartedTXT', msgOn, msgOff, True, False)
 
-        txt = 'On AutoTest Copy MMi to Icos'
-        msgOn = 'Copy the mmi built over the installation in C:/icos.'
-        msgOff = 'Do NOT copy the mmi built over the installation in C:/icos. This is NOT RECOMMENDED.'
-        AddCheckBox(txt, 'CopyMmi', msgOn, msgOff, False, True)
+            txt = 'On AutoTest Copy MMi to Icos'
+            msgOn = 'Copy the mmi built over the installation in C:/icos.'
+            msgOff = 'Do NOT copy the mmi built over the installation in C:/icos. This is NOT RECOMMENDED.'
+            AddCheckBox(txt, 'CopyMmi', msgOn, msgOff, False, True)
 
-        txt = 'On AutoTest Remove old copies of the testcase'
-        msgOn = 'Remove old copies of the testcase.'
-        msgOff = 'Do NOT Remove old copies of the testcase. This is NOT RECOMMENDED.'
-        AddCheckBox(txt, 'removeOldCopies', msgOn, msgOff, False, True)
+            txt = 'On AutoTest Remove old copies of the testcase'
+            msgOn = 'Remove old copies of the testcase.'
+            msgOff = 'Do NOT Remove old copies of the testcase. This is NOT RECOMMENDED.'
+            AddCheckBox(txt, 'removeOldCopies', msgOn, msgOff, False, True)
 
-        txt = 'On AutoTest Generate LicMgrConfig.xml'
-        msgOn = 'The file LicMgrConfig.xml will be created while running auto test. This is NOT RECOMMENDED.'
-        msgOff = 'The file LicMgrConfig.xml will NOT be created while running auto test.'
-        AddCheckBox(txt, 'GenerateLicMgrConfigOnTest', msgOn, msgOff, True, False)
+            txt = 'On AutoTest Generate LicMgrConfig.xml'
+            msgOn = 'The file LicMgrConfig.xml will be created while running auto test. This is NOT RECOMMENDED.'
+            msgOff = 'The file LicMgrConfig.xml will NOT be created while running auto test.'
+            AddCheckBox(txt, 'GenerateLicMgrConfigOnTest', msgOn, msgOff, True, False)
 
-        txt = 'On AutoTest Copy LicMgrConfig.xml'
-        msgOn = 'The file LicMgrConfig.xml will be copied while running auto test. This is NOT RECOMMENDED.'
-        msgOff = 'The file LicMgrConfig.xml will NOT be copied while running auto test.'
-        AddCheckBox(txt, 'CopyLicMgrConfigOnTest', msgOn, msgOff, True, False)
+            txt = 'On AutoTest Copy LicMgrConfig.xml'
+            msgOn = 'The file LicMgrConfig.xml will be copied while running auto test. This is NOT RECOMMENDED.'
+            msgOff = 'The file LicMgrConfig.xml will NOT be copied while running auto test.'
+            AddCheckBox(txt, 'CopyLicMgrConfigOnTest', msgOn, msgOff, True, False)
 
-        txt = 'On AutoTest Copy Mock License'
-        msgOn = 'The file mock License.dll will be copied while running auto test. This is NOT RECOMMENDED.'
-        msgOff = 'The file mock License.dll will NOT be copied while running auto test.'
-        AddCheckBox(txt, 'CopyMockLicenseOnTest', msgOn, msgOff, True, False)
+            txt = 'On AutoTest Copy Mock License'
+            msgOn = 'The file mock License.dll will be copied while running auto test. This is NOT RECOMMENDED.'
+            msgOff = 'The file mock License.dll will NOT be copied while running auto test.'
+            AddCheckBox(txt, 'CopyMockLicenseOnTest', msgOn, msgOff, True, False)
 
-        txt = 'On AutoTest Copy xPort_IllumReference.xml'
-        msgOn = 'The file xPort_IllumReference.xml will be copied while running auto test. This is NOT RECOMMENDED.'
-        msgOff = 'The file xPort_IllumReference.xml will NOT be copied while running auto test.'
-        AddCheckBox(txt, 'CopyExportIllumRefOnTest', msgOn, msgOff, True, False)
+            txt = 'On AutoTest Copy xPort_IllumReference.xml'
+            msgOn = 'The file xPort_IllumReference.xml will be copied while running auto test. This is NOT RECOMMENDED.'
+            msgOff = 'The file xPort_IllumReference.xml will NOT be copied while running auto test.'
+            AddCheckBox(txt, 'CopyExportIllumRefOnTest', msgOn, msgOff, True, False)
 
-        txt = 'On AutoTest Copy MVSD Conversion'
-        msgOn = 'The files in MVSD Conversion will be copied while running auto test. This is NOT RECOMMENDED.'
-        msgOff = 'The files in MVSD Conversion will NOT be copied while running auto test.'
-        AddCheckBox(txt, 'CopyMVSDConversionOnTest', msgOn, msgOff, True, False)
+            txt = 'On AutoTest Copy MVSD Conversion'
+            msgOn = 'The files in MVSD Conversion will be copied while running auto test. This is NOT RECOMMENDED.'
+            msgOff = 'The files in MVSD Conversion will NOT be copied while running auto test.'
+            AddCheckBox(txt, 'CopyMVSDConversionOnTest', msgOn, msgOff, True, False)
 
-        txt = 'On AutoTest Console Run from C:/handler/system'
-        msgOn = 'On AutoTest, Console will be running from C:/handler/system'
-        msgOff = 'On AutoTest, Console will be running from build source'
-        AddCheckBox(txt, 'ConsoleFromCHandler', msgOn, msgOff, False, False)
+            txt = 'On AutoTest Console Run from C:/handler/system'
+            msgOn = 'On AutoTest, Console will be running from C:/handler/system'
+            msgOff = 'On AutoTest, Console will be running from build source'
+            AddCheckBox(txt, 'ConsoleFromCHandler', msgOn, msgOff, False, False)
 
-        txt = 'On AutoTest do not proceed after changing source'
-        msgOn = 'On AutoTest, user has to restart KlaRunner after changing source.'
-        msgOff = 'This may not work for all auto tests. This is NOT RECOMMENDED.'
-        AddCheckBox(txt, 'RestartAfterSrcChange', msgOn, msgOff, False, True)
+        if self.model.UserAccess.IsDeveloper():
+            txt = 'On AutoTest do not proceed after changing source'
+            msgOn = 'On AutoTest, user has to restart KlaRunner after changing source.'
+            msgOff = 'This may not work for all auto tests. This is NOT RECOMMENDED.'
+            AddCheckBox(txt, 'RestartAfterSrcChange', msgOn, msgOff, False, True)
 
         self.AddBackButton(parent, self.GrpRow, 0)
 

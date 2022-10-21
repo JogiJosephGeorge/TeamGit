@@ -164,6 +164,16 @@ class IniFile:
             json.dump(self.SaveData, f, indent=3)
 
 
+class UserAccess:
+    def __init__(self, model):
+        self.model = model
+
+    def IsDeveloper(self):
+        return self.model.UILevel < 2
+
+    def IsExpertUser(self):
+        return self.model.UILevel < 3
+
 class Model:
     def __init__(self):
         self.StartPath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -174,6 +184,7 @@ class Model:
         self.TestName = ''
         self.slots = []
         self.Geometry = Geometry()
+        self.UserAccess = UserAccess(self)
 
     def ReadConfigFile(self):
         self.IniFile.Open()

@@ -40,7 +40,7 @@ class UIMainMenu:
     def AddColumn1(self):
         self.uiGrid.CreateColumnFrame()
         self.uiGrid.AddButton('STOP All KLA Apps', self.StopTasks)
-        if self.model.UILevel < 3:
+        if self.model.UserAccess.IsExpertUser():
             self.uiGrid.AddButton('STOP MMi alone', self.StopMMi)
             self.uiGrid.AddButton('Run Handler', self.RunHandler)
             self.uiGrid.AddButton('Run MMi from Source', self.RunMMi, (True,))
@@ -69,7 +69,7 @@ class UIMainMenu:
             label = 'Open ' + self.vsSolutions.GetSlnName(sln)
             self.uiGrid.AddButton(label, vsSolutions.OpenSolutionFile, (sln,))
         self.uiGrid.AddButton('Other Solutions', self.ShowOpenSolutionDlg)
-        if self.model.UILevel < 3:
+        if self.model.UserAccess.IsExpertUser():
             self.uiGrid.AddButton('Open Jira Int Tests', self.jiraOpener.OpenIntegrationTests)
             self.uiGrid.AddButton('Open Jira Unit Tests', self.jiraOpener.OpenUnitTests)
 
@@ -82,12 +82,12 @@ class UIMainMenu:
     def AddColumn3(self):
         self.uiGrid.CreateColumnFrame()
         self.uiGrid.AddButton('Tortoise Git Diff', AppRunner.OpenLocalDif, (self.model,))
-        if self.model.UILevel < 3:
+        if self.model.UserAccess.IsExpertUser():
             self.uiGrid.AddButton('Git GUI', Git.OpenGitGui, (self.model,))
             self.uiGrid.AddButton('Git Bash Console', Git.OpenGitBash, (self.model,))
         self.uiGrid.AddButton('Git Fetch Pull', Git.FetchPull, (self.model,))
         self.uiGrid.AddButton('Git Submodule Update', Git.SubmoduleUpdate, (self.model,))
-        if self.model.UILevel < 2:
+        if self.model.UserAccess.IsDeveloper():
             self.uiGrid.AddButton('Git Log Viewer', self.ShowGitLogViewer)
 
     def ShowGitLogViewer(self):
@@ -95,7 +95,7 @@ class UIMainMenu:
         gitLogViewer.Show()
 
     def AddColumn4(self):
-        if self.model.UILevel < 3:
+        if self.model.UserAccess.IsExpertUser():
             self.uiGrid.CreateColumnFrame()
             #self.uiGrid.AddButton('Run ToolLink Host', self.appRunner.RunToollinkHost)
             self.uiGrid.AddButton('Copy Mock License', PreTestActions.CopyMockLicense, (self.model,))
@@ -109,13 +109,12 @@ class UIMainMenu:
         effortLogger = EffortLogger()
         specialTextOps = SpecialTextOperations()
         self.uiGrid.AddButton('Settings', self.ShowSettings)
-        if self.model.UILevel < 3:
+        if self.model.UserAccess.IsExpertUser():
             self.uiGrid.AddButton('Clear Output', OsOperations.Cls)
-        if self.model.UILevel < 3:
             self.uiGrid.AddButton('Print Missing IDs', self.klaRunner.PrintMissingIds)
             self.uiGrid.AddButton('Effort Log', effortLogger.PrintEffortLogInDetail, (self.model.EffortLogFile,))
             self.uiGrid.AddButton('Daily Log', effortLogger.PrintDailyLog, (self.model.EffortLogFile,))
-        if self.model.UILevel < 2:
+        if self.model.UserAccess.IsDeveloper():
             self.uiGrid.AddButton('Convert Stack', specialTextOps.ConvertStack)
 
     def ShowSettings(self):

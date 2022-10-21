@@ -138,7 +138,8 @@ class RemoveTestMan:
         UIFactory.AddButton(frame, 'Remove Test', 0, 2, self.OnRemoveSelectedTest)
 
         # The following is not part of RemoveTestMan
-        UIFactory.AddButton(frame, 'Download AutoPlay Model Files', 0, 3, self.DownloadAutoTest)
+        if self.model.UserAccess.IsDeveloper():
+            UIFactory.AddButton(frame, 'Download AutoPlay Model Files', 0, 3, self.DownloadAutoTest)
 
     def OnChangeTestCmb(self, event):
         if len(self.Tests) > 0:

@@ -21,7 +21,9 @@ class UITestGroup:
         UI.AddSeparator()
 
         row1 = UI.AddRow()
-        self.AddRunTestButton(row1, 0, 0)
+
+        if not self.model.NoAutoTest:
+            self.AddRunTestButton(row1, 0, 0)
         self.AddTestCombo(row1, 0, 1)
         self.AddAutoTestSettings(row1, 0, 2)
 
@@ -33,7 +35,7 @@ class UITestGroup:
         self.col += 1
         UIFactory.AddButton(row2, 'Compare Test Results', 0, self.col, self.grComparer.CompareMmiReports)
         self.col += 1
-        if self.model.UILevel < 3:
+        if self.model.UserAccess.IsExpertUser():
             self.AddSetupVersion(row2, 0)
             self.AddVSVersion(row2, 0)
 
@@ -44,7 +46,8 @@ class UITestGroup:
         self.AddSlots(row3, 0)
         UIFactory.AddButton(row3, 'Run Slots', 0, self.col, VMWareRunner.RunSlots, (self.model,))
         self.col += 1
-        UIFactory.AddButton(row3, 'Test First Slot Selected', 0, self.col, VMWareRunner.TestSlots, (self.model,))
+        label = self.GetSlotLabel()
+        self.TestSlotBut = UIFactory.AddButton(row3, label, 0, self.col, VMWareRunner.TestSlots, (self.model,))
         self.col += 1
 
     def AddRunTestButton(self, parent, r, c):
@@ -152,3 +155,11 @@ class UITestGroup:
         self.model.UpdateSlot(index, self.VM.chkSlots[index].get())
         self.model.WriteConfigFile()
         print 'Slots for the current test : ' + str(self.model.slots)
+
+        label = self.GetSlotLabel()
+        self.TestSlotBut.config(text=label)
+
+    def GetSlotLabel(self):
+        if len(self.model.slots) > 0:
+            return 'Test ' + str(self.model.slots[0])
+        return 'Test None'

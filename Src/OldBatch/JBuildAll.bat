@@ -1,11 +1,11 @@
-REM Build Options
-REM ~~~~~~~~~~~~~
-REM Configurations : Debug Release
-REM Platform       : Win32 x64
-REM Visual Studio  : 2017 2022
-REM Solutions      : HanAll Han
-REM Solutions      : Mmi
-REM Solutions      : Others
+REM Build Source Parameters
+REM ~~~~~~~~~~~~~~~~~~~~~~~
+REM 2. Configurations : Debug Release
+REM 3. Platform       : Win32 x64
+REM 4. Visual Studio  : 2017 2022
+REM 5. CIT100.sln     : HanAll Han
+REM 6. Mmi.sln        : Mmi
+REM 7. Other Slns     : Others
 
 CALL:Initialize %0
 REM CALL:BuildSource D:\CI\Src2 Debug Win32 2017 -Han Mmi -Others
