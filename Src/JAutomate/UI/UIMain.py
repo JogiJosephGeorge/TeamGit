@@ -24,7 +24,7 @@ from UI.UITestGroup import UITestGroup
 class UIMain:
     def Run(self):
         self.model = Model()
-        self.model.ReadConfigFile()
+        self.model.ReadFromFile()
         fileName = self.model.StartPath + '/' + self.model.LogFileName
         Logger.Init(fileName)
         Logger.AddLogger(self.DebugViewLog)
@@ -63,7 +63,7 @@ class UIMain:
 
     def OnClosing(self):
         self.model.Geometry.WriteGeomInfo(self.window, 'Main')
-        self.model.WriteConfigFile()
+        self.model.WriteToFile()
         self.window.destroy()
 
     def OnSettingsClosed(self):
@@ -97,7 +97,7 @@ class UIMain:
         self.LazyData.Version = '1.3.{}.{}'.format(revision, hash)
 
     def GetBranch(self):
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         self.LazyData.Branch = Git.GetBranch(curSrc.Source)
 
     def CheckLicense(self):

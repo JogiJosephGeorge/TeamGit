@@ -64,3 +64,27 @@ class AutoTestModel:
             data.append([ str(index), str(item[0]), str(item[1]) ])
             index += 1
         return PrettyTable(TableFormat().SetSingleLine()).ToString(data)
+
+    def UpdateTest(self, index):
+        if not self.IsValidIndex(index):
+            self.TestIndex = 0 if len(self.Tests) > 0 else -1
+            return False
+        if self.TestIndex == index:
+            return False
+        self.TestIndex = index
+        [self.TestName, self.slots] = self.Tests[self.TestIndex]
+        return True
+
+    def UpdateSlot(self, index, isSelected):
+        slotNum = index + 1
+        if isSelected:
+            self.slots.append(slotNum)
+            self.slots.sort()
+        else:
+            self.slots.remove(slotNum)
+        self.SetNameSlots(self.TestName, self.slots)
+
+    def SelectSlots(self, slots):
+        self.slots = slots
+        self.slots.sort()
+        self.SetNameSlots(self.TestName, self.slots)

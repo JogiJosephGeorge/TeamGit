@@ -45,7 +45,7 @@ class UIAutoTestSettings(UIWindow):
         UIFactory.AddButton(frame, 'Add Test', 0, 0, self.AddTestUI, None, 19)
 
     def AddTestUI(self):
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         dir = IcosPaths.GetCommonTestPath(curSrc.Source)
         ftypes=[('Script Files', 'Script.py')]
         title = "Select Script file"
@@ -71,7 +71,7 @@ class FilterTestSelector:
 
     def GetAllTests(self):
         allFiles = []
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         dir = IcosPaths.GetCommonTestPath(curSrc.Source)
         dirLen = len(dir) + 1
         for root, dirs, files in os.walk(dir):
@@ -107,7 +107,7 @@ class FilterTestSelector:
 
     def AddSelectedTest(self, testName):
         index = self.model.AutoTests.AddTestToModel(testName)
-        if self.model.UpdateTest(index, False):
+        if self.model.AutoTests.UpdateTest(index):
             print 'Test Added : ' + testName
             self.UpdateCombo()
         else:
@@ -159,7 +159,7 @@ class RemoveTestMan:
                 index = len(self.Tests) - 1
             self.TestCmb.current(index)
             if self.model.AutoTests.TestIndex >= len(self.Tests):
-                self.model.UpdateTest(len(self.Tests) - 1, False)
+                self.model.AutoTests.UpdateTest(len(self.Tests) - 1)
         else:
             print 'No tests selected'
 

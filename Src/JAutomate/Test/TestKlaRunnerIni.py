@@ -7,17 +7,17 @@ from KlaModel.Model import Model
 class TestKlaRunnerIni:
     def __init__(self):
         self.model = Model()
-        self.model.ReadConfigFile()
+        self.model.ReadFromFile()
         self.Source()
         self.AutoTest()
         self.FileExists()
         self.DirectoryExists()
 
     def Source(self):
-        srcs = list(self.model.GetAllSrcs())
+        srcs = list(self.model.Src.GetAllSrcs())
         for src in srcs:
             Test.Assert(os.path.isdir(src.Source), True, 'Directory {} exists.'.format(src.Source))
-        self.DoTestIndex(srcs, self.model.SrcCnf.SrcIndex, 'Index')
+        self.DoTestIndex(srcs, self.model.Src.SrcIndex, 'Index')
 
     def AutoTest(self):
         self.VerifyNamesAndSlots(self.model.AutoTests.Tests)

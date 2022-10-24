@@ -36,7 +36,7 @@ class VMWareRunner:
         for device in devices:
             deviceName = device.firstChild.data
             slots.append(int(deviceName.split('_')[0][3:]))
-        model.SelectSlots(slots)
+        model.AutoTests.SelectSlots(slots)
         return True
 
     @classmethod

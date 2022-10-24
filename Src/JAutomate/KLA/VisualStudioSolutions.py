@@ -24,7 +24,7 @@ class VisualStudioSolutions:
 
     def GetAllSlnFiles(self):
         #slnFiles = []
-        #curSrc = self.model.CurSrc()
+        #curSrc = self.model.Src.GetCur()
         #srcLen = len(curSrc.Source) + 1
         #for root, dirs, files in os.walk(curSrc.Source):
         #    path = root[srcLen:]
@@ -37,7 +37,7 @@ class VisualStudioSolutions:
         self.OpenSolutionFile(self.GetSlnPath(index))
 
     def OpenSolutionFile(self, slnFileName):
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         fileName = curSrc.Source + slnFileName
         devEnvExe = self.model.VsVersions.GetDevEnvExe(curSrc.VsVersion)
         param = [

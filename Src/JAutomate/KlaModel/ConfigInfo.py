@@ -4,10 +4,6 @@ from KlaModel.VsVersions import VsVersions
 
 class ConfigInfo:
     def Read(self, model, iniFile):
-        model.Branch = ''
-        model.SrcCnf.Read(iniFile)
-        model.AutoTests.Read(iniFile)
-        model.VsVersions.Read(iniFile)
         model.GitPath = iniFile.ReadField('GitPath', 'C:/Program Files/Git')
         model.VMwareExe = iniFile.ReadField('VMwareExe', 'C:/Program Files (x86)/VMware/VMware Workstation/vmware.exe')
         model.VMwarePwd = iniFile.ReadField('VMwarePwd', '1')
@@ -23,7 +19,6 @@ class ConfigInfo:
         model.LogFileName = iniFile.ReadField('LogFileName', 'bin/Log.txt')
         model.MaxSlots = iniFile.ReadInt('MaxSlots', 8)
         model.LogName = iniFile.ReadField('LogName', 'KLARunner> ')
-        model.UserAccess.Read(iniFile)
         model.RestartSlotsForMMiAlone = iniFile.ReadField('RestartSlotsForMMiAlone', False)
         model.GenerateLicMgrConfigOnTest = iniFile.ReadField('GenerateLicMgrConfigOnTest', False)
         model.CopyLicMgrConfigOnTest = iniFile.ReadField('CopyLicMgrConfigOnTest', False)
@@ -49,9 +44,6 @@ class ConfigInfo:
         return path.replace('Program Files', 'PROGRA~1')
 
     def Write(self, iniFile, model):
-        model.SrcCnf.Write(iniFile)
-        model.AutoTests.Write(iniFile)
-        model.VsVersions.Write(iniFile)
         iniFile.Write('GitPath', model.GitPath)
         iniFile.Write('VMwareExe', model.VMwareExe)
         iniFile.Write('VMwarePwd', model.VMwarePwd)
@@ -67,7 +59,6 @@ class ConfigInfo:
         iniFile.Write('LogFileName', model.LogFileName)
         iniFile.Write('MaxSlots', model.MaxSlots)
         iniFile.Write('LogName', model.LogName)
-        model.UserAccess.Write(iniFile)
         iniFile.Write('RestartSlotsForMMiAlone', model.RestartSlotsForMMiAlone)
         iniFile.Write('GenerateLicMgrConfigOnTest', model.GenerateLicMgrConfigOnTest)
         iniFile.Write('CopyLicMgrConfigOnTest', model.CopyLicMgrConfigOnTest)

@@ -11,7 +11,7 @@ from UI.UIMain import UIMain
 
 def GetTempModel():
     model = Model()
-    model.ReadConfigFile()
+    model.ReadFromFile()
     return model
 
 def CompareGolderReports():

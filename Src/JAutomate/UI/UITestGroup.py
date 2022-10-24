@@ -75,7 +75,7 @@ class UITestGroup:
 
     def OnStartOnly(self):
         self.model.StartOnly = self.chkStartOnly.get()
-        self.model.WriteConfigFile()
+        self.model.WriteToFile()
         label = self.GetLabel()
         print label
         self.RunTestBut.config(text=label)
@@ -86,7 +86,7 @@ class UITestGroup:
 
     def OnAttach(self):
         self.model.DebugVision = self.chkAttachMmi.get()
-        self.model.WriteConfigFile()
+        self.model.WriteToFile()
         print 'Test Runner will ' + ['NOT ', ''][self.model.DebugVision] + 'wait for debugger to attach to testhost/mmi.'
 
     def AddSetupVersion(self, parent, r):
@@ -95,7 +95,7 @@ class UITestGroup:
 
         self.versions = ['Default'] + OsOperations.GetAllSubDir(self.model.MMiSetupsPath)
         verInx = 0
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         if curSrc.MMiSetupVersion in self.versions:
             verInx = self.versions.index(curSrc.MMiSetupVersion)
         self.cmbVersions = UIFactory.AddCombo(parent, self.versions, verInx, r, self.col, self.OnSetupVerChanged, None, 10)
@@ -104,7 +104,7 @@ class UITestGroup:
 
     def OnSetupVerChanged(self, event):
         index = self.cmbVersions.current()
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         if index == 0:
             curSrc.MMiSetupVersion = ''
             print 'MMI Setup Version changed to : Default'
@@ -117,7 +117,7 @@ class UITestGroup:
     def UpdateVersionCombo(self):
         self.versions = ['Default'] + OsOperations.GetAllSubDir(self.model.MMiSetupsPath)
         verInx = 0
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         if curSrc.MMiSetupVersion in self.versions:
             verInx = self.versions.index(curSrc.MMiSetupVersion)
         self.cmbVersions['values'] = self.versions
@@ -131,7 +131,7 @@ class UITestGroup:
         self.col += 1
 
         vsVersions = VsVersions()
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         verInx = vsVersions.GetIndex(curSrc.VsVersion)
         self.cmbVsVersions = UIFactory.AddCombo(parent, vsVersions.GetAll(), verInx, r, self.col, self.OnVsVerChanged, None, 5)
         self.col += 1
@@ -139,7 +139,7 @@ class UITestGroup:
 
     def OnVsVerChanged(self, event):
         index = self.cmbVsVersions.current()
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         curSrc.VsVersion = VsVersions().GetAll()[index]
         print 'MMI Setup Version changed to : ' + curSrc.VsVersion
 
@@ -153,8 +153,8 @@ class UITestGroup:
             self.VM.chkSlots.append(UIFactory.AddCheckBox(frame, txt, isSelected, 0, i, self.OnSlotChn, (i,)))
 
     def OnSlotChn(self, index):
-        self.model.UpdateSlot(index, self.VM.chkSlots[index].get())
-        self.model.WriteConfigFile()
+        self.model.AutoTests.UpdateSlot(index, self.VM.chkSlots[index].get())
+        self.model.WriteToFile()
         print 'Slots for the current test : ' + str(self.model.AutoTests.slots)
 
         label = self.GetSlotLabel()

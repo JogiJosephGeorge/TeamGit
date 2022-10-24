@@ -21,7 +21,7 @@ class AutoTestRunner:
         self.lastSrc = None
 
     def InitAutoTest(self):
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         if not curSrc.Source:
             print 'No source is selected.'
             return False
@@ -42,7 +42,7 @@ class AutoTestRunner:
         return VMWareRunner.RunSlots(self.model)
 
     def RunAutoTest(self):
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         testType = 'Start' if self.model.StartOnly else 'Run'
         commitId = Git.GetCommitId(curSrc.Source)
         Logger.Log('{} Auto Test {} in {} ({})'.format(testType, self.model.AutoTests.TestName, curSrc.Source, commitId))

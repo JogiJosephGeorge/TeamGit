@@ -39,14 +39,14 @@ class UISourceGroup:
 
     def UpdateBranch(self):
         branch = self.model.Branch
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         if len(curSrc.Description) > 0:
             commitId = Git.GetCommitId(curSrc.Source)
             branch = '{} ({}) {}'.format(self.model.Branch, commitId, curSrc.Description)
         self.lblBranch.set(branch)
 
     def GetSource(self):
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         return '{}     ({} | {})'.format(curSrc.Source, curSrc.Config, curSrc.Platform)
 
     def AddParallelButton(self, label, FunPnt, InitFunPnt):

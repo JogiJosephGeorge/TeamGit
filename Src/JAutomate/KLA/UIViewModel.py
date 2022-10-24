@@ -30,11 +30,11 @@ class UIViewModel:
         for i in range(self.model.MaxSlots):
             self.chkSlots[i].set((i+1) in self.model.AutoTests.slots)
         if writeToFile:
-            self.model.WriteConfigFile()
+            self.model.WriteToFile()
 
     def OnCopyMmi(self):
         self.model.CopyMmi = self.chkCopyMmi.get()
-        self.model.WriteConfigFile()
+        self.model.WriteToFile()
         print 'Copy MMi to ICOS : ' + str(self.chkCopyMmi.get())
 
     def UpdateCombo(self):
@@ -44,7 +44,7 @@ class UIViewModel:
             self.cmbTest.current(self.model.AutoTests.TestIndex)
 
     def OnTestChanged(self, event):
-        if self.model.UpdateTest(self.cmbTest.current(), False):
+        if self.model.AutoTests.UpdateTest(self.cmbTest.current()):
             print 'Test Changed to : ' + self.model.AutoTests.TestName
             self.UpdateSlotsChk(True)
 

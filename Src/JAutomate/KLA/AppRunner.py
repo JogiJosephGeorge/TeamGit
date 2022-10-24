@@ -19,7 +19,7 @@ class AppRunner:
         self.vsSolutions = vsSolutions
 
     def RunHandler(self):
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         Logger.Log('Run Handler in ' + curSrc.Source)
         TaskMan.StopTasks()
 
@@ -89,7 +89,7 @@ class AppRunner:
         import handlerprocesses
         from generated.handlerSystem import ActionIds
 
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         fabLinkPath = curSrc.Source + '\handler\FabLink'
         processes = handlerprocesses.HandlerProcesses('', '', '', fabLinkPath)
         processes.secshost.start()
@@ -111,7 +111,7 @@ class AppRunner:
 
     @classmethod
     def OpenLocalDif(cls, model):
-        curSrc = model.CurSrc()
+        curSrc = model.Src.GetCur()
         par = [ 'TortoiseGitProc.exe', '/command:diff', '/path:' + curSrc.Source + '' ]
         print 'Tortoise Git Diff : ' + str(curSrc.Source)
         subprocess.Popen(par)

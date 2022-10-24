@@ -53,7 +53,7 @@ class Git:
 
     @classmethod
     def SubmoduleUpdate(cls, model):
-        curSrc = model.CurSrc()
+        curSrc = model.Src.GetCur()
         source = curSrc.Source
         cls.Git(source, 'submodule sync --recursive')
         cls.Git(source, 'submodule update --init --recursive')
@@ -63,26 +63,26 @@ class Git:
 
     @classmethod
     def OpenGitGui(cls, model):
-        curSrc = model.CurSrc()
+        curSrc = model.Src.GetCur()
         param = [ cls.GitPath + '-gui', '--working-dir', curSrc.Source ]
         print 'Staring Git GUI'
         subprocess.Popen(param)
 
     @classmethod
     def OpenGitBash(cls, model):
-        curSrc = model.CurSrc()
+        curSrc = model.Src.GetCur()
         par = 'start {}/sh.exe --cd={}'.format(cls.GitBin, curSrc.Source)
         OsOperations.System(par, 'Staring Git Bash')
 
     @classmethod
     def FetchPull(cls, model):
-        curSrc = model.CurSrc()
+        curSrc = model.Src.GetCur()
         Git.Git(curSrc.Source, 'pull')
         print 'Git fetch and pull completed.'
 
     @classmethod
     def Commit(cls, model, msg):
-        curSrc = model.CurSrc()
+        curSrc = model.Src.GetCur()
         cls.Git(curSrc.Source, 'add -A')
         cls.Git(curSrc.Source, 'commit -m "' + msg + '"')
 

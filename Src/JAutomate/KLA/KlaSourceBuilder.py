@@ -28,7 +28,7 @@ class KlaSourceBuilder:
 
     def NotifyReset(self):
         modifiedSrcs = []
-        for srcData in self.model.GetAllActiveSrcs():
+        for srcData in self.model.Src.GetAllActiveSrcs():
             cnt = len(Git.ModifiedFiles(srcData.Source))
             if cnt > 0:
                 modifiedSrcs.append(srcData.Source)
@@ -41,7 +41,7 @@ class KlaSourceBuilder:
         return self.NotifyUser('Reset')
 
     def NotifyUser(self, message):
-        activeSrcs = list(self.model.GetAllActiveSrcs())
+        activeSrcs = list(self.model.Src.GetAllActiveSrcs())
         if len(activeSrcs) == 0:
             MessageBox.ShowMessage('There are no active sources. Please select the required one.')
             return False
@@ -242,7 +242,7 @@ class KlaSourceCleaner:
         self.model = model
 
     def DoOnAllActiveSrc(self, func):
-        activeSrcs = list(self.model.GetAllActiveSrcs())
+        activeSrcs = list(self.model.Src.GetAllActiveSrcs())
         if len(activeSrcs) == 0:
             MessageBox.ShowMessage('There is no active source.')
         for activeSrc in activeSrcs:
@@ -329,7 +329,7 @@ def main():
             from KlaModel import Model
             from KLA import VisualStudioSolutions
             model = Model.Model()
-            model.ReadConfigFile()
+            model.ReadFromFile()
             vsSolutions = VisualStudioSolutions.VisualStudioSolutions(model)
             vsSolutions.Init()
             builder = KlaSourceBuilder(model, vsSolutions)
