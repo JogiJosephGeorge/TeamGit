@@ -1,5 +1,6 @@
 from Common.EffortLog import TestEffortLogger
 from Common.NumValDict import TestNumValDict
+from Common.PathOps import TestPathOps
 from Common.PrettyTable import TestPrettyTable
 from Common.Test import Test
 from KLA.GoldenReportComparer import GoldenReportComparerTest
@@ -15,5 +16,6 @@ class UnitTestsRunner:
         TestSourceCode()
         TestKlaRunnerIni()
         GoldenReportComparerTest()
+        TestPathOps()
 
         Test.PrintResults()

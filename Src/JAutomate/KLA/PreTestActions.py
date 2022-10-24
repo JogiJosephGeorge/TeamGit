@@ -12,7 +12,7 @@ from KLA.TaskMan import TaskMan
 class PreTestActions:
     @classmethod
     def CopyMockLicense(cls, model, toSrc = True, initWait = 0):
-        curSrc = model.CurSrc()
+        curSrc = model.Src.GetCur()
         args = (curSrc.Source, curSrc.Platform, curSrc.Config)
         licenseFile = os.path.abspath(IcosPaths.GetMockLicensePath(*args))
         mmiPath = PreTestActions.GetMmiPath(model, toSrc)
@@ -20,7 +20,7 @@ class PreTestActions:
 
     @classmethod
     def GetMmiPath(cls, model, toSrc = True):
-        curSrc = model.CurSrc()
+        curSrc = model.Src.GetCur()
         args = (curSrc.Source, curSrc.Platform, curSrc.Config)
         if toSrc:
             mmiPath = os.path.abspath(IcosPaths.GetMmiPath(*args))
@@ -31,7 +31,7 @@ class PreTestActions:
     @classmethod
     def PrintAvailableExes(cls, model):
         data = [['Source', 'Solutions', 'Platform', 'Config']]
-        for srcData in model.GetAllSrcs():
+        for srcData in model.Src.GetAllSrcs():
             data.append(['-'])
             src = srcData.Source
             exePaths = cls.GetPossibleExePathsOnSource(srcData.Source)
@@ -85,12 +85,12 @@ class PreTestActions:
 
     @classmethod
     def GetTestPath(cls, model):
-        curSrc = model.CurSrc()
-        return IcosPaths.GetTestPath(curSrc.Source, model.TestName)
+        curSrc = model.Src.GetCur()
+        return IcosPaths.GetTestPath(curSrc.Source, model.AutoTests.TestName)
 
     @classmethod
     def GenerateLicMgrConfig(cls, model):
-        curSrc = model.CurSrc()
+        curSrc = model.Src.GetCur()
         src = model.StartPath + '/DataFiles/LicMgrConfig.xml'
         LicenseConfigWriter(curSrc.Source, src)
 
@@ -107,7 +107,7 @@ class PreTestActions:
         timer.name = 'MVSDDir'
         TaskMan.AddTimer(timer.name, timer)
 
-        curSrc = model.CurSrc()
+        curSrc = model.Src.GetCur()
         src = IcosPaths.GetMVSDConversionsPath(curSrc.Source, curSrc.Platform)
         des = 'C:/icos/Tools/MVSDConversions/'
         cls.DelayedCopy(src, des, 'MVSDContents', initWait)
@@ -123,8 +123,8 @@ class PreTestActions:
 
     @classmethod
     def CopyMmiSaveLogExe(cls, model):
-        curSrc = model.CurSrc()
-        destin = IcosPaths.GetTestPathTemp(curSrc.Source, model.TestName) + '/Icos'
+        curSrc = model.Src.GetCur()
+        destin = IcosPaths.GetTestPathTemp(curSrc.Source, model.AutoTests.TestName) + '/Icos'
         src = os.path.abspath(IcosPaths.GetMmiSaveLogsPath(curSrc.Source, curSrc.Platform, curSrc.Config))
         FileOperations.Copy(src, destin)
 
@@ -148,7 +148,7 @@ class PreTestActions:
 class SourceCodeUpdater:
     @classmethod
     def ModifyVisionSystem(cls, model):
-        curSrc = model.CurSrc()
+        curSrc = model.Src.GetCur()
         linesToComment = [
             'shutil.copy2(os.path.join(mvsSlots, slot, slot + ".bat"), os.path.join(self.mvsPath, slot, slot + ".bat"))',
             'self.copyFilesByType(os.path.join(sourceRoot, "MVSDConversions", platform), mvsdDestinationPath, [FileType.EXE, FileType.DLL])'
@@ -172,7 +172,7 @@ class SourceCodeUpdater:
 
     @classmethod
     def CopyPreCommit(cls, model):
-        curSrc = model.CurSrc()
+        curSrc = model.Src.GetCur()
         desDir = curSrc.Source + '/.git/hooks'
         if not os.path.exists(desDir):
             return

@@ -7,7 +7,7 @@ from Common.Test import Test
 
 class TestSourceCode:
     def __init__(self):
-        self.TestClassLineCount(maxLineCount = 130)
+        self.TestClassLineCount(maxLineCount = 200)
 
     def TestClassLineCount(self, maxLineCount):
         for name, lineCnt in self.GetAllClasses():

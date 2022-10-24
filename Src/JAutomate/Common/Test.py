@@ -31,8 +31,8 @@ class Test:
             cls._ok += 1
         else:
             print 'TEST NOT OK  : ' + message
-            print 'Expected     : ' + str(expected)
-            print 'Actual       : ' + str(actual)
+            print 'Expected     : ' + expected
+            print 'Actual       : ' + actual
             cls._notOk += 1
 
     @classmethod

@@ -36,6 +36,7 @@ class UIAutoTestSettings(UIWindow):
         self.AddBackButton(parent, 8, 0)
 
     def OnClosing(self):
+        self.filterTestSelector.OnClosing()
         self.VM.UpdateCombo()
         self.VM.UpdateSlotsChk(False)
         super(UIAutoTestSettings, self).OnClosing()
@@ -45,7 +46,7 @@ class UIAutoTestSettings(UIWindow):
         UIFactory.AddButton(frame, 'Add Test', 0, 0, self.AddTestUI, None, 19)
 
     def AddTestUI(self):
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         dir = IcosPaths.GetCommonTestPath(curSrc.Source)
         ftypes=[('Script Files', 'Script.py')]
         title = "Select Script file"
@@ -67,11 +68,15 @@ class FilterTestSelector:
 
     def AddTestCombo(self, parent, c):
         self.TestCmb = UIFactory.AddCombo(parent, [], -1, 0, c, self.OnChangeTestCmb, None, 150)
-        threading.Thread(target=self.UpdateUI).start()
+        self.updateUiThread = threading.Thread(target=self.UpdateUI)
+        self.updateUiThread.start()
+
+    def OnClosing(self):
+        self.updateUiThread.join()
 
     def GetAllTests(self):
         allFiles = []
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         dir = IcosPaths.GetCommonTestPath(curSrc.Source)
         dirLen = len(dir) + 1
         for root, dirs, files in os.walk(dir):
@@ -107,7 +112,7 @@ class FilterTestSelector:
 
     def AddSelectedTest(self, testName):
         index = self.model.AutoTests.AddTestToModel(testName)
-        if self.model.UpdateTest(index, False):
+        if self.model.AutoTests.UpdateTest(index):
             print 'Test Added : ' + testName
             self.UpdateCombo()
         else:
@@ -138,7 +143,8 @@ class RemoveTestMan:
         UIFactory.AddButton(frame, 'Remove Test', 0, 2, self.OnRemoveSelectedTest)
 
         # The following is not part of RemoveTestMan
-        UIFactory.AddButton(frame, 'Download AutoPlay Model Files', 0, 3, self.DownloadAutoTest)
+        if self.model.UserAccess.IsDeveloper():
+            UIFactory.AddButton(frame, 'Download AutoPlay Model Files', 0, 3, self.DownloadAutoTest)
 
     def OnChangeTestCmb(self, event):
         if len(self.Tests) > 0:
@@ -157,8 +163,8 @@ class RemoveTestMan:
             if index >= len(self.Tests):
                 index = len(self.Tests) - 1
             self.TestCmb.current(index)
-            if self.model.TestIndex >= len(self.Tests):
-                self.model.UpdateTest(len(self.Tests) - 1, False)
+            if self.model.AutoTests.TestIndex >= len(self.Tests):
+                self.model.AutoTests.UpdateTest(len(self.Tests) - 1)
         else:
             print 'No tests selected'
 

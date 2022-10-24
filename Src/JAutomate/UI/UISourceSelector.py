@@ -26,12 +26,12 @@ class UISourceGrid:
         self.cboPlatform = []
         self.txtDescription = []
         self.SelectedSrc = tk.IntVar()
-        self.SelectedSrc.set(self.model.SrcIndex)
+        self.SelectedSrc.set(self.model.Src.SrcIndex)
 
     def CreateUI(self):
         self.AddHeader()
         r = 1
-        for srcData in self.model.GetAllSrcs():
+        for srcData in self.model.Src.GetAllSrcs():
             self.AddSrcRow(r, srcData)
             r += 1
 
@@ -53,12 +53,12 @@ class UISourceGrid:
 
     def AddActive(self, r, c):
         Index = r - 1
-        isActive = self.model.GetSrcAt(Index).IsActive
+        isActive = self.model.Src.GetSrcAt(Index).IsActive
         chk = UIFactory.AddCheckBox(self.ParentFrame, '', isActive, r, c, self.OnActiveSrcChanged, (Index,), 'ew')
         self.chkActiveSrcs.append(chk)
 
     def OnActiveSrcChanged(self, Index):
-        srcData = self.model.GetSrcAt(Index)
+        srcData = self.model.Src.GetSrcAt(Index)
         if self.IsSrcActive(Index):
             srcData.IsActive = True
             print 'Enabled the source : ' + srcData.Source
@@ -79,9 +79,9 @@ class UISourceGrid:
         self.radCurSrc.append(rd)
 
     def OnSelectSrc(self):
-        SrcIndex = self.SelectedSrc.get()
-        self.model.SrcCnf.UpdateSource(SrcIndex, False)
-        curSrc = self.model.CurSrc()
+        srcIndex = self.SelectedSrc.get()
+        self.model.Src.UpdateSource(srcIndex, False)
+        curSrc = self.model.Src.GetCur()
         print 'Source changed to : ' + curSrc.Source
         Logger.Log('Source changed to : ' + curSrc.Source)
 
@@ -106,20 +106,20 @@ class UISourceGrid:
     def OnConfigChanged(self, row):
         selectedInx = self.GetConfigInx(row)
         if self.model.UpdateConfig(row, selectedInx):
-            self.model.WriteConfigFile()
-            srcData = self.model.GetSrcAt(row)
+            self.model.WriteToFile()
+            srcData = self.model.Src.GetSrcAt(row)
             print 'Config Changed to {} for source {}'.format(srcData.Config, srcData.Source)
 
     def GetConfigInx(self, row):
         return self.cboConfig[row].current()
 
     def AddDescription(self, r, c, descr):
-        textVar = UIFactory.AddTextBox(self.ParentFrame, descr, r, c, 30)
+        textVar = UIFactory.AddTextBox(self.ParentFrame, descr, r, c, 50)
         self.txtDescription.append(textVar)
 
     def OnDescriptionChanged(self, input):
         print input
-        self.model.CurSrc().Description = input
+        self.model.Src.GetCur().Description = input
 
     def AddPlatform(self, r, c, platform):
         platforms = Platform.GetList()
@@ -130,8 +130,8 @@ class UISourceGrid:
     def OnPlatformChanged(self, row):
         selectedInx = self.GetPlatformInx(row)
         if self.model.UpdatePlatform(row, selectedInx):
-            self.model.WriteConfigFile()
-            srcData = self.model.GetSrcAt(row)
+            self.model.WriteToFile()
+            srcData = self.model.Src.GetSrcAt(row)
             print 'Platform Changed to {} for source {}'.format(srcData.Platform, srcData.Source)
 
     def GetPlatformInx(self, row):
@@ -147,7 +147,7 @@ class UISourceGrid:
     def OnClosing(self):
         row = 0
         for txtDesc in self.txtDescription:
-            self.model.GetSrcAt(row).Description = txtDesc.get()
+            self.model.Src.GetSrcAt(row).Description = txtDesc.get()
             row += 1
 
 
@@ -184,7 +184,7 @@ class UISourceSelector(UIWindow):
     def LazyUiInit(self):
         index = 0
         data = [['Source', 'Commit ID', 'Branch', 'Available Configs']]
-        for srcData in self.model.GetAllSrcs():
+        for srcData in self.model.Src.GetAllSrcs():
             data.append(['-'])
             branch = '' # Git.GetBranch(src)
             configs = ''
@@ -200,14 +200,14 @@ class UISourceSelector(UIWindow):
                         commitId = Git.GetCommitId(srcData.Source, brn1)
                         data.append(['', commitId, brn1, ''])
             self.SourceGrid.SetBranch(index, branch)
-            if index == self.model.SrcIndex:
+            if index == self.model.Src.SrcIndex:
                 self.model.Branch = branch
             index += 1
-        print PrettyTable(TableFormat().SetSingleLine()).ToString(data)
+        print PrettyTable(TableFormat().SetDoubleLineBorder()).ToString(data)
 
     def OnClosing(self):
         self.SourceGrid.OnClosing()
-        self.model.Branch = self.SourceGrid.GetBranch(self.model.SrcIndex)
+        self.model.Branch = self.SourceGrid.GetBranch(self.model.Src.SrcIndex)
         SourceCodeUpdater.CopyPreCommit(self.model)
         super(UISourceSelector, self).OnClosing()
 
@@ -215,7 +215,7 @@ class UISourceSelector(UIWindow):
         self.AddEmptyRow()
         row1 = self.AddRow()
         UIFactory.AddButton(row1, 'Tortoise Git Diff', 0, 0, AppRunner.OpenLocalDif, (self.model,), 19)
-        if self.model.UILevel < 3:
+        if self.model.UserAccess.IsExpertUser():
             UIFactory.AddButton(row1, 'Git GUI', 0, 1, Git.OpenGitGui, (self.model,), 19)
         UIFactory.AddButton(row1, 'Git Submodule Update', 0, 2, Git.SubmoduleUpdate, (self.model,), 19)
         UIFactory.AddButton(row1, 'Nuget Restore', 0, 3, self.NugetRestore, (self.model,), 19)
@@ -236,7 +236,7 @@ class UISourceSelector(UIWindow):
         row2 = self.AddRow()
         self.threadHandler.AddButton(row2, ' Clean Solutions ', 0, 0, self.srcBuilder.CleanSource, None, self.srcBuilder.NotifyClean, None, 19)
         self.threadHandler.AddButton(row2, ' Build Solutions ', 0, 1, self.srcBuilder.BuildSource, None, self.srcBuilder.NotifyBuild, None, 19)
-        if self.model.UILevel < 3:
+        if self.model.UserAccess.IsExpertUser():
             UIFactory.AddButton(row2, 'Available Sources', 0, 2, PreTestActions.PrintAvailableExes, (self.model,), 19)
 
             row3 = self.AddRow()
@@ -248,7 +248,7 @@ class UISourceSelector(UIWindow):
         self.vsSolutions.SelectedInxs[inx] = self.slnChks[inx].get()
 
     def AddFunctions(self):
-        if self.model.UILevel < 3:
+        if self.model.UserAccess.IsExpertUser():
             self.AddEmptyRow()
             self.AddCleanDotVsOnReset(self.AddRow(), 0, 0)
             self.AddUpdateSubmodulesOnReset(self.AddRow(), 0, 0)
@@ -274,29 +274,29 @@ class UISourceSelector(UIWindow):
 
     def OnAddSource(self):
         folderSelected = tkFileDialog.askdirectory()
-        if self.model.SrcCnf.AddSource(folderSelected):
+        if self.model.Src.AddSource(folderSelected):
             print 'New source added : ' + folderSelected
-            srcs = list(self.model.GetAllSrcs())
+            srcs = list(self.model.Src.GetAllSrcs())
             row = len(srcs)
-            srcTuple = self.model.GetSrcAt(row - 1)
-            self.SourceGrid.AddSrcRow(row, srcTuple)
-            branch = Git.GetBranch(srcTuple.Source)
+            srcData = self.model.Src.GetSrcAt(row - 1)
+            self.SourceGrid.AddSrcRow(row, srcData)
+            branch = Git.GetBranch(srcData.Source)
             self.SourceGrid.SetBranch(row - 1, branch)
 
     def OnRemoveSource(self):
-        if self.model.SrcIndex < 0:
+        if self.model.Src.SrcIndex < 0:
             return
-        src = self.model.GetSrcAt(self.model.SrcIndex).Source
+        src = self.model.Src.GetSrcAt(self.model.Src.SrcIndex).Source
         if MessageBox.YesNoQuestion('Remove Source', 'Do you want to remove source ' + src):
-            if self.model.SrcCnf.RemoveSource(self.model.SrcIndex):
+            if self.model.Src.RemoveSource(self.model.Src.SrcIndex):
                 msg = 'The source ' + src + ' has been removed.'
-                self.SourceGrid.DeleteRow(self.model.SrcIndex)
+                self.SourceGrid.DeleteRow(self.model.Src.SrcIndex)
                 print msg
                 self.OnClosing() # After removing grid row, this line can be omitted
             else:
                 print 'The source can not be removed.'
 
     def NugetRestore(self, model):
-        curSrc = model.CurSrc()
+        curSrc = model.Src.GetCur()
         par = 'nuget restore {}\mmi\mmi\Mmi.sln'.format(curSrc.Source)
         OsOperations.System(par, 'Restore Nuget Packages')

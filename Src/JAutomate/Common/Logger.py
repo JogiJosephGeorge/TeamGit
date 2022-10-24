@@ -9,16 +9,8 @@ class Logger:
     def Init(cls, fileName):
         cls.fileName = fileName
         cls.ExtLoggers = []
-        fileName = fileName.replace('\\', '/')
-        parts = fileName.split('/')[:-1]
-        path = None
-        for part in parts:
-            if path is None:
-                path = part
-            else:
-                path += '/' + part
-            if not os.path.isdir(path):
-                os.mkdir(path)
+        fileName = fileName.replace('/', '\\')
+        FileOperations.MakeDirPath(fileName)
         if not os.path.exists(fileName):
             print "File created : " + fileName
             FileOperations.Write(fileName, '')

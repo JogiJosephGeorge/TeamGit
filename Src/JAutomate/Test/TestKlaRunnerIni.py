@@ -7,21 +7,21 @@ from KlaModel.Model import Model
 class TestKlaRunnerIni:
     def __init__(self):
         self.model = Model()
-        self.model.ReadConfigFile()
+        self.model.ReadFromFile()
         self.Source()
         self.AutoTest()
         self.FileExists()
         self.DirectoryExists()
 
     def Source(self):
-        srcs = list(self.model.GetAllSrcs())
+        srcs = list(self.model.Src.GetAllSrcs())
         for src in srcs:
             Test.Assert(os.path.isdir(src.Source), True, 'Directory {} exists.'.format(src.Source))
-        self.TestIndex(srcs, self.model.SrcIndex, 'Index')
+        self.DoTestIndex(srcs, self.model.Src.SrcIndex, 'Index')
 
     def AutoTest(self):
         self.VerifyNamesAndSlots(self.model.AutoTests.Tests)
-        self.TestIndex(self.model.AutoTests.Tests, self.model.TestIndex, 'Index')
+        self.DoTestIndex(self.model.AutoTests.Tests, self.model.AutoTests.TestIndex, 'Index')
 
     def VerifyNamesAndSlots(self, list):
         for testName, slots in list:
@@ -30,15 +30,15 @@ class TestKlaRunnerIni:
             for slot in slots:
                 Test.Assert(slot > 0 and slot <= self.model.MaxSlots, True, 'Test Name {} Slot {}'.format(testName, slot), 1)
 
-    def TestIndex(self, list, index, message):
+    def DoTestIndex(self, list, index, message):
         isValidIndex = index >= 0 and index < len(list)
         Test.Assert(isValidIndex, True, message, 1)
 
     def FileExists(self):
-        Test.Assert(os.path.isfile(self.model.DevEnvCom), True, 'DevEnv.com')
-        Test.Assert(os.path.isfile(self.model.DevEnvExe), True, 'DevEnv.exe')
-        Test.Assert(os.path.isfile(self.model.DevEnvCom22), True, 'DevEnv.com')
-        Test.Assert(os.path.isfile(self.model.DevEnvExe22), True, 'DevEnv.exe')
+        Test.Assert(os.path.isfile(self.model.VsVersions.DevEnvCom), True, 'DevEnv.com')
+        Test.Assert(os.path.isfile(self.model.VsVersions.DevEnvExe), True, 'DevEnv.exe')
+        Test.Assert(os.path.isfile(self.model.VsVersions.DevEnvCom22), True, 'DevEnv.com')
+        Test.Assert(os.path.isfile(self.model.VsVersions.DevEnvExe22), True, 'DevEnv.exe')
         Test.Assert(os.path.isfile(self.model.EffortLogFile), True, 'EffortLogFile')
         Test.Assert(os.path.isfile(self.model.VMwareExe), True, 'VMwareExe')
         Test.Assert(os.path.isfile(self.model.BCompare), True, 'BCompare')

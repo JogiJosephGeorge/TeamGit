@@ -1,5 +1,8 @@
 import subprocess
 
+from KlaModel.ConfigEncoder import Config, Platform
+from KlaModel.VsVersions import VsVersions
+
 
 class VisualStudioSolutions:
     def __init__(self, model):
@@ -21,7 +24,7 @@ class VisualStudioSolutions:
 
     def GetAllSlnFiles(self):
         #slnFiles = []
-        #curSrc = self.model.CurSrc()
+        #curSrc = self.model.Src.GetCur()
         #srcLen = len(curSrc.Source) + 1
         #for root, dirs, files in os.walk(curSrc.Source):
         #    path = root[srcLen:]
@@ -34,16 +37,16 @@ class VisualStudioSolutions:
         self.OpenSolutionFile(self.GetSlnPath(index))
 
     def OpenSolutionFile(self, slnFileName):
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         fileName = curSrc.Source + slnFileName
-        devEnvExe = self.model.DevEnvExe22 if self.model.UseVS2022 else self.model.DevEnvExe
+        devEnvExe = self.model.VsVersions.GetDevEnvExe(curSrc.VsVersion)
         param = [
             devEnvExe,
             fileName
         ]
         subprocess.Popen(param)
         print 'Open solution : ' + fileName
-        if curSrc.Config is not 'Debug' or curSrc.Platform is not 'Win32':
+        if curSrc.Config is not Config.Debug or curSrc.Platform is not Platform.Win32:
             msg = 'Please check configuration and platform in Visual Studio'
             #MessageBox.ShowMessage(msg, 'Visual Studio')
             print msg
@@ -76,6 +79,6 @@ class VisualStudioSolutions:
 
     @classmethod
     def GetPlatformStr(cls, platform, isSimulator = False):
-        if isSimulator and 'Win32' == platform:
-            platform = 'x86'
+        if isSimulator and Platform.Win32 == platform:
+            platform = Platform.x86
         return platform

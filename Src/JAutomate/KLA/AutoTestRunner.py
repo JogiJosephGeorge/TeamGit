@@ -21,7 +21,7 @@ class AutoTestRunner:
         self.lastSrc = None
 
     def InitAutoTest(self):
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         if not curSrc.Source:
             print 'No source is selected.'
             return False
@@ -42,10 +42,12 @@ class AutoTestRunner:
         return VMWareRunner.RunSlots(self.model)
 
     def RunAutoTest(self):
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         testType = 'Start' if self.model.StartOnly else 'Run'
+        testName = self.model.AutoTests.TestName
         commitId = Git.GetCommitId(curSrc.Source)
-        Logger.Log('{} Auto Test {} in {} ({})'.format(testType, self.model.TestName, curSrc.Source, commitId))
+        mmiSetup = curSrc.MMiSetupVersion
+        Logger.Log('{} Auto Test {} in {} ({}) {}'.format(testType, testName, curSrc.Source, commitId, mmiSetup))
         SourceCodeUpdater.ModifyVisionSystem(self.model)
 
         initWait = 15  # 8 is not working for CDA/Mmi/WithLead3D
@@ -70,7 +72,7 @@ class AutoTestRunner:
 
         libsPath = AutoTestRunner.UpdateLibsTestingPath(curSrc.Source)
         my = self.LoadMyModule(curSrc.Source)
-        self.tests = AutoTestRunner.SearchInTests(my, libsPath, self.model.TestName)
+        self.tests = AutoTestRunner.SearchInTests(my, libsPath, self.model.AutoTests.TestName)
         if len(self.tests) == 0:
             print 'Test is not available'
             return

@@ -29,7 +29,7 @@ class UIWindow(object):
             self.Parent.deiconify()
             self.Parent = None
         if self.model:
-            self.model.WriteConfigFile()
+            self.model.WriteToFile()
         self.window.destroy()
         if self.OnClosed:
             self.OnClosed()

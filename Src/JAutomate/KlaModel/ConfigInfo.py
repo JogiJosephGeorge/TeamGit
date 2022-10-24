@@ -1,20 +1,9 @@
 from Common.Git import Git
+from KlaModel.VsVersions import VsVersions
 
 
 class ConfigInfo:
     def Read(self, model, iniFile):
-        model.Branch = ''
-        model.slots = []
-        model.TestIndex = -1
-        model.SrcCnf.Read(iniFile)
-        model.AutoTests.Read(iniFile)
-        TestIndex = iniFile.ReadField('TestIndex', -1)
-        if not model.UpdateTest(TestIndex, False):
-            model.TestIndex = 0
-        model.DevEnvCom = iniFile.ReadField('DevEnvCom', 'C:/Program Files (x86)/Microsoft Visual Studio 12.0/Common7/IDE/devenv.com')
-        model.DevEnvExe = iniFile.ReadField('DevEnvExe', 'C:/Program Files (x86)/Microsoft Visual Studio/2017/Professional/Common7/IDE/devenv.exe')
-        model.DevEnvCom22 = iniFile.ReadField('DevEnvCom22', 'C:/Program Files/Microsoft Visual Studio/2022/Professional/Common7/IDE/devenv.com')
-        model.DevEnvExe22 = iniFile.ReadField('DevEnvExe22', 'C:/Program Files/Microsoft Visual Studio/2022/Professional/Common7/IDE/devenv.exe')
         model.GitPath = iniFile.ReadField('GitPath', 'C:/Program Files/Git')
         model.VMwareExe = iniFile.ReadField('VMwareExe', 'C:/Program Files (x86)/VMware/VMware Workstation/vmware.exe')
         model.VMwarePwd = iniFile.ReadField('VMwarePwd', '1')
@@ -30,7 +19,6 @@ class ConfigInfo:
         model.LogFileName = iniFile.ReadField('LogFileName', 'bin/Log.txt')
         model.MaxSlots = iniFile.ReadInt('MaxSlots', 8)
         model.LogName = iniFile.ReadField('LogName', 'KLARunner> ')
-        model.UILevel = iniFile.ReadInt('UILevel', 2)
         model.RestartSlotsForMMiAlone = iniFile.ReadField('RestartSlotsForMMiAlone', False)
         model.GenerateLicMgrConfigOnTest = iniFile.ReadField('GenerateLicMgrConfigOnTest', False)
         model.CopyLicMgrConfigOnTest = iniFile.ReadField('CopyLicMgrConfigOnTest', False)
@@ -42,7 +30,7 @@ class ConfigInfo:
         model.RemoveStartedTXT = iniFile.ReadField('RemoveStartedTXT', False)
         model.CleanDotVsOnReset = iniFile.ReadField('CleanDotVsOnReset', False)
         model.UpdateSubmodulesOnReset = iniFile.ReadField('UpdateSubmodulesOnReset', False)
-        model.UseVS2022 = iniFile.ReadField('UseVS2022', False)
+        model.NoAutoTest = iniFile.ReadField('NoAutoTest', False)
         model.RunHostCam = iniFile.ReadField('RunHostCam', False)
         model.ShowBuildInProgress = iniFile.ReadField('ShowBuildInProgress', True)
 
@@ -56,13 +44,6 @@ class ConfigInfo:
         return path.replace('Program Files', 'PROGRA~1')
 
     def Write(self, iniFile, model):
-        model.SrcCnf.Write(iniFile)
-        model.AutoTests.Write(iniFile)
-        iniFile.Write('TestIndex', model.TestIndex)
-        iniFile.Write('DevEnvCom', model.DevEnvCom)
-        iniFile.Write('DevEnvExe', model.DevEnvExe)
-        iniFile.Write('DevEnvCom22', model.DevEnvCom22)
-        iniFile.Write('DevEnvExe22', model.DevEnvExe22)
         iniFile.Write('GitPath', model.GitPath)
         iniFile.Write('VMwareExe', model.VMwareExe)
         iniFile.Write('VMwarePwd', model.VMwarePwd)
@@ -78,7 +59,6 @@ class ConfigInfo:
         iniFile.Write('LogFileName', model.LogFileName)
         iniFile.Write('MaxSlots', model.MaxSlots)
         iniFile.Write('LogName', model.LogName)
-        iniFile.Write('UILevel', model.UILevel)
         iniFile.Write('RestartSlotsForMMiAlone', model.RestartSlotsForMMiAlone)
         iniFile.Write('GenerateLicMgrConfigOnTest', model.GenerateLicMgrConfigOnTest)
         iniFile.Write('CopyLicMgrConfigOnTest', model.CopyLicMgrConfigOnTest)
@@ -90,7 +70,7 @@ class ConfigInfo:
         iniFile.Write('RemoveStartedTXT', model.RemoveStartedTXT)
         iniFile.Write('CleanDotVsOnReset', model.CleanDotVsOnReset)
         iniFile.Write('UpdateSubmodulesOnReset', model.UpdateSubmodulesOnReset)
-        iniFile.Write('UseVS2022', model.UseVS2022)
+        iniFile.Write('NoAutoTest', model.NoAutoTest)
         iniFile.Write('RunHostCam', model.RunHostCam)
         iniFile.Write('ShowBuildInProgress', model.ShowBuildInProgress)
 

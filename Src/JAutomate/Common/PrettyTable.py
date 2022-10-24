@@ -77,35 +77,41 @@ class PrettyTable:
 
     def ToString(self, data):
         colCnt, colWidths = self.CalculateColWidths(data)
-        outMessage = self.PrintLine(colWidths, self.Format.Top)
+        outLines = []
+        outLines.append(self.GetFormattedLine(colWidths, self.Format.Top))
         [left, mid, right, fill] = list(self.Format.Ver)
         for line in data:
             if len(line) == 0:
-                outMessage += self.PrintLine(colWidths, self.Format.Emt)
+                outLines.append(self.GetFormattedLine(colWidths, self.Format.Emt))
             elif len(line) == 1 and line[0] == '-':
-                outMessage += self.PrintLine(colWidths, self.Format.Mid)
+                outLines.append(self.GetFormattedLine(colWidths, self.Format.Mid))
             else:
-                outMessage += left
+                outLine = left
                 for inx,colWidth in enumerate(colWidths):
                     cell = line[inx] if len(line) > inx else ''
                     alignMode = ('<', '^')[isinstance(cell, int) and not isinstance(cell, bool)]
                     if isinstance(cell, list) and len(cell) > 0:
                         cell = cell[0]
-                    outMessage += self.GetAligned(str(cell), colWidths[inx], alignMode)
-                    outMessage += (mid, right)[inx == colCnt - 1]
-                outMessage += '\n'
-        outMessage += self.PrintLine(colWidths, self.Format.Bot)
-        return outMessage
+                    outLine += self.GetAligned(str(cell), colWidths[inx], alignMode)
+                    outLine += (mid, right)[inx == colCnt - 1]
+                outLines.append(outLine)
+        outLines.append(self.GetFormattedLine(colWidths, self.Format.Bot))
+        trimmedLines = []
+        for line in outLines:
+            if line:
+                trimmedLines.append(line)
+        return '\n'.join(trimmedLines)
 
     def GetAligned(self, message, width, mode):
         return '{{:{}{}}}'.format(mode, width).format(message)
 
-    def PrintLine(self, colWidths, formatRow):
+    def GetFormattedLine(self, colWidths, formatRow):
         [left, mid, right, fill] = list(formatRow)
         colCnt = len(colWidths)
         getCell = lambda : fill * colWidth + (mid, right)[colCnt - 1 == inx]
         line = left + ''.join([getCell() for inx,colWidth in enumerate(colWidths)])
-        return (line + '\n', '')[line == '']
+        #return (line + '\n', '')[line == '']
+        return line
 
     def PrintTableNoFormat(self, data):
         for line in data:

@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+from Common.FileOperations import FileOperations
 from Common.MessageBox import MessageBox
 from Common.Test import Test
 from KLA.IcosPaths import IcosPaths
@@ -11,8 +12,8 @@ class GoldenReportComparer:
         self.model = model
 
     def GetTestPath(self):
-        curSrc = self.model.CurSrc()
-        return IcosPaths.GetTestPath(curSrc.Source, self.model.TestName)
+        curSrc = self.model.Src.GetCur()
+        return IcosPaths.GetTestPath(curSrc.Source, self.model.AutoTests.TestName)
 
     def OpenTestFolder(self):
         dirPath = self.GetTestPath()
@@ -55,7 +56,7 @@ class GoldenReportComparer:
                 matchedFiles.append(matchName)
                 #print 'Left  : ' + left
                 #print 'Right : ' + matchName
-                self.CopyFile(rightFolder + matchName, newRightFolder + left)
+                FileOperations.Copy(rightFolder + matchName, newRightFolder + left, 0, -1)
             else:
                 missingFiles.append(left)
 
@@ -73,19 +74,6 @@ class GoldenReportComparer:
             msg += ' missing.'
             MessageBox.ShowMessage(msg)
         return True
-
-    def CopyFile(self, Src, Dst):
-        Src = Src.replace('/', '\\')
-        Dst = Dst.replace('/', '\\')
-        dirs = Dst.split('\\')
-        fullPath = ''
-        for dir in dirs[:-1]:
-            fullPath += dir + '\\'
-            if not os.path.isdir(fullPath):
-                os.mkdir(fullPath)
-        #print 'Src : ' + Src
-        #print 'Dst : ' + Dst
-        shutil.copy(Src, Dst)
 
     def GetAllFileNames(self, path):
         if not os.path.isdir(path):
@@ -123,11 +111,14 @@ class GoldenReportComparerTest:
         self.TestAreSame()
 
     def CreateModel(self):
-        class Model:
+        class AutoTests:
             pass
+        class Model:
+            def __init__(self):
+                self.AutoTests = AutoTests()
         model = Model()
         model.Source = r'D:\CI\Src4'
-        model.TestName = r'CDA\Mmi\SurfaceReport'
+        model.AutoTests.TestName = r'CDA\Mmi\SurfaceReport'
         model.BCompare = ''
         return model
 

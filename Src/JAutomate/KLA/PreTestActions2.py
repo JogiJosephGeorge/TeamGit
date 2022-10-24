@@ -12,7 +12,7 @@ class KlaRunner:
         self.SetWorkingDir()
 
     def OpenPython(self):
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         #FileOperations.Delete('{}/libs/testing/myconfig.py'.format(curSrc.Source))
         self.CreateMyConfig()
         fileName = os.path.abspath(curSrc.Source + '/libs/testing/my.py')
@@ -20,7 +20,7 @@ class KlaRunner:
         OsOperations.System(par, 'Starting my.py')
 
     def CreateMyConfig(self):
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         config = ConfigEncoder.GetBuildConfig(self.model)
         data = 'version = 0\n'
         data += 'console_config = r"{}"\n'.format(config[0])
@@ -32,7 +32,7 @@ class KlaRunner:
         FileOperations.Write('{}/libs/testing/myconfig.py'.format(curSrc.Source), data)
 
     def PrintMissingIds(self):
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         fileNames = [
             os.path.abspath(curSrc.Source + '/mmi/mmi/mmi_lang/mmi.h'),
             os.path.abspath(curSrc.Source + '/mmi/mmi/env/env_stringtable.h')]

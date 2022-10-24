@@ -1,4 +1,3 @@
-from Common.OsOperations import OsOperations
 from Common.UIFactory import UIFactory
 from KLA.GoldenReportComparer import GoldenReportComparer
 from KLA.VMWareRunner import VMWareRunner
@@ -20,7 +19,9 @@ class UITestGroup:
         UI.AddSeparator()
 
         row1 = UI.AddRow()
-        self.AddRunTestButton(row1, 0, 0)
+
+        if not self.model.NoAutoTest:
+            self.AddRunTestButton(row1, 0, 0)
         self.AddTestCombo(row1, 0, 1)
         self.AddAutoTestSettings(row1, 0, 2)
 
@@ -32,8 +33,6 @@ class UITestGroup:
         self.col += 1
         UIFactory.AddButton(row2, 'Compare Test Results', 0, self.col, self.grComparer.CompareMmiReports)
         self.col += 1
-        if self.model.UILevel < 3:
-            self.AddVersion(row2, 0)
 
         row3 = UI.AddRow()
         self.col = 0
@@ -42,7 +41,8 @@ class UITestGroup:
         self.AddSlots(row3, 0)
         UIFactory.AddButton(row3, 'Run Slots', 0, self.col, VMWareRunner.RunSlots, (self.model,))
         self.col += 1
-        UIFactory.AddButton(row3, 'Test First Slot Selected', 0, self.col, VMWareRunner.TestSlots, (self.model,))
+        label = self.GetSlotLabel()
+        self.TestSlotBut = UIFactory.AddButton(row3, label, 0, self.col, VMWareRunner.TestSlots, (self.model,))
         self.col += 1
 
     def AddRunTestButton(self, parent, r, c):
@@ -54,7 +54,8 @@ class UITestGroup:
 
     def AddTestCombo(self, parent, r, c):
         testNames = self.model.AutoTests.GetNames()
-        self.VM.cmbTest = UIFactory.AddCombo(parent, testNames, self.model.TestIndex, r, c, self.VM.OnTestChanged, None, 70)
+        testIndex = self.model.AutoTests.TestIndex
+        self.VM.cmbTest = UIFactory.AddCombo(parent, testNames, testIndex, r, c, self.VM.OnTestChanged, None, 70)
 
     def AddAutoTestSettings(self, parent, r, c):
         UIFactory.AddButton(parent, ' + ', r, c, self.ShowAutoTestSettings)
@@ -69,7 +70,7 @@ class UITestGroup:
 
     def OnStartOnly(self):
         self.model.StartOnly = self.chkStartOnly.get()
-        self.model.WriteConfigFile()
+        self.model.WriteToFile()
         label = self.GetLabel()
         print label
         self.RunTestBut.config(text=label)
@@ -80,53 +81,27 @@ class UITestGroup:
 
     def OnAttach(self):
         self.model.DebugVision = self.chkAttachMmi.get()
-        self.model.WriteConfigFile()
+        self.model.WriteToFile()
         print 'Test Runner will ' + ['NOT ', ''][self.model.DebugVision] + 'wait for debugger to attach to testhost/mmi.'
-
-    def AddVersion(self, parent, r):
-        UIFactory.AddLabel(parent, 'MMi Setup Version', r, self.col)
-        self.col += 1
-
-        self.versions = ['Default'] + OsOperations.GetAllSubDir(self.model.MMiSetupsPath)
-        verInx = 0
-        curSrc = self.model.CurSrc()
-        if curSrc.MMiSetupVersion in self.versions:
-            verInx = self.versions.index(curSrc.MMiSetupVersion)
-        self.cmbVersions = UIFactory.AddCombo(parent, self.versions, verInx, r, self.col, self.OnVersionChanged, None, 10)
-        self.col += 1
-        self.VM.UpdateVersionCombo = self.UpdateVersionCombo
-
-    def OnVersionChanged(self, event):
-        index = self.cmbVersions.current()
-        curSrc = self.model.CurSrc()
-        if index == 0:
-            curSrc.MMiSetupVersion = ''
-            print 'MMI Setup Version changed to : Default'
-        elif len(self.versions) > index:
-            curSrc.MMiSetupVersion = self.versions[index]
-            print 'MMI Setup Version changed to : ' + curSrc.MMiSetupVersion
-        else:
-            print 'MMI Setup Version Combo is NOT correct.'
-
-    def UpdateVersionCombo(self):
-        self.versions = ['Default'] + OsOperations.GetAllSubDir(self.model.MMiSetupsPath)
-        verInx = 0
-        curSrc = self.model.CurSrc()
-        if curSrc.MMiSetupVersion in self.versions:
-            verInx = self.versions.index(curSrc.MMiSetupVersion)
-        self.cmbVersions['values'] = self.versions
-        self.cmbVersions.current(verInx)
 
     def AddSlots(self, parent, r):
         frame = UIFactory.AddFrame(parent, r, self.col)
         self.col += 1
         self.VM.chkSlots = []
         for i in range(self.model.MaxSlots):
-            isSelected = (i+1) in self.model.slots
+            isSelected = (i+1) in self.model.AutoTests.slots
             txt = str(i+1)
             self.VM.chkSlots.append(UIFactory.AddCheckBox(frame, txt, isSelected, 0, i, self.OnSlotChn, (i,)))
 
     def OnSlotChn(self, index):
-        self.model.UpdateSlot(index, self.VM.chkSlots[index].get())
-        self.model.WriteConfigFile()
-        print 'Slots for the current test : ' + str(self.model.slots)
+        self.model.AutoTests.UpdateSlot(index, self.VM.chkSlots[index].get())
+        self.model.WriteToFile()
+        print 'Slots for the current test : ' + str(self.model.AutoTests.slots)
+
+        label = self.GetSlotLabel()
+        self.TestSlotBut.config(text=label)
+
+    def GetSlotLabel(self):
+        if len(self.model.AutoTests.slots) > 0:
+            return 'Test ' + str(self.model.AutoTests.slots[0])
+        return 'Test None'

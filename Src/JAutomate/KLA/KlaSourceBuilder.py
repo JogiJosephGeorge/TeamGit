@@ -1,18 +1,18 @@
 # coding=utf-8
-import sys
-
-from datetime import datetime
 import os
 import re
 import shutil
+import sys
+from datetime import datetime
 
-from Common.Git import Git
 from Common.FileOperations import FileOperations
+from Common.Git import Git
 from Common.MessageBox import MessageBox
 from Common.OsOperations import OsOperations
 from Common.PrettyTable import TableFormat, PrettyTable
-from KLA.VisualStudioSolutions import VisualStudioSolutions
 from KLA.VMWareRunner import VMWareRunner
+from KLA.VisualStudioSolutions import VisualStudioSolutions
+from KlaModel.VsVersions import VsVersions
 
 
 class KlaSourceBuilder:
@@ -28,7 +28,7 @@ class KlaSourceBuilder:
 
     def NotifyReset(self):
         modifiedSrcs = []
-        for srcData in self.model.GetAllActiveSrcs():
+        for srcData in self.model.Src.GetAllActiveSrcs():
             cnt = len(Git.ModifiedFiles(srcData.Source))
             if cnt > 0:
                 modifiedSrcs.append(srcData.Source)
@@ -41,7 +41,7 @@ class KlaSourceBuilder:
         return self.NotifyUser('Reset')
 
     def NotifyUser(self, message):
-        activeSrcs = list(self.model.GetAllActiveSrcs())
+        activeSrcs = list(self.model.Src.GetAllActiveSrcs())
         if len(activeSrcs) == 0:
             MessageBox.ShowMessage('There are no active sources. Please select the required one.')
             return False
@@ -55,7 +55,7 @@ class KlaSourceBuilder:
         for srcData in activeSrcs:
             branch = Git.GetBranch(srcData.Source)
             fullMessage += '\n{} ({} | {})\n{}\n'.format(srcData.Source, srcData.Platform, srcData.Config, branch)
-            self.srcTuple.append([srcData.Source, branch, srcData.Config, srcData.Platform])
+            self.srcTuple.append([srcData.Source, branch, srcData.Config, srcData.Platform, srcData.VsVersion])
         fullMessage += '\nDo you want to continue {}ing?'.format(message)
         result = MessageBox.YesNoQuestion(title, fullMessage)
         print 'Yes' if result else 'No'
@@ -73,7 +73,7 @@ class KlaSourceBuilder:
                 '/handler/cpp/.vs',
             ]
         gitIgnoreHelper = GitIgnoreFilesHelper()
-        for source, branch, config, srcPlatform in self.srcTuple:
+        for source, branch, config, srcPlatform, vsVersion in self.srcTuple:
             cnt = len(Git.ModifiedFiles(source))
             if cnt > 0:
                 continue
@@ -103,7 +103,7 @@ class KlaSourceBuilder:
     def CallDevEnv(self, ForCleaning):
         buildOption = '/Clean' if ForCleaning else '/build'
         buildLoger = BuildLoger(self.model, ForCleaning)
-        for source, branch, config, srcPlatform in self.srcTuple:
+        for source, branch, config, srcPlatform, vsVersion in self.srcTuple:
             buildLoger.StartSource(source, branch)
             for sln, slnName in self.vsSolutions.GetSelectedSolutions():
                 slnFile = os.path.abspath(source + '/' + sln)
@@ -115,7 +115,7 @@ class KlaSourceBuilder:
                 outFile = os.path.abspath(source + '/Out_' + slnName) + '.txt'
 
                 buildLoger.StartSolution(sln, slnName, config, platform)
-                devEnvCom = self.model.DevEnvCom22 if self.model.UseVS2022 else self.model.DevEnvCom
+                devEnvCom = self.model.VsVersions.GetDevEnvCom(vsVersion)
                 params = [devEnvCom, slnFile, buildOption, BuildConf, '/out', outFile]
                 OsOperations.Popen(params, buildLoger.PrintMsg)
                 buildLoger.EndSolution()
@@ -242,7 +242,7 @@ class KlaSourceCleaner:
         self.model = model
 
     def DoOnAllActiveSrc(self, func):
-        activeSrcs = list(self.model.GetAllActiveSrcs())
+        activeSrcs = list(self.model.Src.GetAllActiveSrcs())
         if len(activeSrcs) == 0:
             MessageBox.ShowMessage('There is no active source.')
         for activeSrc in activeSrcs:
@@ -329,7 +329,7 @@ def main():
             from KlaModel import Model
             from KLA import VisualStudioSolutions
             model = Model.Model()
-            model.ReadConfigFile()
+            model.ReadFromFile()
             vsSolutions = VisualStudioSolutions.VisualStudioSolutions(model)
             vsSolutions.Init()
             builder = KlaSourceBuilder(model, vsSolutions)

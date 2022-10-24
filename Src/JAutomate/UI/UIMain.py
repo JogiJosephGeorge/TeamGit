@@ -24,7 +24,7 @@ from UI.UITestGroup import UITestGroup
 class UIMain:
     def Run(self):
         self.model = Model()
-        self.model.ReadConfigFile()
+        self.model.ReadFromFile()
         fileName = self.model.StartPath + '/' + self.model.LogFileName
         Logger.Init(fileName)
         Logger.AddLogger(self.DebugViewLog)
@@ -56,18 +56,18 @@ class UIMain:
         self.window.mainloop()
 
     def OnSrcChanged(self):
-        self.uiTestGroup.UpdateVersionCombo()
+        self.VM.UpdateVersionCombo()
 
     def DebugViewLog(self, message):
         OutputDebugString(self.model.LogName + message)
 
     def OnClosing(self):
         self.model.Geometry.WriteGeomInfo(self.window, 'Main')
-        self.model.WriteConfigFile()
+        self.model.WriteToFile()
         self.window.destroy()
 
     def OnSettingsClosed(self):
-        self.uiTestGroup.UpdateVersionCombo()
+        self.VM.UpdateVersionCombo()
 
     def LazyInit(self):
         class LazyData:
@@ -91,13 +91,13 @@ class UIMain:
 
     def GetVersion(self):
         commitCnt = Git.ProcessOpen('rev-list master --count --no-merges')
-        revision = int(re.sub('\W+', '', commitCnt)) - 160
+        revision = int(re.sub('\W+', '', commitCnt)) - 247
         desStr = Git.ProcessOpen('describe --always')
         hash = re.sub('\W+', '', desStr)
-        self.LazyData.Version = '1.3.{}.{}'.format(revision, hash)
+        self.LazyData.Version = '1.4.{}.{}'.format(revision, hash)
 
     def GetBranch(self):
-        curSrc = self.model.CurSrc()
+        curSrc = self.model.Src.GetCur()
         self.LazyData.Branch = Git.GetBranch(curSrc.Source)
 
     def CheckLicense(self):

@@ -19,6 +19,7 @@ class Config:
 
 class Platform:
     Win32 = 'Win32'
+    x86 = 'x86'
     x64 = 'x64'
 
     @classmethod
@@ -40,7 +41,7 @@ class ConfigEncoder:
     def GetBuildConfig(cls, model):
         debugConfigSet = ('debugx64', 'debug')
         releaseConfigSet = ('releasex64', 'release')
-        curSrc = model.CurSrc()
+        curSrc = model.Src.GetCur()
         configSet = (debugConfigSet, releaseConfigSet)[curSrc.Config == Config.Release]
         # releasex64 is not working
         # return configSet[curSrc.Platform == Platforms.Win32]

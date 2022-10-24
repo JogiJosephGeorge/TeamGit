@@ -113,7 +113,7 @@ class EffortLogger:
         self.ColWidth = 80
         self.MinMinutes = 3
         self.MinTime = timedelta(minutes=self.MinMinutes)
-        self.ShowPrevDaysLogs = 1
+        self.ShowPrevDaysLogs = 5
 
     def PrintEffortLogInDetail(self, effortLogFile):
         reader = EffortReader()
@@ -159,7 +159,7 @@ class EffortLogger:
         if data is None:
             return
         effortData = [['Daily Start Time', 'End Time', 'Log', 'Total'], ['-']] + data
-        table = PrettyTable(TableFormat().SetSingleLine()).ToString(effortData)
+        table = PrettyTable(TableFormat().SetDoubleLine()).ToString(effortData)
         print table,
         print (datetime.now() + timedelta(hours=9) - todaysTime).strftime('%H:%M')
         #csvTable = PrettyTable(TableFormat().SetNoBorder(u',')).ToString(effortData)
