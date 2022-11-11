@@ -1,3 +1,6 @@
+import os
+
+from Common.MessageBox import MessageBox
 from KlaModel.ConfigEncoder import Config, Platform
 from KlaModel.VsVersions import VsVersions
 
@@ -95,8 +98,14 @@ class SourceInfo:
         return True
 
     def AddSource(self, newPath):
+        if not newPath:
+            return
+        if not os.path.isdir(newPath):
+            MessageBox.ShowMessage('The path is not valid.')
+            return
         for srcData in self.SrcArray:
             if newPath == srcData.Source:
+                MessageBox.ShowMessage('The source is added already.')
                 return False
         srcData = SrcData()
         srcData.Source = newPath
@@ -139,3 +148,6 @@ class SourceInfo:
 
     def GetSrcAt(self, index):
         return self.SrcArray[index]
+
+    def IsEmpty(self):
+        return self.SrcIndex < 0

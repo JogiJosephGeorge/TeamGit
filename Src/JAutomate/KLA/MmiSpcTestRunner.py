@@ -1,5 +1,6 @@
 import os
 
+from Common.MessageBox import MessageBox
 from Common.OsOperations import OsOperations
 
 
@@ -8,6 +9,9 @@ class MmiSpcTestRunner:
         self.model = model
 
     def RunAllTests(self):
+        if self.model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
+            return
         curSrc = self.model.Src.GetCur()
         os.chdir(curSrc.Source)
         buildPath = 'mmi/mmi/bin/{}/{}'.format(curSrc.Platform, curSrc.Config)

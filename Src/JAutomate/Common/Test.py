@@ -1,5 +1,6 @@
 import inspect
 import itertools
+import types
 
 
 class Test:
@@ -31,9 +32,16 @@ class Test:
             cls._ok += 1
         else:
             print 'TEST NOT OK  : ' + message
-            print 'Expected     : ' + expected
-            print 'Actual       : ' + actual
+            print 'Expected     : ' + cls.ToString(expected)
+            print 'Actual       : ' + cls.ToString(actual)
             cls._notOk += 1
+
+    @classmethod
+    def ToString(cls, obj):
+        if obj:
+            if type(obj) == types.BooleanType:
+                return str(obj)
+        return ''
 
     @classmethod
     def _GetClassMethod(cls, level):

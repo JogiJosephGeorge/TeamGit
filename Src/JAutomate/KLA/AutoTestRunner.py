@@ -7,7 +7,6 @@ from Common.Git import Git
 from Common.Logger import Logger
 from Common.MessageBox import MessageBox
 from Common.StdOutRedirect import StdOutRedirect
-from KLA.IcosPaths import IcosPaths
 from KLA.PreTestActions import PreTestActions, SourceCodeUpdater
 from KLA.TaskMan import TaskMan
 from KLA.VMWareRunner import VMWareRunner
@@ -21,10 +20,10 @@ class AutoTestRunner:
         self.lastSrc = None
 
     def InitAutoTest(self):
-        curSrc = self.model.Src.GetCur()
-        if not curSrc.Source:
-            print 'No source is selected.'
+        if self.model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
             return False
+        curSrc = self.model.Src.GetCur()
         if not os.path.exists(curSrc.Source):
             print 'The directory does not exist : ' + curSrc.Source
             return False

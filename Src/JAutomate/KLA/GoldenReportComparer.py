@@ -1,5 +1,4 @@
 import os
-import shutil
 import subprocess
 from Common.FileOperations import FileOperations
 from Common.MessageBox import MessageBox
@@ -16,6 +15,9 @@ class GoldenReportComparer:
         return IcosPaths.GetTestPath(curSrc.Source, self.model.AutoTests.TestName)
 
     def OpenTestFolder(self):
+        if self.model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
+            return
         dirPath = self.GetTestPath()
         if not os.path.isdir(dirPath):
             msg = 'Test folder does not exists : ' + dirPath
@@ -27,6 +29,9 @@ class GoldenReportComparer:
         print 'Open directory : ' + dirPath
 
     def CompareMmiReports(self):
+        if self.model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
+            return
         testPath = self.GetTestPath()
         if not os.path.exists(testPath):
             print 'Test path does not exists : ' + testPath

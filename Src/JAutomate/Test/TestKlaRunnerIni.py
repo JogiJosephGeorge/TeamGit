@@ -31,8 +31,11 @@ class TestKlaRunnerIni:
                 Test.Assert(slot > 0 and slot <= self.model.MaxSlots, True, 'Test Name {} Slot {}'.format(testName, slot), 1)
 
     def DoTestIndex(self, list, index, message):
-        isValidIndex = index >= 0 and index < len(list)
-        Test.Assert(isValidIndex, True, message, 1)
+        if len(list) == 0:
+            Test.Assert(index, -1, message, 1)
+        else:
+            isValidIndex = index >= 0 and index < len(list)
+            Test.Assert(isValidIndex, True, message, 1)
 
     def FileExists(self):
         Test.Assert(os.path.isfile(self.model.VsVersions.DevEnvCom), True, 'DevEnv.com')

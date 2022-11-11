@@ -1,8 +1,9 @@
 import os
 
 from Common.FileOperations import FileOperations
-from Common.PrettyTable import PrettyTable, TableFormat
+from Common.MessageBox import MessageBox
 from Common.OsOperations import OsOperations
+from Common.PrettyTable import PrettyTable, TableFormat
 from KlaModel.ConfigEncoder import Config, Platform
 from KLA.IcosPaths import IcosPaths
 from KLA.LicenseConfigWriter import LicenseConfigWriter
@@ -12,6 +13,9 @@ from KLA.TaskMan import TaskMan
 class PreTestActions:
     @classmethod
     def CopyMockLicense(cls, model, toSrc = True, initWait = 0):
+        if model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
+            return
         curSrc = model.Src.GetCur()
         args = (curSrc.Source, curSrc.Platform, curSrc.Config)
         licenseFile = os.path.abspath(IcosPaths.GetMockLicensePath(*args))
@@ -30,6 +34,9 @@ class PreTestActions:
 
     @classmethod
     def PrintAvailableExes(cls, model):
+        if model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
+            return
         data = [['Source', 'Solutions', 'Platform', 'Config']]
         for srcData in model.Src.GetAllSrcs():
             data.append(['-'])
@@ -90,6 +97,9 @@ class PreTestActions:
 
     @classmethod
     def GenerateLicMgrConfig(cls, model):
+        if model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
+            return
         curSrc = model.Src.GetCur()
         src = model.StartPath + '/DataFiles/LicMgrConfig.xml'
         LicenseConfigWriter(curSrc.Source, src)
@@ -123,6 +133,9 @@ class PreTestActions:
 
     @classmethod
     def CopyMmiSaveLogExe(cls, model):
+        if model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
+            return
         curSrc = model.Src.GetCur()
         destin = IcosPaths.GetTestPathTemp(curSrc.Source, model.AutoTests.TestName) + '/Icos'
         src = os.path.abspath(IcosPaths.GetMmiSaveLogsPath(curSrc.Source, curSrc.Platform, curSrc.Config))

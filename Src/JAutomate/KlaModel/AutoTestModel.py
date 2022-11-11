@@ -16,7 +16,8 @@ class AutoTestModel:
             if nameSlot is not None:
                 self.Tests.append(nameSlot)
         self.TestIndex = iniFile.ReadField('TestIndex', -1)
-        [self.TestName, self.slots] = self.Tests[self.TestIndex]
+        if self.TestIndex >= 0 and self.TestIndex < len(self.Tests):
+            [self.TestName, self.slots] = self.Tests[self.TestIndex]
 
     def Write(self, iniFile):
         testArray = [self.Decode(item[0], item[1]) for item in self.Tests]

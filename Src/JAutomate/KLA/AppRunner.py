@@ -19,6 +19,9 @@ class AppRunner:
         self.vsSolutions = vsSolutions
 
     def RunHandler(self):
+        if self.model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
+            return
         curSrc = self.model.Src.GetCur()
         Logger.Log('Run Handler in ' + curSrc.Source)
         TaskMan.StopTasks()
@@ -52,6 +55,9 @@ class AppRunner:
         VMWareRunner.RunSlots(self.model)
 
     def RunMMi(self, fromSrc, removePrevInst):
+        if self.model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
+            return
         if self.model.RestartSlotsForMMiAlone:
             self.StopMMi()
 
@@ -111,6 +117,9 @@ class AppRunner:
 
     @classmethod
     def OpenLocalDif(cls, model):
+        if model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
+            return
         curSrc = model.Src.GetCur()
         par = [ 'TortoiseGitProc.exe', '/command:diff', '/path:' + curSrc.Source + '' ]
         print 'Tortoise Git Diff : ' + str(curSrc.Source)

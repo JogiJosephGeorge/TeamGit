@@ -1,6 +1,7 @@
 from Common.EffortLog import EffortLogger
 from Common.Git import Git
 from Common.Logger import Logger
+from Common.MessageBox import MessageBox
 from Common.OsOperations import OsOperations
 from KLA.AppRunner import AppRunner
 from KLA.CopyDiagno import CopyDiagno
@@ -92,6 +93,9 @@ class UIMainMenu:
             self.uiGrid.AddButton('Git Log Viewer', self.ShowGitLogViewer)
 
     def ShowGitLogViewer(self):
+        if self.model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
+            return
         gitLogViewer = UIGitLogViewer(self.window, self.model)
         gitLogViewer.Show()
 

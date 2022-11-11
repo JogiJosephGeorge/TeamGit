@@ -1,3 +1,4 @@
+from Common.MessageBox import MessageBox
 from Common.UIFactory import UIFactory
 from KLA.GoldenReportComparer import GoldenReportComparer
 from KLA.VMWareRunner import VMWareRunner
@@ -61,6 +62,10 @@ class UITestGroup:
         UIFactory.AddButton(parent, ' + ', r, c, self.ShowAutoTestSettings)
 
     def ShowAutoTestSettings(self):
+        if self.model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
+            return
+
         uiAutoTestSettings = UIAutoTestSettings(self.window, self.model, self.VM)
         uiAutoTestSettings.Show()
 

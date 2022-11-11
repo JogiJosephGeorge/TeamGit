@@ -244,13 +244,15 @@ class KlaSourceCleaner:
     def DoOnAllActiveSrc(self, func):
         activeSrcs = list(self.model.Src.GetAllActiveSrcs())
         if len(activeSrcs) == 0:
-            MessageBox.ShowMessage('There is no active source.')
+            print 'There is no active source.'
+            return False
         for activeSrc in activeSrcs:
             func(activeSrc.Source)
+        return True
 
     def RemoveAllHandlerTemp(self):
-        self.DoOnAllActiveSrc(self.RemoveHandlerTemp)
-        print 'All temporary folders are removed.'
+        if self.DoOnAllActiveSrc(self.RemoveHandlerTemp):
+            print 'All temporary folders are removed.'
 
     def RemoveHandlerTemp(self, source):
         path = source + '/handler'
@@ -283,8 +285,8 @@ class KlaSourceCleaner:
         return False
 
     def RemoveAllTilt(self):
-        self.DoOnAllActiveSrc(self.RemoveAllTiltOnSrc)
-        print 'All temporary folders are removed.'
+        if self.DoOnAllActiveSrc(self.RemoveAllTiltOnSrc):
+            print 'All temporary folders are removed.'
 
     def RemoveAllTiltOnSrc(self, source):
         filterFun = lambda d: d[-1] == '~'
@@ -306,7 +308,8 @@ class KlaSourceCleaner:
             for p in FileOperations.GetAllDirs(mvsPath, filterDirFun):
                 dirsToDelete.append(p)
         for dir in dirsToDelete:
-            shutil.rmtree(dir)
+            if os.path.isdir(dir):
+                shutil.rmtree(dir)
 
         tempFileTypes = [
             '.log',

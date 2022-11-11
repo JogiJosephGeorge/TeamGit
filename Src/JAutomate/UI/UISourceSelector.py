@@ -170,7 +170,8 @@ class UISourceSelector(UIWindow):
         self.AddSolutions()
         self.AddFunctions()
 
-        threading.Thread(target=self.LazyUiInit).start()
+        if self.model.Src.SrcIndex >= 0:
+            threading.Thread(target=self.LazyUiInit).start()
 
     def AddRow(self):
         frame = UIFactory.AddFrame(self.mainFrame, self.Row, 0)
@@ -284,7 +285,8 @@ class UISourceSelector(UIWindow):
             self.SourceGrid.SetBranch(row - 1, branch)
 
     def OnRemoveSource(self):
-        if self.model.Src.SrcIndex < 0:
+        if self.model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
             return
         src = self.model.Src.GetSrcAt(self.model.Src.SrcIndex).Source
         if MessageBox.YesNoQuestion('Remove Source', 'Do you want to remove source ' + src):
@@ -298,5 +300,8 @@ class UISourceSelector(UIWindow):
 
     def NugetRestore(self, model):
         curSrc = model.Src.GetCur()
+        if not curSrc.Source:
+            MessageBox.ShowMessage('No source available.')
+            return
         par = 'nuget restore {}\mmi\mmi\Mmi.sln'.format(curSrc.Source)
         OsOperations.System(par, 'Restore Nuget Packages')

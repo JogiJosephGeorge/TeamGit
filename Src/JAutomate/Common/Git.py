@@ -1,5 +1,6 @@
 import subprocess
 
+from Common.MessageBox import MessageBox
 from OsOperations import OsOperations
 
 class Git:
@@ -53,6 +54,9 @@ class Git:
 
     @classmethod
     def SubmoduleUpdate(cls, model):
+        if model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
+            return
         curSrc = model.Src.GetCur()
         source = curSrc.Source
         cls.Git(source, 'submodule sync --recursive')
@@ -63,6 +67,9 @@ class Git:
 
     @classmethod
     def OpenGitGui(cls, model):
+        if model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
+            return
         curSrc = model.Src.GetCur()
         param = [ cls.GitPath + '-gui', '--working-dir', curSrc.Source ]
         print 'Staring Git GUI'
@@ -70,12 +77,18 @@ class Git:
 
     @classmethod
     def OpenGitBash(cls, model):
+        if model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
+            return
         curSrc = model.Src.GetCur()
         par = 'start {}/sh.exe --cd={}'.format(cls.GitBin, curSrc.Source)
         OsOperations.System(par, 'Staring Git Bash')
 
     @classmethod
     def FetchPull(cls, model):
+        if model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
+            return
         curSrc = model.Src.GetCur()
         Git.Git(curSrc.Source, 'pull')
         print 'Git fetch and pull completed.'

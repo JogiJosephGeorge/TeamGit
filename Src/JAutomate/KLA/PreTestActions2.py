@@ -1,6 +1,7 @@
 import os
 
 from Common.FileOperations import FileOperations
+from Common.MessageBox import MessageBox
 from Common.OsOperations import OsOperations
 from Common.PrettyTable import PrettyTable
 from KlaModel.ConfigEncoder import ConfigEncoder
@@ -12,6 +13,9 @@ class KlaRunner:
         self.SetWorkingDir()
 
     def OpenPython(self):
+        if self.model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
+            return
         curSrc = self.model.Src.GetCur()
         #FileOperations.Delete('{}/libs/testing/myconfig.py'.format(curSrc.Source))
         self.CreateMyConfig()
@@ -32,6 +36,9 @@ class KlaRunner:
         FileOperations.Write('{}/libs/testing/myconfig.py'.format(curSrc.Source), data)
 
     def PrintMissingIds(self):
+        if self.model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
+            return
         curSrc = self.model.Src.GetCur()
         fileNames = [
             os.path.abspath(curSrc.Source + '/mmi/mmi/mmi_lang/mmi.h'),

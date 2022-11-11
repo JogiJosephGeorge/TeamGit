@@ -1,7 +1,7 @@
 import subprocess
 
+from Common.MessageBox import MessageBox
 from KlaModel.ConfigEncoder import Config, Platform
-from KlaModel.VsVersions import VsVersions
 
 
 class VisualStudioSolutions:
@@ -37,6 +37,9 @@ class VisualStudioSolutions:
         self.OpenSolutionFile(self.GetSlnPath(index))
 
     def OpenSolutionFile(self, slnFileName):
+        if self.model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
+            return
         curSrc = self.model.Src.GetCur()
         fileName = curSrc.Source + slnFileName
         devEnvExe = self.model.VsVersions.GetDevEnvExe(curSrc.VsVersion)
