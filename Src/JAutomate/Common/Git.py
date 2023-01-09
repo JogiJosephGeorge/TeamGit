@@ -22,7 +22,7 @@ class Git:
     def GetCommitId(cls, source, localBranch=''):
         cmd = 'log --pretty=format:"%h" -n 1'
         if len(localBranch) > 0:
-            cmd += ' ' + localBranch
+            cmd += ' heads/' + localBranch
         commitId = cls.GitSilent(source, cmd)
         return commitId.replace('\r', '').replace('\n', '')
 

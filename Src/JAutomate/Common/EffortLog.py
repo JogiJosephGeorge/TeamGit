@@ -150,7 +150,7 @@ class EffortLogger:
         table = PrettyTable(TableFormat().SetSingleLine()).ToString(menuData)
         #table = datetime.now().strftime('%Y %b %d %H:%M:%S\n') + table
         #FileOperations.Append(logFile + '.txt', table)
-        print table,
+        print table
 
     def PrintDailyLog(self, effortLogFile):
         reader = EffortReader()

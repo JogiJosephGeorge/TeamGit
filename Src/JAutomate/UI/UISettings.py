@@ -108,9 +108,9 @@ class UISettings(UIWindow):
             AddCheckBox(txt, 'CopyMVSDConversionOnTest', msgOn, msgOff, True, False)
 
             txt = 'On AutoTest Console Run from C:/handler/system'
-            msgOn = 'On AutoTest, Console will be running from C:/handler/system'
+            msgOn = 'On AutoTest, Console will be running from C:/handler/system. This is NOT RECOMMENDED.'
             msgOff = 'On AutoTest, Console will be running from build source'
-            AddCheckBox(txt, 'ConsoleFromCHandler', msgOn, msgOff, False, False)
+            AddCheckBox(txt, 'ConsoleFromCHandler', msgOn, msgOff, True, False)
 
         if self.model.UserAccess.IsDeveloper():
             txt = 'On AutoTest do not proceed after changing source'

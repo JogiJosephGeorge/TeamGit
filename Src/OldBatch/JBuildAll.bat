@@ -1,46 +1,16 @@
 CALL:Initialize %0
 
-REM            ┌──────────────────────────┐
-REM            │       Clean Source       │
-REM            ├──────────────────────────┤
-REM            │ 2 │ CIT100.sln  │ Han    │
-REM            │ 3 │ Mmi.sln     │ Mmi    │
-REM            └───┴─────────────┴────────┘
+REM        2  -  Configurations   -  Debug Release
+REM        3  -  Platform         -  Win32 x64
+REM        4  -  Visual Studio    -  2017 2022
+REM        5  -  CIT100.sln       -  HanAll Han
+REM        6  -  Mmi.sln          -  Mmi
+REM        7  -  Other Solutions  -  Others
 
-rem CALL:JCleanSource D:\CI\Src1 -Han Mmi 
+rem CALL:CleanSource D:\CI\Src3 Debug Win32 2017 Han Mmi Others
+ CALL:BuildSource D:\CI\Src3 Debug Win32 2017 Han Mmi Others
+rem CALL:BuildSource D:\CI\Src6 Release Win32 2022 Han Mmi Others
 
-
-REM       ┌─────────────────────────────────────┐
-REM       │           Build Source              │
-REM       ├─────────────────────────────────────┤
-REM       │ 2 │ Configurations  │ Debug Release │
-REM       │ 3 │ Platform        │ Win32 x64     │
-REM       │ 4 │ Visual Studio   │ 2017 2022     │
-REM       │ 5 │ CIT100.sln      │ HanAll Han    │
-REM       │ 6 │ Mmi.sln         │ Mmi           │
-REM       │ 7 │ Other Solutions │ Others        │
-REM       └───┴─────────────────┴───────────────┘
-
- CALL:BuildSource D:\CI\Src1 Debug Win32 2017 -Han Mmi Others
-rem CALL:BuildSource D:\CI\Src3 Debug Win32 2022 Han -Mmi -Others
-
-SET JSource=D:\CI\Src3
-DEL /Q %JSource%\mmi\mmi\Bin\Win32\Debug\DisplayDLLWrapper.*
-RMDIR /S /Q %JSource%\mmi\mmi\display_libs\DisplayClient\DISPLAY\Debug
-RMDIR /S /Q %JSource%\mmi\mmi\display_libs\DisplayClient\DisplayRes\Debug
-RMDIR /S /Q %JSource%\mmi\mmi\display_libs\DisplayClient\DisplayRes\x64
-RMDIR /S /Q %JSource%\mmi\mmi\display_libs\DisplayClient\DISPLAYTASK\Debug
-RMDIR /S /Q %JSource%\mmi\mmi\display_libs\DisplayClient\DISPLAYTASK\x64
-DEL /Q %JSource%\mmi\mmi\display_libs\DisplayClient\INTERFACE\*_i.c
-DEL /Q %JSource%\mmi\mmi\display_libs\DisplayClient\INTERFACE\*_p.c
-DEL /Q %JSource%\mmi\mmi\display_libs\DisplayClient\INTERFACE\*.tlb
-DEL /Q %JSource%\mmi\mmi\display_libs\DisplayClient\INTERFACE\Display.h
-DEL /Q %JSource%\mmi\mmi\display_libs\DisplayClient\INTERFACE\DisplayTask.h
-DEL /Q %JSource%\mmi\mmi\display_libs\DisplayClient\INTERFACE\dlldata.c
-DEL /Q %JSource%\mmi\mmi\display_libs\DisplayClient\Output\*_i.c
-DEL /Q %JSource%\mmi\mmi\display_libs\DisplayClient\Output\*.h
-RMDIR /S /Q %JSource%\mmi\mmi\display_libs\IcosDisplay\x64
-RMDIR /S /Q %JSource%\mmi\mmi\display_libs\IPL\x64\Debug
 
 REM --------------------------------------------------------------------------------------------------------
 REM ----------------------------              End of Execution              --------------------------------
@@ -60,8 +30,20 @@ REM ------------------------------  Initialize  --------------------------------
 	ECHO     ------------ >> %JCD%/JTemp.txt
 EXIT /B 0
 
+REM ------------------------------  Clean Source  ----------------------------------------------------------
+:CleanSource
+	SET BuildOpt=Clean
+	CALL:DevSource %*
+EXIT /B 0
+
 REM ------------------------------  Build Source  ----------------------------------------------------------
 :BuildSource
+	SET BuildOpt=Build
+	CALL:DevSource %*
+EXIT /B 0
+
+REM --------------------------- Build / Clean Source  ------------------------------------------------------
+:DevSource
 	SET JSource=%1
 	SET JConfig=%2
 	SET JPlatform=%3
@@ -80,47 +62,51 @@ REM ------------------------------  Build Source  ------------------------------
 	FOR /F "tokens=2" %%a IN ('git -C %JSource% branch ') DO SET JBranch=%%a
 
 	CALL::JPrint Source : %JSource% [%JConPlat%]
-	CALL::JPrint Branch : %JBranch% (%JCommit:~0,11%)
+	IF %BuildOpt% == Build (
+		CALL::JPrint Branch : %JBranch% (%JCommit:~0,11%)
+	)
 	CALL::JPrint DevEnv : Microsoft Visual Studio %4
 
 	IF "%5" == "HanAll" (
-		CALL:BuildSln handler/cpp/CIT100 %JConPlat% Handler
+		CALL:DevSln handler/cpp/CIT100 %JConPlat% Handler
 	)
 	IF "%5" == "Han" (
-		CALL:BuildSln handler/cpp/CIT100 %JConPlat% Handler
-		CALL:JCleanHanTemp %JSource%
+		CALL:DevSln handler/cpp/CIT100 %JConPlat% Handler
+		IF %BuildOpt% == Build (
+			CALL:JCleanHanTemp %JSource%
+		)
 	)
 	IF "%6" == "Mmi" (
-		CALL:BuildSln mmi/mmi/mmi %JConPlat% MMi
+		CALL:DevSln mmi/mmi/mmi %JConPlat% MMi
 	)
 	SET JSimPath=handler/Simulator/CIT100Simulator/CIT100Simulator
 	IF "%7" == "Others" (
 		IF "%JPlatform%" == "Win32" (
-			CALL:BuildSln %JSimPath% "%JConfig%|X86" Simulator
+			CALL:DevSln %JSimPath% "%JConfig%|X86" Simulator
 		) ELSE (
-			CALL:BuildSln %JSimPath% "%JConfig%|X64" Simulator
+			CALL:DevSln %JSimPath% "%JConfig%|X64" Simulator
 		)
 
-		CALL:BuildSln mmi/mmi/MockLicense %JConPlat% MockLicense
-		CALL:BuildSln mmi/mmi/Converters %JConPlat% Converters
-		REM CALL:BuildSln libs/DLStub/DLStub/DLStub %JConPlat% DLStub
-		REM CALL:BuildSln libs/DLStub/ICOSDaemonStub/ICOSDaemonStub %JConPlat% ICOSDaemonStub
+		CALL:DevSln mmi/mmi/MockLicense %JConPlat% MockLicense
+		CALL:DevSln mmi/mmi/Converters %JConPlat% Converters
+		REM CALL:DevSln libs/DLStub/DLStub/DLStub %JConPlat% DLStub
+		REM CALL:DevSln libs/DLStub/ICOSDaemonStub/ICOSDaemonStub %JConPlat% ICOSDaemonStub
 	)
 EXIT /B 0
 
-REM ------------------------------  Build Solution  --------------------------------------------------------
-:BuildSln
+REM ---------------------------- Build / Clean Solution  ---------------------------------------------------
+:DevSln
 	SET SolutionFile=%JSource%/%1.sln
 	SET JBuildConf=%2
 	SET JOutFile=%JSource%/Out_%3.txt
 	
-	ECHO Building %SolutionFile% [%JBuildConf%]
-	%JDevEnvExe% %SolutionFile% /build %JBuildConf% /out %JOutFile%
-	REM IF %ERRORLEVEL% == 0 (
-	REM 	CALL::JPrint Build Success  : %SolutionFile%
-	REM ) ELSE (
-	REM 	CALL::JPrint Build Failed   : %SolutionFile%
-	REM )
+	IF %BuildOpt% == Build (
+		ECHO Building %SolutionFile% [%JBuildConf%]
+		%JDevEnvExe% %SolutionFile% /build %JBuildConf% /out %JOutFile%
+	) ELSE (
+		ECHO Cleaning %SolutionFile% [%JBuildConf%]
+		%JDevEnvExe% %SolutionFile% /Clean %JBuildConf% /out %JOutFile%
+	)
  
 	ECHO OFF
 	FOR /F "UseBackQ Delims==" %%A IN ("%JOutFile%") DO SET lastline=%%A
@@ -130,7 +116,7 @@ REM ------------------------------  Build Solution  ----------------------------
 EXIT /B 0
 
 REM ------------------------------  Clean Source  ----------------------------------------------------------
-:JCleanSource
+:JCleanSource_old
 	SET JSource=%1
 	IF "%2" == "Han" (
 		RD /S /Q "%JSource%/handler/cpp/bin"
@@ -145,7 +131,32 @@ REM ------------------------------  Clean Source  ------------------------------
 		RD /S /Q "%JSource%/mmi/mmi/mmi_stat/Debug
 		RD /S /Q "%JSource%/mmi/mmi/display_libs/DisplayClient/DISPLAY/Debug
 		RD /S /Q "%JSource%/mmi/mmi/display_libs/DisplayClient/DISPLAY/x64
-		REM RD /S /Q "%JSource%/mmi/mmi/.vs
+		DEL /Q %JSource%\mmi\mmi\Bin\Win32\Debug\DisplayDLLWrapper.*
+		RD /S /Q %JSource%\mmi\mmi\display_libs\DisplayClient\DISPLAY\Debug
+		RD /S /Q %JSource%\mmi\mmi\display_libs\DisplayClient\DisplayRes\Debug
+		RD /S /Q %JSource%\mmi\mmi\display_libs\DisplayClient\DisplayRes\x64
+		RD /S /Q %JSource%\mmi\mmi\display_libs\DisplayClient\DISPLAYTASK\Debug
+		RD /S /Q %JSource%\mmi\mmi\display_libs\DisplayClient\DISPLAYTASK\x64
+		DEL /Q %JSource%\mmi\mmi\display_libs\DisplayClient\INTERFACE\*_i.c
+		DEL /Q %JSource%\mmi\mmi\display_libs\DisplayClient\INTERFACE\*_p.c
+		DEL /Q %JSource%\mmi\mmi\display_libs\DisplayClient\INTERFACE\*.tlb
+		DEL /Q %JSource%\mmi\mmi\display_libs\DisplayClient\INTERFACE\Display.h
+		DEL /Q %JSource%\mmi\mmi\display_libs\DisplayClient\INTERFACE\DisplayTask.h
+		DEL /Q %JSource%\mmi\mmi\display_libs\DisplayClient\INTERFACE\dlldata.c
+		DEL /Q %JSource%\mmi\mmi\display_libs\DisplayClient\Output\*_i.c
+		DEL /Q %JSource%\mmi\mmi\display_libs\DisplayClient\Output\*.h
+		RD /S /Q %JSource%\mmi\mmi\display_libs\IcosDisplay\x64
+		RD /S /Q %JSource%\mmi\mmi\display_libs\IPL\x64\Debug
+	)
+	IF "%4" == "Others" (
+		RD /S /Q %JSource%\handler\Simulator\ApplicationFiles
+		RD /S /Q %JSource%\mmi\mmi\mmi_stat\integration\code\MockLicenseDll\Debug
+		RD /S /Q %JSource%\mmi\mmi\mmi_stat\integration\code\MockLicenseDll\Release
+		RD /S /Q %JSource%\mmi\mmi\mmi_stat\integration\code\MockLicenseDll\Win32
+		RD /S /Q %JSource%\mmi\mmi\mmi_stat\integration\code\MockLicenseDll\x64
+	)
+	IF "%5" == "VS" (
+		RD /S /Q "%JSource%\mmi\mmi\.vs
 	)
 EXIT /B 0
 

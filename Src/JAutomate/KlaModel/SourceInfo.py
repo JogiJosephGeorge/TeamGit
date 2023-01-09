@@ -1,5 +1,6 @@
 import os
 
+from Common.Git import Git
 from Common.MessageBox import MessageBox
 from KlaModel.ConfigEncoder import Config, Platform
 from KlaModel.VsVersions import VsVersions
@@ -99,14 +100,18 @@ class SourceInfo:
 
     def AddSource(self, newPath):
         if not newPath:
-            return
+            return False
         if not os.path.isdir(newPath):
             MessageBox.ShowMessage('The path is not valid.')
-            return
+            return False
         for srcData in self.SrcArray:
             if newPath == srcData.Source:
                 MessageBox.ShowMessage('The source is added already.')
                 return False
+        branch = Git.GetBranch(newPath)
+        if not branch:
+            MessageBox.ShowMessage('The selected path is not a valid git directory.')
+            return False
         srcData = SrcData()
         srcData.Source = newPath
         self.SrcArray.append(srcData)
@@ -147,7 +152,9 @@ class SourceInfo:
             yield src
 
     def GetSrcAt(self, index):
-        return self.SrcArray[index]
+        if index < len(self.SrcArray):
+            return self.SrcArray[index]
+        return None
 
     def IsEmpty(self):
         return self.SrcIndex < 0

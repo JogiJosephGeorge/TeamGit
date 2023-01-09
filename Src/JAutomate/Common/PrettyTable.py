@@ -55,7 +55,7 @@ class PrettyTable:
         self.Format = format
 
     def PrintTable(self, data):
-        print self.ToString(data),
+        print self.ToString(data)
 
     def CalculateColWidths(self, data):
         colCnt = 0

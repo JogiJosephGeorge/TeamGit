@@ -147,7 +147,10 @@ class UISourceGrid:
     def OnClosing(self):
         row = 0
         for txtDesc in self.txtDescription:
-            self.model.Src.GetSrcAt(row).Description = txtDesc.get()
+            src = self.model.Src.GetSrcAt(row)
+            if src is None:
+                return
+            src.Description = txtDesc.get()
             row += 1
 
 
@@ -204,7 +207,7 @@ class UISourceSelector(UIWindow):
             if index == self.model.Src.SrcIndex:
                 self.model.Branch = branch
             index += 1
-        print PrettyTable(TableFormat().SetDoubleLineBorder()).ToString(data)
+        PrettyTable(TableFormat().SetDoubleLineBorder()).PrintTable(data)
 
     def OnClosing(self):
         self.SourceGrid.OnClosing()
