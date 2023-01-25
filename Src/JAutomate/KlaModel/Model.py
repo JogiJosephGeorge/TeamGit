@@ -72,6 +72,7 @@ class Model:
         self.Geometry = Geometry()
         self.UserAccess = UserAccess()
         self.VsVersions = VsVersions()
+        self.VsSolutions = []
 
     def ReadFromFile(self):
         self.IniFile.Open()
@@ -82,6 +83,7 @@ class Model:
         self.UserAccess.Read(self.IniFile)
         ConfigInfo().Read(self, self.IniFile)
         self.Geometry.Read(self, self.IniFile)
+        self.VsSolutions = self.IniFile.ReadField('VsSolutions', [])
 
     def WriteToFile(self):
         self.IniFile.StartWriting()
@@ -91,6 +93,7 @@ class Model:
         self.UserAccess.Write(self.IniFile)
         ConfigInfo().Write(self.IniFile, self)
         self.Geometry.Write(self.IniFile, self)
+        self.IniFile.Write('VsSolutions', self.VsSolutions)
         self.IniFile.Save()
 
     def UpdateConfig(self, row, index):

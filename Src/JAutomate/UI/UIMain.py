@@ -1,4 +1,5 @@
 import ctypes
+import os
 import re
 import threading
 from win32api import OutputDebugString
@@ -71,7 +72,9 @@ class UIMain:
 
     def LazyInit(self):
         class LazyData:
-            pass
+            def __init__(self):
+                self.Version = ''
+                self.Branch = ''
         self.LazyData = LazyData()
         threads = []
         threads.append(threading.Thread(target=self.GetVersion))
@@ -90,9 +93,17 @@ class UIMain:
         SourceCodeUpdater.CopyPreCommit(self.model)
 
     def GetVersion(self):
+        path = os.getcwd() + '/../../../.git'
+        if not os.path.exists(path):
+            return
         commitCnt = Git.ProcessOpen('rev-list master --count --no-merges')
+        if not commitCnt:
+            return
         revision = int(re.sub('\W+', '', commitCnt)) - 247
+
         desStr = Git.ProcessOpen('describe --always')
+        if not desStr:
+            return
         hash = re.sub('\W+', '', desStr)
         self.LazyData.Version = '1.4.{}.{}'.format(revision, hash)
 
@@ -104,6 +115,8 @@ class UIMain:
         VMWareRunner.CheckLicense(self.model)
 
     def UpdateSource(self):
+        if not os.path.exists('.git'):
+            return
         Git.GitSilent('.', 'pull')
 
     def AddRow(self):

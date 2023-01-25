@@ -67,7 +67,8 @@ class UIMainMenu:
         self.uiGrid.CreateColumnFrame()
         vsSolutions = self.vsSolutions
         self.uiGrid.AddButton('Open Python', self.klaRunner.OpenPython)
-        for inx,sln in enumerate(self.vsSolutions.Solutions):
+        for inx in [0, 1]: # Only Handler and MMI
+            sln = self.vsSolutions.Solutions[inx]
             label = 'Open ' + self.vsSolutions.GetSlnName(sln)
             self.uiGrid.AddButton(label, vsSolutions.OpenSolutionFile, (sln,))
         self.uiGrid.AddButton('Other Solutions', self.ShowOpenSolutionDlg)

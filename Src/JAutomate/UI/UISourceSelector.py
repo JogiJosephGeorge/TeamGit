@@ -233,7 +233,8 @@ class UISourceSelector(UIWindow):
         row1 = self.AddRow()
         for inx,sln in enumerate(allSlns):
             slnName = self.vsSolutions.GetSlnName(sln)
-            chk = UIFactory.AddCheckBox(row1, slnName, True, 0, inx, self.OnSelectSolution, (inx,))
+            isChecked = self.vsSolutions.SelectedInxs[inx]
+            chk = UIFactory.AddCheckBox(row1, slnName, isChecked, 0, inx, self.OnSelectSolution, (inx,))
             self.slnChks.append(chk)
         rowBuildSettings = self.AddRow()
         self.checkBoxCreator.AddCheckBox(rowBuildSettings, 0, 0, 'Show Build In Progress', self.model, 'ShowBuildInProgress', '', '', False, False)

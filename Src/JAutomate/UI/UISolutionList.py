@@ -1,7 +1,6 @@
 from Common.UIFactory import UIFactory
 from UI.UIWindow import UIWindow
 
-
 class UISolutionList(UIWindow):
     def __init__(self, parent, model, vsSolutions):
         super(UISolutionList, self).__init__(parent, model, 'Visutal Studio Solutions')
@@ -10,10 +9,22 @@ class UISolutionList(UIWindow):
     def CreateUI(self, parent):
         frame = UIFactory.AddFrame(parent, 0, 0, 50)
 
-        for inx,sln in enumerate(self.vsSolutions.OtherSolutions):
+        row = 0
+        col = 0
+        maxRow = 5
+        for sln in self.vsSolutions.GetAllSlnFiles():
+            if row == maxRow:
+                row = 0
+                col += 1
             label = 'Open ' + self.vsSolutions.GetSlnName(sln)
-            UIFactory.AddButton(frame, label, inx, 0, self.OnOpenSolution, (sln,), 19)
-        self.AddBackButton(frame, 8, 0)
+            UIFactory.AddButton(frame, label, row, col, self.OnOpenSolution, (sln,), 19)
+            row += 1
+
+        row = maxRow
+        UIFactory.AddLabel(frame, ' ', row, 0)
+
+        row += 1
+        self.AddBackButton(frame, row, col)
 
     def OnOpenSolution(self, sln):
         self.vsSolutions.OpenSolutionFile(sln)

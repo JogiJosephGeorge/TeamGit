@@ -9,18 +9,15 @@ class VisualStudioSolutions:
         self.model = model
         self.Solutions = [
             '/handler/cpp/CIT100.sln',
-            '/mmi/mmi/Mmi.sln'
-        ]
-        self.OtherSolutions = [
+            '/mmi/mmi/Mmi.sln',
+
             '/handler/Simulator/CIT100Simulator/CIT100Simulator.sln',
             '/mmi/mmi/MockLicense.sln',
             '/mmi/mmi/Converters.sln',
-            '/libs/DLStub/DLStub/DLStub.sln',
-            '/libs/DLStub/ICOSDaemonStub/ICOSDaemonStub.sln',
         ]
 
     def Init(self):
-        self.SelectedInxs = [True] * len(self.GetAllSlnFiles())
+        self.SelectedInxs = [True] * len(self.Solutions) + [False] * len(self.model.VsSolutions)
 
     def GetAllSlnFiles(self):
         #slnFiles = []
@@ -31,7 +28,7 @@ class VisualStudioSolutions:
         #    fis = [[path, fi] for fi in files if fi.endswith('.sln')]
         #    slnFiles += fis
         #return slnFiles
-        return self.Solutions + self.OtherSolutions
+        return self.Solutions + self.model.VsSolutions
 
     def OpenSolutionIndex(self, index):
         self.OpenSolutionFile(self.GetSlnPath(index))
@@ -67,7 +64,7 @@ class VisualStudioSolutions:
         if index < len(self.Solutions):
             return self.Solutions[index]
         index -= len(self.Solutions)
-        return self.OtherSolutions[index]
+        return self.model.VsSolutions[index]
 
     def GetSlnName(self, slnFile):
         slnName = slnFile.split('/')[-1][:-4]
