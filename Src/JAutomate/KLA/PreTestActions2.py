@@ -19,14 +19,27 @@ class KlaRunner:
         curSrc = self.model.Src.GetCur()
         #FileOperations.Delete('{}/libs/testing/myconfig.py'.format(curSrc.Source))
         self.CreateMyConfig()
-        fileName = os.path.abspath(curSrc.Source + '/libs/testing/my.py')
+        relFilePath = '/libs/testing/my.py'
+        fileName = os.path.abspath(curSrc.Source + relFilePath)
         par = 'start python -i ' + fileName
         OsOperations.System(par, 'Starting my.py')
+
+    def OpenPython_CCR(self):
+        if self.model.Src.IsEmpty():
+            MessageBox.ShowMessage('No source available.')
+            return
+        curSrc = self.model.Src.GetCur()
+        relFilePath = '/mmi/classic_custom_reporters/integration'
+        fileName = 'ccr.py'
+        os.chdir(curSrc.Source + relFilePath)
+        par = 'start python -i ' + fileName
+        OsOperations.System(par, 'Starting ' + fileName)
 
     def CreateMyConfig(self):
         curSrc = self.model.Src.GetCur()
         config = ConfigEncoder.GetBuildConfig(self.model)
         data = 'version = 0\n'
+        data += 'prompt = False\n'
         data += 'console_config = r"{}"\n'.format(config[0])
         data += 'simulator_config = r"{}"\n'.format(config[0])
         data += 'mmiBuildConfiguration = r"{}"\n'.format(config)

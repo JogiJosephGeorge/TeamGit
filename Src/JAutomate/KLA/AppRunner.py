@@ -12,6 +12,20 @@ from KLA.TaskMan import TaskMan
 from KLA.VMWareRunner import VMWareRunner
 
 
+class HostCamServer:
+    def __init__(self, model):
+        self.model = model
+
+    def RunRegular(self):
+        fileName = FileOperations.ReadLine('C:/MVS8000/slot1/software_link.cfg', 'utf-8')[0]
+        fileName += '/hostsw/hostcam/HostCamServer.exe'
+        OsOperations.System('start ' + fileName)
+
+    def RunTakiR(self):
+        fileName = self.model.HostCamTakiRFileName + '/HostCamServer.exe -pre_init_taki'
+        OsOperations.System('start ' + fileName)
+
+
 class AppRunner:
     def __init__(self, model, testRunner, vsSolutions):
         self.model = model
@@ -45,11 +59,6 @@ class AppRunner:
         OsOperations.System('start ' + consoleExe + ' ' + testTempDir)
         OsOperations.System('start {} {} {}'.format(simulatorExe, testTempDir, handlerPath))
 
-    def RunHostCam(self):
-        fileName = FileOperations.ReadLine('C:/MVS8000/slot1/software_link.cfg', 'utf-8')[0]
-        fileName += '/hostsw/hostcam/HostCamServer.exe'
-        OsOperations.System('start ' + fileName)
-
     def StopMMi(self):
         TaskMan.StopTask('MMi.exe')
         VMWareRunner.RunSlots(self.model)
@@ -65,7 +74,10 @@ class AppRunner:
             FileOperations.Delete('C:/icos/started.txt')
 
         if self.model.RunHostCam:
-            self.RunHostCam()
+            HostCamServer(self.model).RunRegular()
+
+        if self.model.RunHostCamTakiR:
+            HostCamServer(self.model).RunTakiR()
 
         mmiPath = PreTestActions.GetMmiPath(self.model, fromSrc)
         Logger.Log('Run MMi from ' + mmiPath)

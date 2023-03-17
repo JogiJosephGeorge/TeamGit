@@ -57,10 +57,15 @@ class UISettings(UIWindow):
             self.chkRow += 1
 
         if self.model.UserAccess.IsExpertUser():
-            txt = 'Run Host Cam while running MMi alone'
-            msgOn = 'Run Host Cam while running MMi alone.'
-            msgOff = 'Do NOT run Host Cam while running MMi alone.'
+            txt = 'Run Host Cam Regular while running MMi alone'
+            msgOn = 'Run Host Cam Regular while running MMi alone.'
+            msgOff = 'Do NOT run Host Cam Regular while running MMi alone.'
             AddCheckBox(txt, 'RunHostCam', msgOn, msgOff, False, False)
+
+            txt = 'Run Host Cam Taki-R while running MMi alone'
+            msgOn = 'Run Host Cam Taki-R while running MMi alone.'
+            msgOff = 'Do NOT run Host Cam Taki-R while running MMi alone.'
+            AddCheckBox(txt, 'RunHostCamTakiR', msgOn, msgOff, False, False)
 
             txt = 'Restart Slots while running MMi alone'
             msgOn = 'The selected slots will be restarted while running MMi alone.'
@@ -107,9 +112,9 @@ class UISettings(UIWindow):
             msgOff = 'The files in MVSD Conversion will NOT be copied while running auto test.'
             AddCheckBox(txt, 'CopyMVSDConversionOnTest', msgOn, msgOff, True, False)
 
-            txt = 'On AutoTest Console Run from C:/handler/system'
-            msgOn = 'On AutoTest, Console will be running from C:/handler/system. This is NOT RECOMMENDED.'
-            msgOff = 'On AutoTest, Console will be running from build source'
+            txt = 'Console Run from C:/handler/system'
+            msgOn = 'Console will be running from C:/handler/system. Ensure that handler version is correct.'
+            msgOff = 'Console will be running from build source'
             AddCheckBox(txt, 'ConsoleFromCHandler', msgOn, msgOff, True, False)
 
         if self.model.UserAccess.IsDeveloper():

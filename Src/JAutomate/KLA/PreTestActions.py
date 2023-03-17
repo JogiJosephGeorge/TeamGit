@@ -60,11 +60,14 @@ class PreTestActions:
 
     @classmethod
     def ConfigExistsOnSource(cls, source, pf, cfg):
+        HasConsole = False
         exePaths = cls.GetPossibleExePathsOnConfig(source, pf, cfg)
         for solName, exePath, pf, cfg in exePaths:
-            if not os.path.exists(exePath):
-                return False
-        return True
+            if solName == 'Console':
+                HasConsole = os.path.exists(exePath)
+            elif not os.path.exists(exePath):
+                return (HasConsole, False)
+        return (HasConsole, True)
 
     @classmethod
     def GetPossibleExePathsOnConfig(cls, source, pf, cfg):
@@ -80,8 +83,9 @@ class PreTestActions:
         configPlatforms = []
         for pf in Platform.GetList():
             for cfg in Config.GetList():
-                if cls.ConfigExistsOnSource(source, pf, cfg):
-                    configPlatforms.append((pf, cfg))
+                (HasConsole, HasOthers) = cls.ConfigExistsOnSource(source, pf, cfg)
+                if HasConsole or HasOthers:
+                    configPlatforms.append((pf, cfg, HasConsole, HasOthers))
         return configPlatforms
 
     @classmethod

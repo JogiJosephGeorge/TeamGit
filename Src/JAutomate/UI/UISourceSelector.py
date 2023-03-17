@@ -12,6 +12,7 @@ from KLA.AppRunner import AppRunner
 from KLA.KlaSourceBuilder import KlaSourceBuilder, KlaSourceCleaner
 from KLA.PreTestActions import PreTestActions, SourceCodeUpdater
 from KlaModel.ConfigEncoder import Config, Platform
+from UI.UISolutionList import UISolutionList
 from UI.UIWindow import UIWindow
 
 
@@ -188,12 +189,19 @@ class UISourceSelector(UIWindow):
     def LazyUiInit(self):
         index = 0
         data = [['Source', 'Commit ID', 'Branch', 'Available Configs']]
+        data += [['', '', '', '(* Without Handler)']]
+        data += [['', '', '', '(+ Only Handler)']]
         for srcData in self.model.Src.GetAllSrcs():
             data.append(['-'])
             branch = '' # Git.GetBranch(src)
             configs = ''
-            for pf,cfg in PreTestActions.GetExistingConfigs(srcData.Source):
-                configs = '{}|{} '.format(pf, cfg)
+            for pf,cfg,HasConsole,HasOthers in PreTestActions.GetExistingConfigs(srcData.Source):
+                if HasConsole and HasOthers:
+                    configs += '{}|{} '.format(pf, cfg).upper()
+                elif HasConsole:
+                    configs += '{}|{}+ '.format(pf, cfg)
+                elif HasOthers:
+                    configs += '{}|{}* '.format(pf, cfg)
             for brn1 in Git.GetLocalBranches(srcData.Source):
                 if brn1.startswith('* '):
                     commitId = Git.GetCommitId(srcData.Source, brn1[2:])
@@ -243,11 +251,15 @@ class UISourceSelector(UIWindow):
         self.threadHandler.AddButton(row2, ' Build Solutions ', 0, 1, self.srcBuilder.BuildSource, None, self.srcBuilder.NotifyBuild, None, 19)
         if self.model.UserAccess.IsExpertUser():
             UIFactory.AddButton(row2, 'Available Sources', 0, 2, PreTestActions.PrintAvailableExes, (self.model,), 19)
+            UIFactory.AddButton(row2, 'Open Solutions', 0, 3, self.ShowOpenSolutionDlg, None, 19)
 
             row3 = self.AddRow()
             self.threadHandler.AddButton(row3, ' Remove Handler Temps ', 0, 0, self.srcCleaner.RemoveAllHandlerTemp, None, None, None, 19)
             self.threadHandler.AddButton(row3, ' Remove All ~', 0, 1, self.srcCleaner.RemoveAllTilt, None, None, None, 19)
             self.threadHandler.AddButton(row3, ' Remove MVS Temps ', 0, 2, self.srcCleaner.RemoveMvsTemp, None, None, None, 19)
+
+    def ShowOpenSolutionDlg(self):
+        UISolutionList(self.window, self.model, self.vsSolutions).Show()
 
     def OnSelectSolution(self, inx):
         self.vsSolutions.SelectedInxs[inx] = self.slnChks[inx].get()

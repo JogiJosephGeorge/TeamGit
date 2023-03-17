@@ -1,5 +1,6 @@
 import os
 import subprocess
+import webbrowser
 from Common.FileOperations import FileOperations
 from Common.MessageBox import MessageBox
 from Common.Test import Test
@@ -40,6 +41,12 @@ class GoldenReportComparer:
         rightFolder = testPath + '~/_results'
         newRightFolder = testPath + '~/NewGoldenReports'
         self.CopyAndCompareTestResults(leftFolder, rightFolder, newRightFolder)
+        reportFileName = 'file://' + os.path.realpath(testPath + '~/Reports/Report.html')
+        if os.path.exists(reportFileName):
+            print 'Open file : ' + reportFileName
+            webbrowser.open(reportFileName)
+        else:
+            print 'File not available : ' + reportFileName
 
     def CopyAndCompareTestResults(self, leftFolder, rightFolder, newRightFolder):
         if not os.path.isfile(self.model.BCompare):

@@ -10,12 +10,14 @@ class TaskMan:
     def StopTasks(cls):
         cls.StopTimers()
         for exeName in [
+            'PsxViewer.exe',
             'Mmi.exe',
             'Mmi_spc.exe',
             'console.exe',
             'CIT100Simulator.exe',
             'HostCamServer.exe',
             'Ves.exe',
+            'ECAServer.exe',
         ]:
             TaskMan.StopTask(exeName)
         # TODO: The following line needs to close everything properly.

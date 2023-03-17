@@ -1,6 +1,8 @@
 import os
 import sys
 import imp
+import threading
+import time
 
 from Common.FileOperations import FileOperations
 from Common.Git import Git
@@ -77,23 +79,30 @@ class AutoTestRunner:
             return
 
         print 'Module location of my : ' + my.__file__
-        my.c.startup = self.model.StartOnly
         my.c.debugvision = self.model.DebugVision
-        my.c.copymmi = self.model.CopyMmi
-        my.c.mmiBuildConfiguration = ConfigEncoder.GetBuildConfig(self.model)
-        my.c.simulator_config = my.c.mmiBuildConfiguration[0]
+        my.c.prompt = False
+        my.c.startup = self.model.StartOnly
         if self.model.ConsoleFromCHandler:
             my.c.console_config = 'm'
         else:
             my.c.console_config = my.c.mmiBuildConfiguration[0]
-        my.c.platform = curSrc.Platform
-        my.c.mmiConfigurationsPath = self.model.MMiConfigPath
-        my.c.mmiSetupsPath = self.model.MMiSetupsPath
+        my.c.simulator_config = my.c.mmiBuildConfiguration[0]
         my.c.removeOldCopies = self.model.removeOldCopies
+        my.c.copymmi = self.model.CopyMmi
+        my.c.mmiBuildConfiguration = ConfigEncoder.GetBuildConfig(self.model)
+        my.c.mmiConfigurationsPath = self.model.MMiConfigPath
+        my.c.platform = curSrc.Platform
+        my.c.mmiSetupsPath = self.model.MMiSetupsPath
+        my.c.installerShare = ''
+
+        print '\n' * 10 + '*' * 30 + ' Running Auto Test ' + '*' * 30 + '\n' * 5
+        print my.c
         testNum = self.tests[0][0]
         if curSrc.MMiSetupVersion:
+            print 'run(' + str(testNum) + ', version="' + str(curSrc.MMiSetupVersion) + '")'
             my.run(testNum, version=curSrc.MMiSetupVersion)
         else:
+            print 'run(' + str(testNum) + ')'
             my.run(testNum)
         if self.VM is not None:
             self.VM.UpdateSlots()

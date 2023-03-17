@@ -19,6 +19,7 @@ class ConfigInfo:
         model.LogFileName = iniFile.ReadField('LogFileName', 'bin/Log.txt')
         model.MaxSlots = iniFile.ReadInt('MaxSlots', 8)
         model.LogName = iniFile.ReadField('LogName', 'KLARunner> ')
+        model.HostCamTakiRFileName = iniFile.ReadField('HostCamTakiRFileName', 'C:/HostCamTakiR')
         model.RestartSlotsForMMiAlone = iniFile.ReadField('RestartSlotsForMMiAlone', False)
         model.GenerateLicMgrConfigOnTest = iniFile.ReadField('GenerateLicMgrConfigOnTest', False)
         model.CopyLicMgrConfigOnTest = iniFile.ReadField('CopyLicMgrConfigOnTest', False)
@@ -32,6 +33,7 @@ class ConfigInfo:
         model.UpdateSubmodulesOnReset = iniFile.ReadField('UpdateSubmodulesOnReset', False)
         model.NoAutoTest = iniFile.ReadField('NoAutoTest', False)
         model.RunHostCam = iniFile.ReadField('RunHostCam', False)
+        model.RunHostCamTakiR = iniFile.ReadField('RunHostCamTakiR', False)
         model.ShowBuildInProgress = iniFile.ReadField('ShowBuildInProgress', True)
 
         model.MMiConfigPath = model.MMiConfigPath.replace('/', '\\')
@@ -59,6 +61,7 @@ class ConfigInfo:
         iniFile.Write('LogFileName', model.LogFileName)
         iniFile.Write('MaxSlots', model.MaxSlots)
         iniFile.Write('LogName', model.LogName)
+        iniFile.Write('HostCamTakiRFileName', model.HostCamTakiRFileName)
         iniFile.Write('RestartSlotsForMMiAlone', model.RestartSlotsForMMiAlone)
         iniFile.Write('GenerateLicMgrConfigOnTest', model.GenerateLicMgrConfigOnTest)
         iniFile.Write('CopyLicMgrConfigOnTest', model.CopyLicMgrConfigOnTest)
@@ -72,6 +75,7 @@ class ConfigInfo:
         iniFile.Write('UpdateSubmodulesOnReset', model.UpdateSubmodulesOnReset)
         iniFile.Write('NoAutoTest', model.NoAutoTest)
         iniFile.Write('RunHostCam', model.RunHostCam)
+        iniFile.Write('RunHostCamTakiR', model.RunHostCamTakiR)
         iniFile.Write('ShowBuildInProgress', model.ShowBuildInProgress)
 
 

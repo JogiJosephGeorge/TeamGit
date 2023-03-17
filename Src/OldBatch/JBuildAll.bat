@@ -3,13 +3,13 @@ CALL:Initialize %0
 REM        2  -  Configurations   -  Debug Release
 REM        3  -  Platform         -  Win32 x64
 REM        4  -  Visual Studio    -  2017 2022
-REM        5  -  CIT100.sln       -  HanAll Han
+REM        5  -  CIT100.sln       -  Han HanCln
 REM        6  -  Mmi.sln          -  Mmi
 REM        7  -  Other Solutions  -  Others
 
-rem CALL:CleanSource D:\CI\Src3 Debug Win32 2017 Han Mmi Others
- CALL:BuildSource D:\CI\Src3 Debug Win32 2017 Han Mmi Others
-rem CALL:BuildSource D:\CI\Src6 Release Win32 2022 Han Mmi Others
+rem CALL:CleanSource D:\CI\Src1 Debug Win32 2022 Han Mmi Others
+rem CALL:BuildSource D:\CI\Src1 Debug Win32 2022 Han Mmi Others
+ CALL:BuildSource D:\CI\Src4 Debug Win32 2017 -Han Mmi Others
 
 
 REM --------------------------------------------------------------------------------------------------------
@@ -67,10 +67,10 @@ REM --------------------------- Build / Clean Source  --------------------------
 	)
 	CALL::JPrint DevEnv : Microsoft Visual Studio %4
 
-	IF "%5" == "HanAll" (
+	IF "%5" == "Han" (
 		CALL:DevSln handler/cpp/CIT100 %JConPlat% Handler
 	)
-	IF "%5" == "Han" (
+	IF "%5" == "HanCln" (
 		CALL:DevSln handler/cpp/CIT100 %JConPlat% Handler
 		IF %BuildOpt% == Build (
 			CALL:JCleanHanTemp %JSource%
@@ -91,6 +91,7 @@ REM --------------------------- Build / Clean Source  --------------------------
 		CALL:DevSln mmi/mmi/Converters %JConPlat% Converters
 		REM CALL:DevSln libs/DLStub/DLStub/DLStub %JConPlat% DLStub
 		REM CALL:DevSln libs/DLStub/ICOSDaemonStub/ICOSDaemonStub %JConPlat% ICOSDaemonStub
+		REM CALL:DevSln handler/CustomerProjects/FileSyncTool/FileSyncTool %JConPlat% FileSyncTool
 	)
 EXIT /B 0
 
