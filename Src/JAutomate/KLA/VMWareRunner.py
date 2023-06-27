@@ -90,11 +90,11 @@ class VMWareRunner:
             OsOperations.Timeout(5)
         cd1 = os.getcwd()
         OsOperations.ChDir('C:/MVS7000/slot1/')
-        # Bug : only first slot is working.
-        for slot in slots:
-            os.chdir('../slot{}'.format(slot))
-            cmd = 'slot{}.bat'.format(slot)
-            OsOperations.System(cmd)
+        # Bug : only first slot is working. Its unable to exit after testing first slot
+        slot = slots[0]
+        os.chdir('../slot{}'.format(slot))
+        cmd = 'slot{}.bat'.format(slot)
+        OsOperations.System(cmd)
         OsOperations.ChDir(cd1)
 
     @classmethod

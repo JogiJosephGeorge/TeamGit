@@ -3,14 +3,21 @@ CALL:Initialize %0
 REM        2  -  Configurations   -  Debug Release
 REM        3  -  Platform         -  Win32 x64
 REM        4  -  Visual Studio    -  2017 2022
-REM        5  -  CIT100.sln       -  Han HanCln
+REM        5  -  CIT100.sln       -  Han HanCln HanBase
 REM        6  -  Mmi.sln          -  Mmi
 REM        7  -  Other Solutions  -  Others
 
-rem CALL:CleanSource D:\CI\Src1 Debug Win32 2022 Han Mmi Others
-rem CALL:BuildSource D:\CI\Src1 Debug Win32 2022 Han Mmi Others
- CALL:BuildSource D:\CI\Src4 Debug Win32 2017 -Han Mmi Others
+rem CALL:CleanSource D:\CI\Src6 Release Win32 2022 -Han Mmi Others
 
+rem CALL:BuildSource D:\CI\Src4 Debug Win32 2017 -Han Mmi Others
+ CALL:BuildSource D:\CI\Src1 Debug Win32 2022 Han -Mmi -Others
+
+REM  REM  Build a project alone
+REM  SET JMSBuild="C:\Program Files\Microsoft Visual Studio\2022\Professional\Msbuild\Current\Bin\MSBuild.exe"
+REM  SET JSource=D:\CI\Src2
+REM  SET SlnFile=%JSource%\handler\cpp\CIT100.sln
+REM  SET JTar=SystemObserverUtilities
+REM  %JMSBuild% %SlnFile% -target:%JTar% /p:Configuration=Debug /p:Platform=Win32
 
 REM --------------------------------------------------------------------------------------------------------
 REM ----------------------------              End of Execution              --------------------------------
@@ -89,8 +96,8 @@ REM --------------------------- Build / Clean Source  --------------------------
 
 		CALL:DevSln mmi/mmi/MockLicense %JConPlat% MockLicense
 		CALL:DevSln mmi/mmi/Converters %JConPlat% Converters
-		REM CALL:DevSln libs/DLStub/DLStub/DLStub %JConPlat% DLStub
-		REM CALL:DevSln libs/DLStub/ICOSDaemonStub/ICOSDaemonStub %JConPlat% ICOSDaemonStub
+		CALL:DevSln libs/DLStub/DLStub/DLStub %JConPlat% DLStub
+		CALL:DevSln libs/DLStub/ICOSDaemonStub/ICOSDaemonStub %JConPlat% ICOSDaemonStub
 		REM CALL:DevSln handler/CustomerProjects/FileSyncTool/FileSyncTool %JConPlat% FileSyncTool
 	)
 EXIT /B 0

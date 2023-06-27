@@ -80,16 +80,17 @@ class AutoTestRunner:
 
         print 'Module location of my : ' + my.__file__
         my.c.debugvision = self.model.DebugVision
-        my.c.prompt = False
+        my.c.prompt = self.model.PromptOnTestFail
         my.c.startup = self.model.StartOnly
+        buildConfig = ConfigEncoder.GetBuildConfig(self.model)
         if self.model.ConsoleFromCHandler:
             my.c.console_config = 'm'
         else:
-            my.c.console_config = my.c.mmiBuildConfiguration[0]
-        my.c.simulator_config = my.c.mmiBuildConfiguration[0]
+            my.c.console_config = buildConfig[0]
+        my.c.simulator_config = buildConfig[0]
         my.c.removeOldCopies = self.model.removeOldCopies
         my.c.copymmi = self.model.CopyMmi
-        my.c.mmiBuildConfiguration = ConfigEncoder.GetBuildConfig(self.model)
+        my.c.mmiBuildConfiguration = buildConfig
         my.c.mmiConfigurationsPath = self.model.MMiConfigPath
         my.c.platform = curSrc.Platform
         my.c.mmiSetupsPath = self.model.MMiSetupsPath

@@ -35,6 +35,7 @@ class ConfigInfo:
         model.RunHostCam = iniFile.ReadField('RunHostCam', False)
         model.RunHostCamTakiR = iniFile.ReadField('RunHostCamTakiR', False)
         model.ShowBuildInProgress = iniFile.ReadField('ShowBuildInProgress', True)
+        model.PromptOnTestFail = iniFile.ReadField('PromptOnTestFail', True)
 
         model.MMiConfigPath = model.MMiConfigPath.replace('/', '\\')
 
@@ -77,6 +78,7 @@ class ConfigInfo:
         iniFile.Write('RunHostCam', model.RunHostCam)
         iniFile.Write('RunHostCamTakiR', model.RunHostCamTakiR)
         iniFile.Write('ShowBuildInProgress', model.ShowBuildInProgress)
+        iniFile.Write('PromptOnTestFail', model.PromptOnTestFail)
 
 
 class Geometry:

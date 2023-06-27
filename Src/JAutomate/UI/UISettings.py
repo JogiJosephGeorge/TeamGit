@@ -112,6 +112,11 @@ class UISettings(UIWindow):
             msgOff = 'The files in MVSD Conversion will NOT be copied while running auto test.'
             AddCheckBox(txt, 'CopyMVSDConversionOnTest', msgOn, msgOff, True, False)
 
+            txt = 'On AutoTest Fail Prompt'
+            msgOn = 'Auto test failure will be prompted.'
+            msgOff = 'Auto test failure will NOT be prompted. This is NOT RECOMMENDED.'
+            AddCheckBox(txt, 'PromptOnTestFail', msgOn, msgOff, False, True)
+
             txt = 'Console Run from C:/handler/system'
             msgOn = 'Console will be running from C:/handler/system. Ensure that handler version is correct.'
             msgOff = 'Console will be running from build source'

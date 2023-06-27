@@ -320,4 +320,6 @@ class UISourceSelector(UIWindow):
             MessageBox.ShowMessage('No source available.')
             return
         par = 'nuget restore {}\mmi\mmi\Mmi.sln'.format(curSrc.Source)
-        OsOperations.System(par, 'Restore Nuget Packages')
+        OsOperations.System(par, 'Restore Nuget Packages for MMI.sln')
+        par = 'nuget restore {}\handler\Simulator\CIT100Simulator\CIT100Simulator.sln'.format(curSrc.Source)
+        OsOperations.System(par, 'Restore Nuget Packages for CIT100Simulator.sln')
